@@ -21,6 +21,71 @@ A personal, modular Discord bot built with TypeScript, designed for Marvel Conte
 
 ---
 
+## Migration
+
+This section outlines the plan and progress for migrating commands from the legacy Python bot to this new TypeScript version.
+
+**Migration Goals & Rules:**
+
+*   **Slash Commands Only:** All commands will be implemented as slash commands (`/`).
+*   **Effective Subcommands:** Use subcommands and subcommand groups to create a clear and intuitive command structure.
+*   **Modern Components:** Utilize modern Discord UI components (Buttons, Select Menus, Modals) where applicable to improve user experience.
+*   **Robust Error Handling:** Implement comprehensive error handling for all commands.
+*   **Database:** Transition from JSON files to a more robust database solution.
+*   **Code Quality:** Ensure all new code is well-documented, follows the existing project structure, and is written in an idiomatic TypeScript style.
+
+**Legacy Command Status:**
+
+*This list will be populated to track the migration status of each command.*
+
+*   **`account.py`**:
+    *   `/link_account`: To be reviewed
+    *   `/delete_account_link`: To be reviewed
+    *   `/register_thread`: To be reviewed
+    *   `/unregister_thread`: To be reviewed
+*   **`admin.py`**:
+    *   `/update_bot`: To be reviewed
+    *   `/sync_commands`: To be reviewed
+    *   `/update`: To be reviewed
+*   **`aq.py`**:
+    *   `/aq` (group command): To be reviewed
+        *   `/aq start`: To be reviewed
+        *   `/aq end`: To be reviewed
+        *   `/aq test_ping`: To be reviewed
+*   **`champion_info.py`**:
+    *   `/full_abilities`: To be reviewed
+    *   `/glossary`: To be reviewed
+    *   `/glossary_category`: To be reviewed
+    *   `/attacks`: To be reviewed
+    *   `/search`: To be reviewed
+    *   `/my_roster_search`: To be reviewed
+    *   `/roster_search`: To be reviewed
+    *   `/duel`: To be reviewed
+    *   `/immunities`: To be reviewed
+    *   `/abilities`: To be reviewed
+*   **`general.py`**:
+    *   `/summarize`: Migrated
+    *   `/hello`: To be reviewed
+*   **`prestige.py`**:
+    *   `/prestige_list`: To be reviewed
+    *   `/prestige`: To be reviewed
+*   **`remind.py`**:
+    *   `/remind`: Not to be migrated (replaced by new scheduler)
+    *   `/remind_mute`: Not to be migrated (replaced by new scheduler)
+    *   `/remind_list`: Not to be migrated (replaced by new scheduler)
+    *   `/remind_delete`: Not to be migrated (replaced by new scheduler)
+*   **`roster.py`**:
+    *   `$roster` (text command, needs migration to slash): To be reviewed
+    *   `/roster_clear_cache`: To be reviewed
+    *   `/roster_add`: To be reviewed
+    *   `/roster_delete`: To be reviewed
+    *   `/roster_convert`: To be reviewed
+*   **`war.py`**:
+    *   `/aw_plan`: To be reviewed
+    *   `/aw_details`: To be reviewed
+
+---
+
 ## Getting Started (Local Development)
 
 ### Prerequisites

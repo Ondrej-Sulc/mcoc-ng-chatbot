@@ -16,6 +16,7 @@ export interface CommandExecuteParams {
 export interface CommandResult {
   content?: string;
   components?: any;
+  embeds?: any;
   files?: AttachmentBuilder[];
   isComponentsV2?: boolean;
   ephemeral?: boolean;

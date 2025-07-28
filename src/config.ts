@@ -6,6 +6,7 @@ import "dotenv/config";
 interface Config {
   BOT_TOKEN: string;
   OPEN_ROUTER_API_KEY: string;
+  OPENROUTER_DEFAULT_MODEL: string;
   GOOGLE_CREDENTIALS_JSON: string;
   MCOC_SHEET_ID: string;
   SCHEDULE_SHEET_ID: string;
@@ -53,6 +54,7 @@ const createConfig = (): Config => {
         : "DISCORD_BOT_TOKEN_DEV"
     ),
     OPEN_ROUTER_API_KEY: getEnv("OPEN_ROUTER_API_KEY"),
+    OPENROUTER_DEFAULT_MODEL: getEnv("OPENROUTER_DEFAULT_MODEL", "google/gemini-2.5-flash"),
     GOOGLE_CREDENTIALS_JSON: getEnv("GOOGLE_CREDENTIALS_JSON"),
     MCOC_SHEET_ID: getEnv("MCOC_SHEET_ID"),
     SCHEDULE_SHEET_ID: getEnv("SCHEDULE_SHEET_ID"),
