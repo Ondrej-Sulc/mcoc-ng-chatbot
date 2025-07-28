@@ -1,0 +1,10 @@
+# .dockerignore
+node_modules
+dist
+.env
+.git
+.gitignore
+docker-compose.yml
+README.md
+bundler.py
+bundled_code.txt
