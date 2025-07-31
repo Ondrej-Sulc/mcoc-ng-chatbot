@@ -5,16 +5,18 @@ A personal, modular Discord bot built with TypeScript, designed for Marvel Conte
 ## Key Features
 
 - **Dynamic Command Loading:** Commands in the `src/commands` directory are automatically registered on startup.
+- **PostgreSQL Database:** Uses a robust PostgreSQL database managed with Prisma for persistent data storage.
 - **Google Sheets Integration:** Utilizes Google Sheets for data storage and retrieval (e.g., for scheduling).
 - **Advanced Scheduling:** Schedule commands or custom messages with flexible timing (daily, weekly, custom cron, etc.) via `/schedule`.
 - **Centralized Error Handling:** A robust system that provides users with a unique error ID while logging detailed context for debugging.
-- **Dockerized Environment:** Fully containerized for consistent development and easy deployment.
+- **Dockerized Environment:** Fully containerized with Docker Compose for consistent development and easy deployment, including a PostgreSQL database service.
 - **AI Capabilities:** Integration with OpenRouter for advanced AI features.
 
 ## Technology Stack
 
 - **Language:** TypeScript (Strict Mode)
 - **Framework:** Discord.js v14
+- **Database:** PostgreSQL with Prisma ORM
 - **APIs:** Google Sheets, OpenRouter
 - **Scheduling:** `node-cron`
 - **Containerization:** Docker & Docker Compose
@@ -44,9 +46,9 @@ This section outlines the plan and progress for migrating commands from the lega
     *   `/register_thread`: To be reviewed
     *   `/unregister_thread`: To be reviewed
 *   **`admin.py`**:
-    *   `/update_bot`: To be reviewed
-    *   `/sync_commands`: To be reviewed
-    *   `/update`: To be reviewed
+    *   `/update_bot`: Not to be migrated (not necessary anymore)
+    *   `/sync_commands`: Not to be migrated (not necessary anymore)
+    *   `/update`: Not to be migrated (not necessary anymore)
 *   **`aq.py`**:
     *   `/aq` (group command): To be reviewed
         *   `/aq start`: To be reviewed
@@ -65,7 +67,7 @@ This section outlines the plan and progress for migrating commands from the lega
     *   `/abilities`: To be reviewed
 *   **`general.py`**:
     *   `/summarize`: Migrated
-    *   `/hello`: To be reviewed
+    *   `/hello`: Not to be migrated (redundant)
 *   **`prestige.py`**:
     *   `/prestige_list`: To be reviewed
     *   `/prestige`: To be reviewed
@@ -81,8 +83,8 @@ This section outlines the plan and progress for migrating commands from the lega
     *   `/roster_delete`: To be reviewed
     *   `/roster_convert`: To be reviewed
 *   **`war.py`**:
-    *   `/aw_plan`: To be reviewed
-    *   `/aw_details`: To be reviewed
+    *   `/aw_plan`: Migrated (as `/aw plan`)
+    *   `/aw_details`: Migrated (as `/aw details`)
 
 ---
 
@@ -110,7 +112,7 @@ Create a `.env` file by copying the example:
 cp .env.example .env
 ```
 
-Fill in the values in the `.env` file.
+Fill in the values in the `.env` file. This includes your Discord bot token, API keys, and the connection details for your PostgreSQL database.
 
 **Important:** For `GOOGLE_CREDENTIALS_JSON`, you must provide the full JSON content of your service account key, encoded in Base64. You can generate this with the following command:
 
@@ -124,27 +126,37 @@ cat /path/to/your/credentials.json | base64 -w 0
 
 Copy the resulting string into the `.env` file.
 
-### 3. Run the Bot
+### 3. Run the Initial Database Migration
 
-Use Docker Compose to build the image and start the container. The `docker-compose.yaml` is configured for development with hot-reloading.
+Before starting the bot for the first time, you need to create the tables in your database.
+
+```bash
+npx prisma migrate dev --name init
+```
+
+### 4. Run the Bot
+
+Use Docker Compose to build the images and start the containers (bot and database). The `docker-compose.yaml` is configured for development with hot-reloading.
 
 ```bash
 docker-compose up --build
 ```
 
-The bot should now be running and connected to Discord.
+The bot should now be running and connected to Discord and the database.
 
 ---
 
 ## Project Structure
 
 mcoc-ng-chatbot/
+├── prisma/ # Prisma schema and migration files
+│   └── schema.prisma
 ├── src/
-│ ├── commands/ # Each file is a slash command
-│ ├── types/ # Shared TypeScript interfaces and types
-│ ├── utils/ # Service clients and helper functions
-│ ├── config.ts # Environment variable loading and validation
-│ └── index.ts # Bot entry point, client setup, event handlers
+│   ├── commands/ # Each file is a slash command
+│   ├── types/ # Shared TypeScript interfaces and types
+│   ├── utils/ # Service clients and helper functions
+│   ├── config.ts # Environment variable loading and validation
+│   └── index.ts # Bot entry point, client setup, event handlers
 ├── Dockerfile # Multi-stage build for lean production images
 ├── docker-compose.yaml # Development environment setup
 └── README.md # You are here

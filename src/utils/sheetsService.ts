@@ -279,3 +279,27 @@ export async function deleteSchedule(id: string): Promise<void> {
    */
   await updateSchedule(id, { is_active: false });
 }
+
+export interface WarPlanData {
+  assignments: any[][] | null;
+  prefights: any[][] | null;
+}
+
+export async function getWarPlanData(
+  battlegroup: number
+): Promise<WarPlanData> {
+  const sheetName = `AW BG${battlegroup}`;
+  const planRange = `'${sheetName}'!FB3:FF52`;
+  const prefightRange = `'${sheetName}'!GD3:GF52`;
+
+  const assignments = await sheetsService.readSheet(
+    config.MCOC_SHEET_ID,
+    planRange
+  );
+  const prefights = await sheetsService.readSheet(
+    config.MCOC_SHEET_ID,
+    prefightRange
+  );
+
+  return { assignments, prefights };
+}

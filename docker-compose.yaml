@@ -1,18 +1,37 @@
-# docker-compose.yml
 services:
   bot:
     build:
       context: .
-      # Tell Docker Compose to use the 'builder' stage from the Dockerfile
-      # This stage has all devDependencies (like tsx) installed.
       target: builder
     volumes:
       - ./src:/usr/src/app/src
-    # Add this environment variable to enable polling
     environment:
       - CHOKIDAR_USEPOLLING=true
       - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL}
     env_file:
       - ./.env
-    # Override the default CMD to run the development script
     command: npm run dev
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
