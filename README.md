@@ -36,6 +36,12 @@ This section outlines the plan and progress for migrating commands from the lega
 *   **Database:** Transition from JSON files to a more robust database solution.
 *   **Code Quality:** Ensure all new code is well-documented, follows the existing project structure, and is written in an idiomatic TypeScript style.
 
+### Database Migration Progress
+
+*   **Glossary Data:** Migrated to PostgreSQL using `prisma/schema.prisma` and populated via `temp_load_glossary.ts`.
+*   **Champion Data:** Next focus will be on migrating `legacy/champions_data.json` to a new database table structure. This will be a core component of the bot.
+
+
 **Legacy Command Status:**
 
 *This list will be populated to track the migration status of each command.*

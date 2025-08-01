@@ -7,8 +7,17 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Player {
-  id        String  @id @default(cuid())
-  discordId String  @unique
-  threadId  String?
+model GlossaryCategory {
+  id          String   @id
+  name        String
+  description String
+  effects     GlossaryEffect[] @relation("GlossaryEffectToGlossaryCategory")
+}
+
+model GlossaryEffect {
+  id          String   @id
+  name        String
+  description String
+  emoji       String
+  categories  GlossaryCategory[] @relation("GlossaryEffectToGlossaryCategory")
 }

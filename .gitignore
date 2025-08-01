@@ -137,3 +137,5 @@ dist
 
 legacy/
 /src/generated/prisma
+/prisma/migrations
+temp_*.ts
