@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -7,17 +9,126 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model GlossaryCategory {
-  id          String   @id
-  name        String
-  description String
-  effects     GlossaryEffect[] @relation("GlossaryEffectToGlossaryCategory")
+// --- Enums for type safety and consistency ---
+enum ChampionClass {
+  SCIENCE
+  SKILL
+  MYSTIC
+  COSMIC
+  TECH
+  MUTANT
+  SUPERIOR
 }
 
-model GlossaryEffect {
-  id          String   @id
-  name        String
+enum AbilityLinkType {
+  ABILITY
+  IMMUNITY
+}
+
+// NEW: Enum for the different attack types.
+enum AttackType {
+  L1
+  L2
+  L3
+  L4
+  M1
+  M2
+  H
+  S1
+  S2
+}
+
+// --- Models ---
+
+// RENAMED from GlossaryCategory and re-linked
+model AbilityCategory {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
   description String
-  emoji       String
-  categories  GlossaryCategory[] @relation("GlossaryEffectToGlossaryCategory")
+
+  abilities Ability[]
+}
+
+model Ability {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+  emoji       String?
+
+  categories AbilityCategory[]
+  champions  ChampionAbilityLink[]
+}
+
+model Champion {
+  id            Int           @id @default(autoincrement())
+  name          String        @unique
+  shortName     String
+  class         ChampionClass
+  releaseDate   DateTime
+  obtainable    String[]
+  prestige      Json // Keeping as Json as discussed
+  images        Json // Keeping as Json as discussed
+  discordEmoji  String?
+  fullAbilities Json // Keeping as Json as discussed
+
+  // --- Relations ---
+  tags      Tag[]
+  abilities ChampionAbilityLink[]
+  attacks   Attack[] // REMOVED: attacks Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tag {
+  id       Int    @id @default(autoincrement())
+  name     String
+  category String
+
+  champions Champion[]
+
+  @@unique([name, category])
+}
+
+model ChampionAbilityLink {
+  id     Int             @id @default(autoincrement())
+  type   AbilityLinkType
+  source String
+
+  championId Int
+  champion   Champion @relation(fields: [championId], references: [id], onDelete: Cascade)
+
+  abilityId Int
+  ability   Ability @relation(fields: [abilityId], references: [id], onDelete: Cascade)
+
+  @@unique([championId, abilityId, type])
+  @@index([championId])
+  @@index([abilityId])
+}
+
+// --- New Models for Normalized Attacks ---
+
+// NEW: Represents a specific attack for a champion (e.g., Abomination's SP2)
+model Attack {
+  id   Int        @id @default(autoincrement())
+  type AttackType // e.g., S1, M2, etc.
+
+  championId Int
+  champion   Champion @relation(fields: [championId], references: [id], onDelete: Cascade)
+
+  hits Hit[] // An attack is composed of one or more hits
+
+  @@unique([championId, type]) // Each champion can only have one S1, one M1, etc.
+  @@index([championId])
+}
+
+// NEW: Represents a single hit within an attack.
+model Hit {
+  id         Int      @id @default(autoincrement())
+  properties String[] // e.g., ["Contact", "Physical", "Punch"]
+
+  attackId Int
+  attack   Attack @relation(fields: [attackId], references: [id], onDelete: Cascade)
+
+  @@index([attackId])
 }

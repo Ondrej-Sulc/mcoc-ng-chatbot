@@ -29,68 +29,73 @@ This section outlines the plan and progress for migrating commands from the lega
 
 **Migration Goals & Rules:**
 
-*   **Slash Commands Only:** All commands will be implemented as slash commands (`/`).
-*   **Effective Subcommands:** Use subcommands and subcommand groups to create a clear and intuitive command structure.
-*   **Modern Components:** Utilize modern Discord UI components (Buttons, Select Menus, Modals) where applicable to improve user experience.
-*   **Robust Error Handling:** Implement comprehensive error handling for all commands.
-*   **Database:** Transition from JSON files to a more robust database solution.
-*   **Code Quality:** Ensure all new code is well-documented, follows the existing project structure, and is written in an idiomatic TypeScript style.
+- **Slash Commands Only:** All commands will be implemented as slash commands (`/`).
+- **Effective Subcommands:** Use subcommands and subcommand groups to create a clear and intuitive command structure.
+- **Modern Components:** Utilize modern Discord UI components (Buttons, Select Menus, Modals) where applicable to improve user experience.
+- **Robust Error Handling:** Implement comprehensive error handling for all commands.
+- **Database:** Transition from JSON files to a more robust database solution.
+- **Code Quality:** Ensure all new code is well-documented, follows the existing project structure, and is written in an idiomatic TypeScript style.
 
-### Database Migration Progress
+Database Migration & Seeding
 
-*   **Glossary Data:** Migrated to PostgreSQL using `prisma/schema.prisma` and populated via `temp_load_glossary.ts`.
-*   **Champion Data:** Next focus will be on migrating `legacy/champions_data.json` to a new database table structure. This will be a core component of the bot.
+The bot now utilizes a PostgreSQL database managed by Prisma for persistent storage of structured game data.
 
+- Schema Definition: The database schema is fully defined in prisma/schema.prisma, modeling entities like Champions, Abilities, Tags, and Attacks.
+- Data Seeding: A comprehensive seeding script (prisma/seed.ts) has been created to migrate data from legacy JSON files (legacy/champions_data.json, legacy/glossary.json) into the PostgreSQL database.
+  - This script handles the full lifecycle: clearing existing data, creating relational structures (Categories, Tags), and populating Champion data along with its complex relationships (Abilities, Immunities, Attacks).
+  - It ensures data integrity and handles potential duplicates in the source JSON.
+- Data Sources Migrated: - Glossary Data: Populated into AbilityCategory and Ability tables. - Champion Data: Fully migrated. This includes core champion details, prestige costs, image URLs, tags, normalized attack data (Light, Medium, Heavy, Special attacks and their individual hits), and structured links to abilities and immunities.
+  This structured database is now the central source for all champion-related information within the bot.
 
 **Legacy Command Status:**
 
-*This list will be populated to track the migration status of each command.*
+_This list will be populated to track the migration status of each command._
 
-*   **`account.py`**:
-    *   `/link_account`: To be reviewed
-    *   `/delete_account_link`: To be reviewed
-    *   `/register_thread`: To be reviewed
-    *   `/unregister_thread`: To be reviewed
-*   **`admin.py`**:
-    *   `/update_bot`: Not to be migrated (not necessary anymore)
-    *   `/sync_commands`: Not to be migrated (not necessary anymore)
-    *   `/update`: Not to be migrated (not necessary anymore)
-*   **`aq.py`**:
-    *   `/aq` (group command): To be reviewed
-        *   `/aq start`: To be reviewed
-        *   `/aq end`: To be reviewed
-        *   `/aq test_ping`: To be reviewed
-*   **`champion_info.py`**:
-    *   `/full_abilities`: To be reviewed
-    *   `/glossary`: To be reviewed
-    *   `/glossary_category`: To be reviewed
-    *   `/attacks`: To be reviewed
-    *   `/search`: To be reviewed
-    *   `/my_roster_search`: To be reviewed
-    *   `/roster_search`: To be reviewed
-    *   `/duel`: To be reviewed
-    *   `/immunities`: To be reviewed
-    *   `/abilities`: To be reviewed
-*   **`general.py`**:
-    *   `/summarize`: Migrated
-    *   `/hello`: Not to be migrated (redundant)
-*   **`prestige.py`**:
-    *   `/prestige_list`: To be reviewed
-    *   `/prestige`: To be reviewed
-*   **`remind.py`**:
-    *   `/remind`: Not to be migrated (replaced by new scheduler)
-    *   `/remind_mute`: Not to be migrated (replaced by new scheduler)
-    *   `/remind_list`: Not to be migrated (replaced by new scheduler)
-    *   `/remind_delete`: Not to be migrated (replaced by new scheduler)
-*   **`roster.py`**:
-    *   `$roster` (text command, needs migration to slash): To be reviewed
-    *   `/roster_clear_cache`: To be reviewed
-    *   `/roster_add`: To be reviewed
-    *   `/roster_delete`: To be reviewed
-    *   `/roster_convert`: To be reviewed
-*   **`war.py`**:
-    *   `/aw_plan`: Migrated (as `/aw plan`)
-    *   `/aw_details`: Migrated (as `/aw details`)
+- **`account.py`**:
+  - `/link_account`: To be reviewed
+  - `/delete_account_link`: To be reviewed
+  - `/register_thread`: To be reviewed
+  - `/unregister_thread`: To be reviewed
+- **`admin.py`**:
+  - `/update_bot`: Not to be migrated (not necessary anymore)
+  - `/sync_commands`: Not to be migrated (not necessary anymore)
+  - `/update`: Not to be migrated (not necessary anymore)
+- **`aq.py`**:
+  - `/aq` (group command): To be reviewed
+    - `/aq start`: To be reviewed
+    - `/aq end`: To be reviewed
+    - `/aq test_ping`: To be reviewed
+- **`champion_info.py`**:
+  - `/full_abilities`: To be reviewed
+  - `/glossary`: To be reviewed
+  - `/glossary_category`: To be reviewed
+  - `/attacks`: To be reviewed
+  - `/search`: To be reviewed
+  - `/my_roster_search`: To be reviewed
+  - `/roster_search`: To be reviewed
+  - `/duel`: To be reviewed
+  - `/immunities`: To be reviewed
+  - `/abilities`: To be reviewed
+- **`general.py`**:
+  - `/summarize`: Migrated
+  - `/hello`: Not to be migrated (redundant)
+- **`prestige.py`**:
+  - `/prestige_list`: To be reviewed
+  - `/prestige`: To be reviewed
+- **`remind.py`**:
+  - `/remind`: Not to be migrated (replaced by new scheduler)
+  - `/remind_mute`: Not to be migrated (replaced by new scheduler)
+  - `/remind_list`: Not to be migrated (replaced by new scheduler)
+  - `/remind_delete`: Not to be migrated (replaced by new scheduler)
+- **`roster.py`**:
+  - `$roster` (text command, needs migration to slash): To be reviewed
+  - `/roster_clear_cache`: To be reviewed
+  - `/roster_add`: To be reviewed
+  - `/roster_delete`: To be reviewed
+  - `/roster_convert`: To be reviewed
+- **`war.py`**:
+  - `/aw_plan`: Migration started (as `/aw plan`)
+  - `/aw_details`: Migrated started (as `/aw details`)
 
 ---
 
@@ -156,13 +161,13 @@ The bot should now be running and connected to Discord and the database.
 
 mcoc-ng-chatbot/
 ├── prisma/ # Prisma schema and migration files
-│   └── schema.prisma
+│ └── schema.prisma
 ├── src/
-│   ├── commands/ # Each file is a slash command
-│   ├── types/ # Shared TypeScript interfaces and types
-│   ├── utils/ # Service clients and helper functions
-│   ├── config.ts # Environment variable loading and validation
-│   └── index.ts # Bot entry point, client setup, event handlers
+│ ├── commands/ # Each file is a slash command
+│ ├── types/ # Shared TypeScript interfaces and types
+│ ├── utils/ # Service clients and helper functions
+│ ├── config.ts # Environment variable loading and validation
+│ └── index.ts # Bot entry point, client setup, event handlers
 ├── Dockerfile # Multi-stage build for lean production images
 ├── docker-compose.yaml # Development environment setup
 └── README.md # You are here

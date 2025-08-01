@@ -8,12 +8,13 @@
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
   },
   "keywords": [],
   "type": "commonjs",
   "dependencies": {
-    "@prisma/client": "^5.17.0",
+    "@prisma/client": "^6.13.0",
     "discord.js": "^14.21.0",
     "dotenv": "^17.2.0",
     "googleapis": "^152.0.0",
@@ -27,7 +28,7 @@
     "@types/luxon": "^3.6.2",
     "@types/node": "^24.0.12",
     "@types/node-cron": "^3.0.11",
-    "prisma": "^5.22.0",
+    "prisma": "^6.13.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   }
