@@ -66,15 +66,15 @@ model Champion {
   class         ChampionClass
   releaseDate   DateTime
   obtainable    String[]
-  prestige      Json // Keeping as Json as discussed
-  images        Json // Keeping as Json as discussed
+  prestige      Json
+  images        Json
   discordEmoji  String?
-  fullAbilities Json // Keeping as Json as discussed
+  fullAbilities Json
 
   // --- Relations ---
   tags      Tag[]
   abilities ChampionAbilityLink[]
-  attacks   Attack[] // REMOVED: attacks Json
+  attacks   Attack[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -108,7 +108,7 @@ model ChampionAbilityLink {
 
 // --- New Models for Normalized Attacks ---
 
-// NEW: Represents a specific attack for a champion (e.g., Abomination's SP2)
+// Represents a specific attack for a champion (e.g., Abomination's SP2)
 model Attack {
   id   Int        @id @default(autoincrement())
   type AttackType // e.g., S1, M2, etc.
@@ -122,10 +122,10 @@ model Attack {
   @@index([championId])
 }
 
-// NEW: Represents a single hit within an attack.
+// Represents a single hit within an attack.
 model Hit {
   id         Int      @id @default(autoincrement())
-  properties String[] // e.g., ["Contact", "Physical", "Punch"]
+  properties String[] // e.g., ["Contact", "Physical"]
 
   attackId Int
   attack   Attack @relation(fields: [attackId], references: [id], onDelete: Cascade)

@@ -13,6 +13,9 @@ RUN npm install
 # Copy the rest of the source code
 COPY . .
 
+# Generate Prisma Client
+RUN npx prisma generate
+
 # Run the build script to compile TypeScript to JavaScript
 RUN npm run build
 

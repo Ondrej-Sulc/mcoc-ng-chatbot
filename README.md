@@ -66,16 +66,16 @@ _This list will be populated to track the migration status of each command._
     - `/aq end`: To be reviewed
     - `/aq test_ping`: To be reviewed
 - **`champion_info.py`**:
-  - `/full_abilities`: To be reviewed
-  - `/glossary`: To be reviewed
-  - `/glossary_category`: To be reviewed
-  - `/attacks`: To be reviewed
-  - `/search`: To be reviewed
-  - `/my_roster_search`: To be reviewed
-  - `/roster_search`: To be reviewed
-  - `/duel`: To be reviewed
-  - `/immunities`: To be reviewed
-  - `/abilities`: To be reviewed
+  - `/full_abilities`: Migrated to `/champion info`
+  - `/glossary`: Migrated to `/glossary effect`
+  - `/glossary_category`: Migrated to `/glossary category`
+  - `/attacks`: Migrated to `/champion attacks`
+  - `/search`: Migration in progress
+  - `/my_roster_search`: To be reviewed (requires roster implementation)
+  - `/roster_search`: To be reviewed (requires roster implementation)
+  - `/duel`: To be reviewed (requires external data source)
+  - `/immunities`: Migrated to `/champion immunities`
+  - `/abilities`: Migrated to `/champion abilities`
 - **`general.py`**:
   - `/summarize`: Migrated
   - `/hello`: Not to be migrated (redundant)
@@ -94,8 +94,8 @@ _This list will be populated to track the migration status of each command._
   - `/roster_delete`: To be reviewed
   - `/roster_convert`: To be reviewed
 - **`war.py`**:
-  - `/aw_plan`: Migration started (as `/aw plan`)
-  - `/aw_details`: Migrated started (as `/aw details`)
+  - `/aw_plan`: to be migrated as `/aw plan`
+  - `/aw_details`: to be migrated as `/aw details`
 
 ---
 
