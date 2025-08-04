@@ -18,50 +18,29 @@ import {
   ATTACK_TYPE_KEYWORDS,
   ATTACK_GROUP_KEYWORDS,
   MODIFIER_KEYWORDS,
-  PAGE_SIZE,
+  paginateChampions,
 } from "./utils";
-import { SearchCoreParams } from "../../types/search";
+import { SearchCoreParams, ChampionWithRelations } from "../../types/search";
 
 const prisma = new PrismaClient();
 
-async function core(params: SearchCoreParams): Promise<CommandResult> {
-  const { page = 1, userId, searchId, ...searchCriteria } = params;
-
+async function core(
+  champions: ChampionWithRelations[],
+  searchCriteria: Omit<SearchCoreParams, "userId" | "page" | "searchId">,
+  totalChampions: number,
+  currentPage: number,
+  totalPages: number,
+  searchId: string,
+  userId: string
+): Promise<CommandResult> {
   try {
-    if (Object.values(searchCriteria).every((v) => !v)) {
-      return { content: "You must provide at least one search criteria." };
-    }
-
-    const where = await buildSearchWhereClause(searchCriteria);
-
-    const totalChampions = await prisma.champion.count({ where });
-
-    if (totalChampions === 0) {
-      return { content: "No champions found matching your criteria." };
-    }
-
-    const champions = await prisma.champion.findMany({
-      where,
-      include: {
-        tags: true,
-        abilities: {
-          include: {
-            ability: { include: { categories: true } },
-          },
-        },
-        attacks: { include: { hits: true } },
-      },
-      orderBy: { name: "asc" },
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-    });
-
     const { embed, row } = await generateResponse(
       champions,
       searchCriteria,
       totalChampions,
-      page,
-      searchId!
+      currentPage,
+      totalPages,
+      searchId
     );
 
     return { embeds: [embed], components: row ? [row] : [] };
@@ -167,17 +146,31 @@ export const command: Command = {
         }))
       );
     } else if (focusedOption.name === "tags") {
-      const tags = await prisma.tag.findMany({
-        where: {
-          name: {
-            contains: search,
-            mode: "insensitive",
+      let tags;
+      if (search) {
+        tags = await prisma.tag.findMany({
+          where: {
+            name: {
+              contains: search,
+              mode: "insensitive",
+            },
           },
-        },
-        distinct: ["name"],
-        take: 25,
-        orderBy: { name: "asc" },
-      });
+          distinct: ["name"],
+          take: 25,
+          orderBy: { name: "asc" },
+        });
+      } else {
+        tags = await prisma.tag.findMany({
+          distinct: ["name"],
+          take: 25,
+          orderBy: {
+            champions: {
+              _count: "desc",
+            },
+          },
+        });
+      }
+
       await interaction.respond(
         tags.map((tag) => ({
           name: `${prefix}${tag.name}`,
@@ -248,15 +241,49 @@ export const command: Command = {
       attackType: interaction.options.getString("attack-type"),
     };
 
-    searchCache.set(searchId, searchCriteria);
-    setTimeout(() => searchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
+    if (Object.values(searchCriteria).every((v) => !v)) {
+      await interaction.editReply({
+        content: "You must provide at least one search criteria.",
+      });
+      return;
+    }
 
     try {
-      const result = await core({
-        ...searchCriteria,
-        userId: interaction.user.id,
-        searchId,
+      const where = await buildSearchWhereClause(searchCriteria);
+      const allChampions = await prisma.champion.findMany({
+        where,
+        include: {
+          tags: true,
+          abilities: {
+            include: {
+              ability: { include: { categories: true } },
+            },
+          },
+          attacks: { include: { hits: true } },
+        },
+        orderBy: { name: "asc" },
       });
+
+      if (allChampions.length === 0) {
+        await interaction.editReply({
+          content: "No champions found matching your criteria.",
+        });
+        return;
+      }
+
+      const pages = paginateChampions(allChampions, searchCriteria);
+      searchCache.set(searchId, { criteria: searchCriteria, pages });
+      setTimeout(() => searchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
+
+      const result = await core(
+        pages[0],
+        searchCriteria,
+        allChampions.length,
+        1,
+        pages.length,
+        searchId,
+        interaction.user.id
+      );
 
       await interaction.editReply(result);
     } catch (error) {
@@ -274,9 +301,9 @@ async function handleSearchPagination(interaction: ButtonInteraction) {
   const currentPage = parseInt(currentPageStr, 10);
   const newPage = direction === "next" ? currentPage + 1 : currentPage - 1;
 
-  const searchCriteria = searchCache.get(searchId);
+  const cachedSearch = searchCache.get(searchId);
 
-  if (!searchCriteria) {
+  if (!cachedSearch) {
     await interaction.update({
       content: "This search has expired. Please run the command again.",
       components: [],
@@ -284,17 +311,31 @@ async function handleSearchPagination(interaction: ButtonInteraction) {
     return;
   }
 
+  const { criteria, pages } = cachedSearch;
+  const totalPages = pages.length;
+
+  if (newPage < 1 || newPage > totalPages) {
+    await interaction.update({
+      content: "Invalid page number.",
+      components: [],
+    });
+    return;
+  }
+
   await interaction.deferUpdate();
-  const result = await core({
-    ...searchCriteria,
-    userId: interaction.user.id,
-    page: newPage,
+  const result = await core(
+    pages[newPage - 1],
+    criteria,
+    pages.flat().length,
+    newPage,
+    totalPages,
     searchId,
-  });
+    interaction.user.id
+  );
   await interaction.editReply(result);
 }
 
-registerButtonHandler("search_prev", handleSearchPagination);
-registerButtonHandler("search_next", handleSearchPagination);
+registerButtonHandler("search", handleSearchPagination);
 
 export default command;
+

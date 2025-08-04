@@ -29,9 +29,15 @@ export const ATTACK_PROPERTIES = [
 export const ATTACK_TYPE_KEYWORDS = Object.values(AttackTypeEnum);
 export const ATTACK_GROUP_KEYWORDS = ["basic", "special"];
 export const MODIFIER_KEYWORDS = ["all", "any"];
-export const PAGE_SIZE = 15;
+const EMBED_DESCRIPTION_LIMIT = 4096;
+const PER_CHAMPION_BASE_LENGTH = 50; // Base length for "emoji **Name**\n"
+const HEADER_FOOTER_BUFFER = 200; // Buffer for title, footer, etc.
 
-export const searchCache = new Map<string, Omit<SearchCoreParams, "userId" | "page">>();
+export type SearchCacheEntry = {
+  criteria: Omit<SearchCoreParams, "userId" | "page" | "searchId">;
+  pages: ChampionWithRelations[][];
+};
+export const searchCache = new Map<string, SearchCacheEntry>();
 
 export function parseAndOrConditions(input: string | null | undefined): {
   conditions: string[];
@@ -323,6 +329,7 @@ export async function generateResponse(
   searchCriteria: Omit<SearchCoreParams, "userId" | "page" | "searchId">,
   totalChampions: number,
   currentPage: number,
+  totalPages: number,
   searchId: string
 ): Promise<{ embed: EmbedBuilder; row: ActionRowBuilder<ButtonBuilder> | null }> {
   const descriptionLines: string[] = [];
@@ -346,7 +353,7 @@ export async function generateResponse(
 
   for (const champion of champions) {
     const classEmoji = CLASS_EMOJIS[champion.class] || "";
-    let champString = `${classEmoji} **${champion.name}**`;
+    let champString = `${champion.discordEmoji} **${champion.name}** ${classEmoji}`;
 
     const matchedAbilities = champion.abilities
       .filter(
@@ -481,19 +488,18 @@ export async function generateResponse(
     .setColor("Gold");
 
   let row: ActionRowBuilder<ButtonBuilder> | null = null;
-  if (totalChampions > PAGE_SIZE) {
-    const totalPages = Math.ceil(totalChampions / PAGE_SIZE);
+  if (totalChampions > champions.length) {
     embed.setFooter({ text: `Page ${currentPage} of ${totalPages}` });
 
     row = new ActionRowBuilder<ButtonBuilder>();
     row.addComponents(
       new ButtonBuilder()
-        .setCustomId(`search_prev:${searchId}:${currentPage}`)
+        .setCustomId(`search:prev:${searchId}:${currentPage}`)
         .setLabel("Previous")
         .setStyle(ButtonStyle.Primary)
         .setDisabled(currentPage === 1),
       new ButtonBuilder()
-        .setCustomId(`search_next:${searchId}:${currentPage}`)
+        .setCustomId(`search:next:${searchId}:${currentPage}`)
         .setLabel("Next")
         .setStyle(ButtonStyle.Primary)
         .setDisabled(currentPage === totalPages)
@@ -501,4 +507,185 @@ export async function generateResponse(
   }
 
   return { embed, row };
+}
+
+export function paginateChampions(
+  champions: ChampionWithRelations[],
+  searchCriteria: Omit<SearchCoreParams, "userId" | "page" | "searchId">
+): ChampionWithRelations[][] {
+  const pages: ChampionWithRelations[][] = [];
+  let currentPage: ChampionWithRelations[] = [];
+  let currentLength = 0;
+
+  const parsedSearchCriteria = {
+    abilities: parseAndOrConditions(searchCriteria.abilities).conditions.map((c) =>
+      c.toLowerCase()
+    ),
+    immunities: parseAndOrConditions(searchCriteria.immunities).conditions.map((c) =>
+      c.toLowerCase()
+    ),
+    tags: parseAndOrConditions(searchCriteria.tags).conditions.map((c) =>
+      c.toLowerCase()
+    ),
+    abilityCategory: parseAndOrConditions(
+      searchCriteria.abilityCategory
+    ).conditions.map((c) => c.toLowerCase()),
+    attackType: parseAndOrConditions(searchCriteria.attackType).conditions.map((c) =>
+      c.toLowerCase()
+    ),
+  };
+
+  const getChampionStringLength = (champion: ChampionWithRelations): number => {
+    let length = PER_CHAMPION_BASE_LENGTH + champion.name.length;
+
+    const matchedAbilities = champion.abilities
+      .filter(
+        (link) =>
+          link.type === "ABILITY" &&
+          parsedSearchCriteria.abilities.includes(link.ability.name.toLowerCase())
+      )
+      .map((link) => link.ability.name);
+    if (matchedAbilities.length > 0) {
+      length += `
+> Abilities: *${matchedAbilities.join(", ")}*`.length;
+    }
+
+    const matchedImmunities = champion.abilities
+      .filter(
+        (link) =>
+          link.type === "IMMUNITY" &&
+          parsedSearchCriteria.immunities.includes(link.ability.name.toLowerCase())
+      )
+      .map((link) => link.ability.name);
+    if (matchedImmunities.length > 0) {
+      length += `
+> Immunities: *${matchedImmunities.join(", ")}*`.length;
+    }
+
+    const matchedTags = champion.tags
+      .filter((tag) => parsedSearchCriteria.tags.includes(tag.name.toLowerCase()))
+      .map((tag) => tag.name);
+    if (matchedTags.length > 0) {
+      length += `
+> Tags: *${matchedTags.join(", ")}*`.length;
+    }
+
+    if (parsedSearchCriteria.abilityCategory.length > 0) {
+      const matchedAbilitiesForCategory = champion.abilities.filter((link) =>
+        link.ability.categories.some((cat) =>
+          parsedSearchCriteria.abilityCategory.includes(cat.name.toLowerCase())
+        )
+      );
+
+      if (matchedAbilitiesForCategory.length > 0) {
+        const displayCategories = [
+          ...new Set(
+            matchedAbilitiesForCategory.flatMap((link) =>
+              link.ability.categories
+                .filter((cat) =>
+                  parsedSearchCriteria.abilityCategory.includes(
+                    cat.name.toLowerCase()
+                  )
+                )
+                .map((cat) => cat.name)
+            )
+          ),
+        ];
+
+        const displayAbilities = [
+          ...new Set(
+            matchedAbilitiesForCategory.map((link) => link.ability.name)
+          ),
+        ];
+
+        if (displayCategories.length > 0) {
+          length += `
+> Categories: *${displayCategories.join(", ")}*`.length;
+          length += `
+> Matching Abilities: *${displayAbilities.join(", ")}*`.length;
+        }
+      }
+    }
+
+    if (parsedSearchCriteria.attackType.length > 0) {
+      const matchedAttacksOutput = new Set<string>();
+
+      parsedSearchCriteria.attackType.forEach((criteria) => {
+        const parts = criteria.toLowerCase().split(/\s+/).filter(Boolean);
+        const searchAttackTypes: AttackTypeEnum[] = [];
+        const searchProperties: string[] = [];
+
+        parts.forEach((part) => {
+          if (ATTACK_TYPE_KEYWORDS.includes(part.toUpperCase() as any)) {
+            searchAttackTypes.push(part.toUpperCase() as AttackTypeEnum);
+          } else if (part === "basic") {
+            searchAttackTypes.push(...(["L1", "L2", "L3", "L4", "M1", "M2", "H"] as AttackTypeEnum[]));
+          } else if (part === "special") {
+            searchAttackTypes.push(...(["S1", "S2"] as AttackTypeEnum[]));
+          } else if (!MODIFIER_KEYWORDS.includes(part)) {
+            searchProperties.push(part);
+          }
+        });
+
+        champion.attacks.forEach((attack) => {
+          const attackTypeMatch =
+            searchAttackTypes.length === 0 ||
+            searchAttackTypes.includes(attack.type);
+
+          if (attackTypeMatch) {
+            const hasAllProperties = searchProperties.every((prop) => {
+              if (prop === "non-contact") {
+                return attack.hits.some(
+                  (h) =>
+                    !h.properties.includes("Contact") && h.properties.length > 0
+                );
+              } else {
+                return attack.hits.some((h) =>
+                  h.properties.some((p) => p.toLowerCase() === prop)
+                );
+              }
+            });
+
+            if (hasAllProperties) {
+              const props =
+                attack.hits.flatMap((h) => h.properties).join(", ") ||
+                "No Properties";
+              matchedAttacksOutput.add(`${attack.type} (${props})`);
+            }
+          }
+        });
+      });
+
+      if (matchedAttacksOutput.size > 0) {
+        length += `
+> Matched Attacks: *${[...matchedAttacksOutput].join(
+          "; "
+        )}*`.length;
+      }
+    }
+
+    return length;
+  };
+
+  for (const champion of champions) {
+    const championLength = getChampionStringLength(champion);
+
+    if (
+      currentLength + championLength >
+      EMBED_DESCRIPTION_LIMIT - HEADER_FOOTER_BUFFER
+    ) {
+      pages.push(currentPage);
+      currentPage = [];
+      currentLength = 0;
+    }
+
+    currentPage.push(champion);
+    currentLength += championLength;
+  }
+
+  if (currentPage.length > 0) {
+    pages.push(currentPage);
+  }
+
+  return pages;
 }
