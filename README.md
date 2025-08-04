@@ -70,7 +70,7 @@ _This list will be populated to track the migration status of each command._
   - `/glossary`: Migrated to `/glossary effect`
   - `/glossary_category`: Migrated to `/glossary category`
   - `/attacks`: Migrated to `/champion attacks`
-  - `/search`: Migration in progress
+  - `/search`: Migrated
   - `/my_roster_search`: To be reviewed (requires roster implementation)
   - `/roster_search`: To be reviewed (requires roster implementation)
   - `/duel`: To be reviewed (requires external data source)
@@ -163,7 +163,10 @@ mcoc-ng-chatbot/
 ├── prisma/ # Prisma schema and migration files
 │ └── schema.prisma
 ├── src/
-│ ├── commands/ # Each file is a slash command
+│ ├── commands/ # Each file or directory is a slash command
+│ │ └── search/ # Example of a command with sub-files
+│ │   ├── index.ts # Main command logic
+│ │   └── utils.ts # Command-specific helpers
 │ ├── types/ # Shared TypeScript interfaces and types
 │ ├── utils/ # Service clients and helper functions
 │ ├── config.ts # Environment variable loading and validation
