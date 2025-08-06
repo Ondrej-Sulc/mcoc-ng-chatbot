@@ -137,15 +137,7 @@ cat /path/to/your/credentials.json | base64 -w 0
 
 Copy the resulting string into the `.env` file.
 
-### 3. Run the Initial Database Migration
-
-Before starting the bot for the first time, you need to create the tables in your database.
-
-```bash
-npx prisma migrate dev --name init
-```
-
-### 4. Run the Bot
+### 3. Run the Bot
 
 Use Docker Compose to build the images and start the containers (bot and database). The `docker-compose.yaml` is configured for development with hot-reloading.
 

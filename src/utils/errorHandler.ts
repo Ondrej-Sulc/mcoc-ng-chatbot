@@ -23,6 +23,22 @@ export function generateErrorId() {
   return randomBytes(4).toString("hex");
 }
 
+/**
+ * Extracts all properties from an Error object for better logging.
+ * @param error - The error to process.
+ * @returns A plain object with all of the error's properties.
+ */
+function getErrorProperties(error: unknown) {
+  if (!(error instanceof Error)) {
+    return error;
+  }
+  const plainObject: Record<string, any> = {};
+  Object.getOwnPropertyNames(error).forEach(key => {
+    plainObject[key] = (error as any)[key];
+  });
+  return plainObject;
+}
+
 export function handleError(error: unknown, context: ErrorContext = {}) {
   /**
    * Handles an error by logging it and generating a user-friendly error message.
@@ -32,19 +48,23 @@ export function handleError(error: unknown, context: ErrorContext = {}) {
    */
   const errorId = generateErrorId();
   const errorMsg = error instanceof Error ? error.message : String(error);
+
   const logContext = {
     errorId,
     ...context,
     error: errorMsg,
+    rawError: getErrorProperties(error), // Log the full error object for more details
     stack: error instanceof Error ? error.stack : undefined,
   };
-  // Log with context
-  console.error(`[Error:${errorId}] ${JSON.stringify(logContext)}`);
-  // User message
+
+  // Log with context, pretty-printed for readability
+  console.error(`[Error:${errorId}] ${JSON.stringify(logContext, null, 2)}`);
+
+  // More professional user-facing message
   const userMessage =
-    `❌ An error occurred${
-      context.location ? ` in ${context.location}` : ""
-    }. ` + `Please try again later. (Error ID: ${errorId})`;
+    `❌ An unexpected error occurred. Our team has been notified. ` +
+    `Please try again later. (Error ID: ${errorId})`;
+
   return { userMessage, errorId };
 }
 

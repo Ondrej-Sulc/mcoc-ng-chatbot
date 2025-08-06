@@ -1,9 +1,12 @@
 import {
   SlashCommandBuilder,
-  EmbedBuilder,
-  ColorResolvable,
   ChatInputCommandInteraction,
   MessageFlags,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SectionBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
 } from "discord.js";
 import {
   PrismaClient,
@@ -19,17 +22,14 @@ import { handleError, safeReply } from "../utils/errorHandler";
 
 const prisma = new PrismaClient();
 
-const MAX_FIELD_VALUE_LENGTH = 1024;
-const MAX_FIELDS_PER_EMBED = 25;
-
-const CLASS_COLOR: Record<ChampionClass, ColorResolvable> = {
-  MYSTIC: "Purple",
-  MUTANT: "Yellow",
-  SKILL: "Red",
-  SCIENCE: "Green",
-  COSMIC: "Aqua",
-  TECH: "Blue",
-  SUPERIOR: "White",
+const CLASS_COLOR: Record<ChampionClass, number> = {
+  MYSTIC: 0x8A2BE2,
+  MUTANT: 0xFFD700,
+  SKILL: 0xFF0000,
+  SCIENCE: 0x00FF00,
+  COSMIC: 0x00FFFF,
+  TECH: 0x0000FF,
+  SUPERIOR: 0xFFFFFF,
 };
 
 // Define interfaces for the expected structure of the 'fullAbilities' JSON field.
@@ -78,8 +78,7 @@ function getChampionImageUrl(
   images: any,
   size: "32" | "64" | "128" | "full" = "full",
   type: "primary" | "secondary" = "primary"
-): string | null | undefined {
-  if (!images) return null;
+): string {
   const parsedImages = images as ChampionImages;
 
   if (size === "full") {
@@ -89,24 +88,18 @@ function getChampionImageUrl(
   }
 
   const key = `${type.charAt(0)}_${size}` as keyof ChampionImages;
-  return parsedImages[key] || null;
+  return parsedImages[key];
 }
 
 
 function formatAttacks(
   attacks: AttackWithHits[]
-): { name: string; value: string; inline: boolean }[] {
+): string {
   if (!attacks || attacks.length === 0) {
-    return [
-      {
-        name: "Missing Information",
-        value: "Sorry, Attack type values are missing for this champion.",
-        inline: false,
-      },
-    ];
+    return "Sorry, Attack type values are missing for this champion.";
   }
 
-  const attackStrings: { name: string; value: string; inline: boolean }[] = [];
+  let attackStrings = "";
 
   const groupedAttacks: { [key: string]: AttackWithHits[] } = {};
   for (const attack of attacks) {
@@ -142,13 +135,9 @@ function formatAttacks(
         const types = Object.entries(hitCounts)
           .map(([detail, count]) => `${count}x ${detail}`)
           .join(", ");
-        attackStrings.push({
-          name: `${key.toUpperCase()}${
-            group.length > 1 ? ` 1-${group.length}` : ""
-          } Attack`,
-          value: types,
-          inline: true,
-        });
+        attackStrings += `**${key.toUpperCase()}${ 
+            group.length > 1 ? ` 1-${group.length}` : "" 
+          } Attack**: ${types}\n`;
       } else {
         for (const attack of group) {
           const hitCounts = attack.hits.reduce(
@@ -162,11 +151,7 @@ function formatAttacks(
           const types = Object.entries(hitCounts)
             .map(([detail, count]) => `${count}x ${detail}`)
             .join(", ");
-          attackStrings.push({
-            name: `${attack.type} Attack`,
-            value: types,
-            inline: true,
-          });
+          attackStrings += `**${attack.type} Attack**: ${types}\n`;
         }
       }
     } else {
@@ -182,11 +167,7 @@ function formatAttacks(
       const types = Object.entries(hitCounts)
         .map(([detail, count]) => `${count}x ${detail}`)
         .join(", ");
-      attackStrings.push({
-        name: `${attack.type} Attack`,
-        value: types,
-        inline: true,
-      });
+      attackStrings += `**${attack.type} Attack**: ${types}\n`;
     }
   }
 
@@ -195,31 +176,19 @@ function formatAttacks(
 
 function formatAbilities(
   abilities: ChampionAbilityLinkWithAbility[]
-): { name: string; value: string; inline: boolean }[] {
+): string {
   if (!abilities || abilities.length === 0) {
-    return [
-      {
-        name: "Missing Information",
-        value: "This champion does not have any abilities.",
-        inline: false,
-      },
-    ];
+    return "This champion does not have any abilities.";
   }
 
-  const abilityStrings: { name: string; value: string; inline: boolean }[] = [];
-
-  for (const ability of abilities) {
-    const value = ability.source ? `• ${ability.source}` : "\u200b";
-    abilityStrings.push({
-      name: `${ability.ability.emoji ? `${ability.ability.emoji} ` : ""}${
+  return abilities
+    .map((ability) => {
+      const value = ability.source ? `• ${ability.source}` : "";
+      return `${ability.ability.emoji ? `${ability.ability.emoji} ` : ""}${ 
         ability.ability.name
-      }`,
-      value,
-      inline: true,
-    });
-  }
-
-  return abilityStrings;
+      } ${value}`;
+    })
+    .join("\n");
 }
 
 export async function core(params: ChampionCoreParams): Promise<CommandResult> {
@@ -238,7 +207,7 @@ export async function core(params: ChampionCoreParams): Promise<CommandResult> {
 
       if (!champion) {
         return {
-          content: `Champion "${championName}" not found.`,
+          content: `Champion \"${championName}\" not found.`, 
           ephemeral: true,
         };
       }
@@ -250,80 +219,57 @@ export async function core(params: ChampionCoreParams): Promise<CommandResult> {
         (!fullAbilities.signature && !fullAbilities.abilities_breakdown)
       ) {
         return {
-          content: `Detailed abilities are not available for ${champion.name}.`,
+          content: `Detailed abilities are not available for ${champion.name}.`, 
           ephemeral: true,
         };
       }
 
-      const embeds: EmbedBuilder[] = [];
-      let currentEmbed = new EmbedBuilder()
-        .setTitle(`${champion.name}`)
-        .setColor(CLASS_COLOR[champion.class])
-        .setAuthor({
-          name: 'Champion Information',
-          iconURL: getChampionImageUrl(champion.images, "32") || undefined,
-        })
-        .setThumbnail(getChampionImageUrl(champion.images, "full", "secondary") || null);
+      const containers: ContainerBuilder[] = [];
+      let currentContainer = new ContainerBuilder().setAccentColor(CLASS_COLOR[champion.class]);
+      let currentLength = 0;
+      const MAX_CONTAINER_LENGTH = 4000;
+      const MAX_TEXT_DISPLAY_LENGTH = 2000;
 
-      let currentFieldCount = 0;
+      const addTextToContainer = (text: string) => {
+        // This function assumes text is already <= MAX_TEXT_DISPLAY_LENGTH
+        if (currentLength + text.length > MAX_CONTAINER_LENGTH) {
+            containers.push(currentContainer);
+            currentContainer = new ContainerBuilder().setAccentColor(CLASS_COLOR[champion.class]);
+            currentLength = 0;
+        }
+        currentContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(text));
+        currentLength += text.length;
+      };
+
+      const addBlock = (title: string, description: string) => {
+        addTextToContainer(`**${title}**`);
+        const descParts = description.match(new RegExp(`.{1,${MAX_TEXT_DISPLAY_LENGTH}}`, "gs")) || [];
+        for (const part of descParts) {
+            addTextToContainer(part);
+        }
+      };
+
+      addTextToContainer(`**${champion.name}**\n*${champion.class}*`);
 
       if (fullAbilities.signature) {
         const sig = fullAbilities.signature;
-        const sigName = sig.name || "Signature Ability";
-        const sigDesc = sig.description || "No description.";
-        const descParts =
-          sigDesc.match(new RegExp(`.{1,${MAX_FIELD_VALUE_LENGTH}}`, "g")) ||
-          [];
-
-        for (let i = 0; i < descParts.length; i++) {
-          if (currentFieldCount >= MAX_FIELDS_PER_EMBED) {
-            embeds.push(currentEmbed);
-            currentEmbed = new EmbedBuilder()
-              .setTitle(`${champion.name} (Continued)`)
-              .setColor(CLASS_COLOR[champion.class]);
-            currentFieldCount = 0;
-          }
-          currentEmbed.addFields({
-            name: `${sigName}${descParts.length > 1 ? ` (Part ${i + 1})` : ""}`,
-            value: descParts[i],
-          });
-          currentFieldCount++;
-        }
+        addBlock(sig.name || "Signature Ability", sig.description || "No description.");
       }
 
       if (fullAbilities.abilities_breakdown) {
         for (const abilityBlock of fullAbilities.abilities_breakdown) {
-          const blockTitle = abilityBlock.title || "Ability";
-          const blockDesc = abilityBlock.description || "No description.";
-          const descParts =
-            blockDesc.match(
-              new RegExp(`.{1,${MAX_FIELD_VALUE_LENGTH}}`, "g")
-            ) || [];
-
-          for (let i = 0; i < descParts.length; i++) {
-            if (currentFieldCount >= MAX_FIELDS_PER_EMBED) {
-              embeds.push(currentEmbed);
-              currentEmbed = new EmbedBuilder()
-                .setTitle(`${champion.name} (Continued)`)
-                .setColor(CLASS_COLOR[champion.class]);
-              currentFieldCount = 0;
-            }
-            currentEmbed.addFields({
-              name: `${blockTitle}${
-                descParts.length > 1 ? ` (Part ${i + 1})` : ""
-              }`,
-              value: descParts[i],
-            });
-            currentFieldCount++;
-          }
+          addBlock(abilityBlock.title || "Ability", abilityBlock.description || "No description.");
         }
       }
 
-      if (currentFieldCount > 0) {
-        embeds.push(currentEmbed);
+      if (currentContainer.components.length > 0) {
+        containers.push(currentContainer);
       }
 
-      return { embeds };
+      return {
+        components: containers,
+        isComponentsV2: true,
+      };
     } else if (subcommand === "attacks") {
       const champion = await prisma.champion.findFirst({
         where: {
@@ -343,19 +289,22 @@ export async function core(params: ChampionCoreParams): Promise<CommandResult> {
 
       if (!champion) {
         return {
-          content: `Champion "${championName}" not found.`,
+          content: `Champion \"${championName}\" not found.`, 
           ephemeral: true,
         };
       }
 
-      const embed = new EmbedBuilder()
-        .setTitle(`${champion.name} - Attacks`)
-        .setColor(CLASS_COLOR[champion.class]);
+      const container = new ContainerBuilder().setAccentColor(CLASS_COLOR[champion.class]);
+      const headerText = new TextDisplayBuilder().setContent(`**${champion.name} - Attacks**`);
+      container.addTextDisplayComponents(headerText);
 
       const formattedAttacks = formatAttacks(champion.attacks);
-      embed.addFields(formattedAttacks);
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(formattedAttacks));
 
-      return { embeds: [embed] };
+      return {
+          components: [container],
+          isComponentsV2: true,
+      };
     } else if (subcommand === "abilities" || subcommand === "immunities") {
       const champion = await prisma.champion.findFirst({
         where: {
@@ -378,23 +327,34 @@ export async function core(params: ChampionCoreParams): Promise<CommandResult> {
 
       if (!champion) {
         return {
-          content: `Champion "${championName}" not found.`,
+          content: `Champion \"${championName}\" not found.`, 
           ephemeral: true,
         };
       }
 
-      const embed = new EmbedBuilder()
-        .setTitle(
-          `${champion.name} - ${
-            subcommand.charAt(0).toUpperCase() + subcommand.slice(1)
-          }`
-        )
-        .setColor(CLASS_COLOR[champion.class]);
+      const container = new ContainerBuilder().setAccentColor(CLASS_COLOR[champion.class]);
+      const banner = new MediaGalleryBuilder()
+        .addItems(
+          new MediaGalleryItemBuilder()
+            .setDescription(`**${champion.name}** - Primary Image`)
+            .setURL(getChampionImageUrl(champion.images, "128", "primary")),
+          new MediaGalleryItemBuilder()
+            .setDescription(`**${champion.name}** - Secondary Image`)
+            .setURL(getChampionImageUrl(champion.images, "128", "secondary"))
+        );
+      container.addMediaGalleryComponents(banner);
+      const headerSection = new TextDisplayBuilder().setContent(`**${champion.name} - ${ 
+              subcommand.charAt(0).toUpperCase() + subcommand.slice(1)
+            }**`);
+      container.addTextDisplayComponents(headerSection);
 
       const formattedAbilities = formatAbilities(champion.abilities);
-      embed.addFields(formattedAbilities);
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(formattedAbilities))
 
-      return { embeds: [embed] };
+      return {
+          components: [container],
+          isComponentsV2: true,
+      };
     }
     return { content: "Invalid subcommand.", ephemeral: true };
   } catch (error) {
@@ -496,7 +456,24 @@ export const command: Command = {
         userId: interaction.user.id,
       });
 
-      if (result.embeds) {
+      if (result.components && Array.isArray(result.components)) {
+        const firstContainer = result.components.shift();
+        if (firstContainer) {
+            await interaction.editReply({
+              content: result.content || "",
+              components: [firstContainer],
+              flags: [MessageFlags.IsComponentsV2],
+            });
+        }
+
+        for (const container of result.components) {
+            await interaction.followUp({
+                components: [container],
+                ephemeral: true,
+                flags: [MessageFlags.IsComponentsV2],
+            });
+        }
+      } else if (result.embeds) {
         await interaction.editReply({
           content: result.content || "",
           embeds: result.embeds,
@@ -506,7 +483,7 @@ export const command: Command = {
       }
     } catch (error) {
       const { userMessage, errorId } = handleError(error, {
-        location: "command:champion",
+        location: `command:champion:${subcommand}`,
         userId: interaction.user.id,
       });
       await safeReply(interaction, userMessage, errorId);
