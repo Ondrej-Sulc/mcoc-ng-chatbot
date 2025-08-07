@@ -2,7 +2,7 @@
 
 # ---- Stage 1: Builder ----
 # This stage builds the TypeScript code
-FROM node:18-slim AS builder
+FROM node:18 AS builder
 
 WORKDIR /usr/src/app
 
@@ -21,7 +21,7 @@ RUN npm run build
 
 # ---- Stage 2: Production ----
 # This stage creates the final, lean image
-FROM node:18-slim AS production
+FROM node:18 AS production
 
 WORKDIR /usr/src/app
 
@@ -34,7 +34,7 @@ COPY --from=builder /usr/src/app/dist ./dist
 
 # Install fonts for image generation
 USER root
-RUN apt-get update && apt-get install -y fonts-noto-color-emoji fontconfig && fc-cache -f -v && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y fonts-dejavu-core fonts-noto-color-emoji && rm -rf /var/lib/apt/lists/*
 
 # Set the user to a non-root user for better security
 USER node

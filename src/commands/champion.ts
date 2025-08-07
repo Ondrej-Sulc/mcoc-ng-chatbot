@@ -19,19 +19,19 @@ import {
 } from "@prisma/client";
 import { Command, CommandResult } from "../types/command";
 import { handleError, safeReply } from "../utils/errorHandler";
-import sharp from 'sharp';
-import fetch from 'node-fetch';
+import sharp from "sharp";
+import fetch from "node-fetch";
 
 const prisma = new PrismaClient();
 
 const CLASS_COLOR: Record<ChampionClass, number> = {
-  MYSTIC: 0x8A2BE2,
-  MUTANT: 0xFFD700,
-  SKILL: 0xFF0000,
-  SCIENCE: 0x00FF00,
-  COSMIC: 0x00FFFF,
-  TECH: 0x0000FF,
-  SUPERIOR: 0xFFFFFF,
+  MYSTIC: 0x8a2be2,
+  MUTANT: 0xffd700,
+  SKILL: 0xff0000,
+  SCIENCE: 0x00ff00,
+  COSMIC: 0x00ffff,
+  TECH: 0x0000ff,
+  SUPERIOR: 0xffffff,
 };
 
 // Define interfaces for the expected structure of the 'fullAbilities' JSON field.
@@ -78,151 +78,459 @@ interface ChampionImages {
 
 interface ChampionThumbnailOptions {
   championName: string;
-  championClass: string;
-  imageUrl: string;
+  championClass: ChampionClass;
+  secondaryImageUrl: string; // full-body
+  primaryImageUrl?: string; // circular avatar
+  subcommand: string; // e.g., "abilities"
+  tagline?: string; // optional, small text line
+  iconUrls?: string[]; // optional icons row
   width?: number;
   height?: number;
+  fetchTimeoutMs?: number;
 }
 
 // Class color mappings for MCOC
 const CLASS_COLORS = {
-  COSMIC: { primary: '#00CED1', secondary: '#008B8B' }, // Cyan gradient
-  TECH: { primary: '#224bbdff', secondary: '#073374ff' },    // Cyan gradient
-  MUTANT: { primary: '#FFD700', secondary: '#FFA500' },  // Gold gradient
-  SKILL: { primary: '#DC143C', secondary: '#8B0000' },   // Red gradient
-  SCIENCE: { primary: '#32CD32', secondary: '#228B22' }, // Green gradient
-  MYSTIC: { primary: '#a51776ff', secondary: '#820286ff' }   // Pink gradient
+  COSMIC: { primary: "#00CED1", secondary: "#008B8B" },
+  TECH: { primary: "#224bbdff", secondary: "#073374ff" },
+  MUTANT: { primary: "#FFD700", secondary: "#FFA500" },
+  SKILL: { primary: "#DC143C", secondary: "#8B0000" },
+  SCIENCE: { primary: "#32CD32", secondary: "#228B22" },
+  MYSTIC: { primary: "#a51776ff", secondary: "#820286ff" },
+} as const;
+
+const DEFAULTS = {
+  width: 800,
+  height: 300,
+  padding: 28,
+  panelWidthRatio: 0.625,
+  panelRadius: 15,
+  avatarRing: 8,
+  avatarGlow: 0,
+  iconSize: 32,
+  iconGap: 8,
+  fetchTimeoutMs: 8000,
 };
+
+// ---- utils ----
+
+const escapeXml = (s: string) =>
+  s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+
+const clamp = (n: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, n));
+
+async function fetchArrayBufferWithTimeout(
+  url: string,
+  timeoutMs: number
+): Promise<ArrayBuffer> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": "mcoc-bot-thumbnail/1.0" },
+    });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return await res.arrayBuffer();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ---- background (consistent, full-canvas) ----
+
+function createBackgroundSvg(
+  width: number,
+  height: number,
+  primary: string,
+  secondary: string
+): Buffer {
+  const svg = `
+    <svg width="${width}" height="${height}"
+      viewBox="0 0 ${width} ${height}"
+      xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${primary}" />
+          <stop offset="100%" stop-color="${secondary}" />
+        </linearGradient>
+        <linearGradient id="sheen" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.08" />
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+        </linearGradient>
+        <radialGradient id="vign" cx="50%" cy="50%" r="75%">
+          <stop offset="70%" stop-color="#000000" stop-opacity="0" />
+          <stop offset="100%" stop-color="#000000" stop-opacity="0.18" />
+        </radialGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#bg)"/>
+      <rect width="100%" height="100%" fill="url(#sheen)"/>
+      <rect width="100%" height="100%" fill="url(#vign)"/>
+    </svg>
+  `;
+  return Buffer.from(svg);
+}
+
+function createGlassPanelSvg(
+  width: number,
+  height: number,
+  radius: number
+): Buffer {
+  const svg = `
+    <svg width="${width}" height="${height}"
+      viewBox="0 0 ${width} ${height}"
+      xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="panelG" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#000000" stop-opacity="0.32" />
+          <stop offset="100%" stop-color="#000000" stop-opacity="0.22" />
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="${width}" height="${height}"
+        rx="${radius}" ry="${radius}"
+        fill="url(#panelG)"
+        stroke="#ffffff" stroke-opacity="0.18" stroke-width="1"/>
+    </svg>
+  `;
+  return Buffer.from(svg);
+}
+
+// ---- text + pills (title top-left, pills bottom-left) ----
+
+function createTextAndPillsSvg(opts: {
+  title: string;
+  classLabel: string;
+  subcommand: string;
+  width: number;
+  height: number;
+  padding: number;
+  titleRightLimit: number; // panelWidth - padding
+  pillsLeft: number; // next to avatar
+  pillsBottom: number; // distance from bottom
+}): Buffer {
+  const {
+    title,
+    classLabel,
+    subcommand,
+    width,
+    height,
+    padding,
+    titleRightLimit,
+    pillsLeft,
+    pillsBottom,
+  } = opts;
+
+  const escapedTitle = escapeXml(title);
+  const escapedClass = escapeXml(classLabel);
+  const escapedCmd = escapeXml(subcommand.toUpperCase());
+
+  // Big title, sized to fit until panel edge
+  const maxTitleWidth = titleRightLimit - padding;
+  const baseSize = 70;
+  const minSize = 28;
+  const estimate = (t: string, s: number) => t.length * (s * 0.56);
+  let fontSize = baseSize;
+  if (estimate(title, baseSize) > maxTitleWidth) {
+    fontSize = clamp(
+      Math.floor(maxTitleWidth / title.length / 0.56),
+      minSize,
+      baseSize
+    );
+  }
+
+  // Pills
+  const chipFont = 18;
+  const chipPadX = 12;
+  const chipPadY = 6;
+  const classW = escapedClass.length * (chipFont * 0.6) + chipPadX * 2 + 10;
+  const cmdW = escapedCmd.length * (chipFont * 0.62) + chipPadX * 2 + 10;
+
+  const chipH = chipFont + chipPadY * 2;
+  const yTitle = padding + fontSize; // sits above avatar
+
+  const svg = `
+    <svg width="${width}" height="${height}"
+      viewBox="0 0 ${width} ${height}"
+      xmlns="http://www.w3.org/2000/svg">
+      <style>
+        .title {
+          font-family: "DejaVu Sans", system-ui, sans-serif;
+          font-weight: 900;
+          font-size: ${fontSize}px;
+          fill: #ffffff;
+          stroke: #000000;
+          stroke-opacity: 0.85;
+          stroke-width: 2px;
+          paint-order: stroke fill;
+          letter-spacing: 0.4px;
+        }
+        .chip {
+          font-family: "DejaVu Sans", system-ui, sans-serif;
+          font-weight: 800;
+          font-size: ${chipFont}px;
+          fill: #ffffff;
+        }
+        .class {
+          font-family: "DejaVu Sans", system-ui, sans-serif;
+          font-weight: 700;
+          font-size: ${chipFont}px;
+          fill: #111111;
+        }
+      </style>
+
+      <text x="${padding}" y="${yTitle}" class="title">${escapedTitle}</text>
+
+      <!-- Pills row (bottom-left, next to avatar) -->
+      <g transform="translate(${pillsLeft}, ${height - pillsBottom - chipH})">
+        <!-- class pill -->
+        <rect x="0" y="0" rx="12" ry="12"
+          width="${classW}" height="${chipH}"
+          fill="#ffffff" fill-opacity="0.86"
+          stroke="#000000" stroke-opacity="0.2" stroke-width="1"/>
+        <text class="class"
+          x="${chipPadX - 2}" y="${chipFont + chipPadY - 3}">
+          ${escapedClass}
+        </text>
+
+        <!-- subcommand chip -->
+        <g transform="translate(${classW + 12}, 0)">
+          <rect x="0" y="0" rx="12" ry="12"
+            width="${cmdW}" height="${chipH}"
+            fill="#ffffff" fill-opacity="0.14"
+            stroke="#ffffff" stroke-opacity="0.24" stroke-width="1"/>
+          <text class="chip"
+            x="${chipPadX + 4}" y="${chipFont + chipPadY - 4}">
+            ${escapedCmd}
+          </text>
+        </g>
+      </g>
+    </svg>
+  `;
+  return Buffer.from(svg);
+}
+
+// ---- avatar ----
+
+async function createCircularAvatar(opts: {
+  image: Buffer;
+  diameter: number;
+  ringWidth: number;
+  ringStart: string;
+  ringEnd: string;
+  glowOpacity: number;
+}): Promise<Buffer> {
+  const { image, diameter, ringWidth, ringStart, ringEnd, glowOpacity } = opts;
+  const r = diameter / 2;
+  const innerR = r - ringWidth / 2;
+
+  const avatar = await sharp(image)
+    .resize(diameter, diameter, { fit: "cover" })
+    .toBuffer();
+
+  const mask = Buffer.from(`
+    <svg width="${diameter}" height="${diameter}"
+      xmlns="http://www.w3.org/2000/svg">
+      <circle cx="${r}" cy="${r}" r="${r}" fill="#fff"/>
+    </svg>
+  `);
+
+  const ring = Buffer.from(`
+    <svg width="${diameter}" height="${diameter}"
+      xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${ringStart}"/>
+          <stop offset="100%" stop-color="${ringEnd}"/>
+        </linearGradient>
+      </defs>
+      <circle cx="${r}" cy="${r}" r="${r}"
+        fill="#ffffff" fill-opacity="${glowOpacity}"/>
+      <circle cx="${r}" cy="${r}" r="${innerR}"
+        fill="none" stroke="url(#ring)" stroke-width="${ringWidth}"/>
+    </svg>
+  `);
+
+  const masked = await sharp(avatar)
+    .composite([{ input: mask, blend: "dest-in" }])
+    .toBuffer();
+
+  return sharp({
+    create: {
+      width: diameter,
+      height: diameter,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([{ input: masked }, { input: ring }])
+    .png()
+    .toBuffer();
+}
+
+// ---- icons ----
+
+async function loadAndResizeIcon(
+  url: string,
+  size: number,
+  timeoutMs: number
+): Promise<Buffer> {
+  const ab = await fetchArrayBufferWithTimeout(url, timeoutMs);
+  return sharp(Buffer.from(ab))
+    .resize(size, size, { fit: "contain" })
+    .png()
+    .toBuffer();
+}
+
+// ---- main ----
 
 export async function createChampionThumbnail(
   options: ChampionThumbnailOptions
 ): Promise<Buffer> {
-  const { championName, championClass, imageUrl, width = 800, height = 400 } = options;
-  
-  try {
-    // Download champion image
-    const response = await fetch(imageUrl);
-    if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
-    const imageBuffer = await response.buffer();
-    
-    // Get class colors
-    const colors = CLASS_COLORS[championClass as keyof typeof CLASS_COLORS] 
-      || CLASS_COLORS.SKILL; // fallback
-    
-    // Create gradient background SVG
-    const gradientSvg = `
-      <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="classGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:${colors.primary};stop-opacity:0.9" />
-            <stop offset="100%" style="stop-color:${colors.secondary};stop-opacity:1" />
-          </linearGradient>
-          <filter id="noise">
-            <feTurbulence baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/>
-            <feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.1 0"/>
-            <feComposite operator="over" in2="SourceGraphic"/>
-          </filter>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#classGradient)" filter="url(#noise)"/>
-      </svg>
-    `;
-    
-    // Process champion image - resize and create circular mask
-    const processedChampion = await sharp(imageBuffer)
-      .resize(300, 300, { fit: 'cover' })
-      .png()
-      .toBuffer();
-    
-    // Create circular mask
-    const circleMask = Buffer.from(
-      `<svg width="300" height="300">
-        <circle cx="150" cy="150" r="140" fill="white"/>
-      </svg>`
+  const {
+    championName,
+    championClass,
+    secondaryImageUrl,
+    primaryImageUrl,
+    subcommand,
+    iconUrls,
+    width = DEFAULTS.width,
+    height = DEFAULTS.height,
+    fetchTimeoutMs = DEFAULTS.fetchTimeoutMs,
+  } = options;
+
+  const colors =
+    CLASS_COLORS[championClass as keyof typeof CLASS_COLORS] ??
+    CLASS_COLORS.SKILL;
+
+  // Fetch images
+  const [secondaryAB, primaryAB] = await Promise.all([
+    fetchArrayBufferWithTimeout(secondaryImageUrl, fetchTimeoutMs),
+    primaryImageUrl
+      ? fetchArrayBufferWithTimeout(primaryImageUrl, fetchTimeoutMs)
+      : Promise.resolve(undefined),
+  ]);
+
+  const panelWidth = Math.round(width * DEFAULTS.panelWidthRatio);
+  const bg = createBackgroundSvg(
+    width,
+    height,
+    colors.primary,
+    colors.secondary
+  );
+
+  // Layout metrics
+  // Smaller avatar, lower to make room for big title
+  const avatarDiameter = primaryAB
+    ? Math.min(Math.floor(height * 0.44), Math.floor(panelWidth * 0.34))
+    : 0;
+
+  const avatarLeft = DEFAULTS.padding;
+  const avatarTop =
+    Math.floor(height) - Math.floor(avatarDiameter) - DEFAULTS.padding;
+
+  // Pills bottom-left, starting to the right of avatar
+  const pillsLeft =
+    DEFAULTS.padding + (avatarDiameter ? avatarDiameter + 6 : 0);
+  const pillsBottom = DEFAULTS.padding;
+
+  // Title can span up to end of panel
+  const titleRightLimit = panelWidth - DEFAULTS.padding;
+
+  // Build overlays in order
+  const overlays: sharp.OverlayOptions[] = [];
+
+  // Left glass panel for readability (covers full height)
+  overlays.push({
+    input: createGlassPanelSvg(panelWidth, height, DEFAULTS.panelRadius),
+    left: 0,
+    top: 0,
+  });
+
+  // ensure champ only fills the right area (avoid overflowing left panel)
+  const overlap = 0; // small intentional overlap onto the panel
+  const rightAreaW = Math.round(width - panelWidth + overlap);
+  const characterPng = await sharp(Buffer.from(secondaryAB))
+    .resize({
+      width: rightAreaW,
+      height,
+      fit: "cover",
+      position: "right",
+      withoutEnlargement: false,
+    })
+    .png()
+    .toBuffer();
+
+  overlays.push({
+    input: characterPng,
+    left: width - rightAreaW,
+    top: 0,
+  });
+
+  // Title and pills
+  overlays.push({
+    input: createTextAndPillsSvg({
+      title: championName,
+      classLabel: championClass,
+      subcommand,
+      width: panelWidth,
+      height,
+      padding: DEFAULTS.padding,
+      titleRightLimit,
+      pillsLeft,
+      pillsBottom,
+    }),
+    left: 0,
+    top: 0,
+  });
+
+  // Avatar
+  if (primaryAB) {
+    const avatar = await createCircularAvatar({
+      image: Buffer.from(primaryAB),
+      diameter: avatarDiameter,
+      ringWidth: DEFAULTS.avatarRing,
+      ringStart: colors.primary,
+      ringEnd: colors.secondary,
+      glowOpacity: DEFAULTS.avatarGlow,
+    });
+    overlays.push({
+      input: avatar,
+      left: avatarLeft,
+      top: avatarTop,
+    });
+  }
+
+  // Optional icons row (to the right of avatar, above pills if you want)
+  if (iconUrls?.length) {
+    const size = DEFAULTS.iconSize;
+    const gap = DEFAULTS.iconGap;
+    const available = panelWidth - pillsLeft - DEFAULTS.padding + 4; // nudge into corner
+    const maxIconsFit = Math.floor(available / (size + gap));
+    const chosen = iconUrls.slice(0, maxIconsFit);
+    const iconBuffers = await Promise.all(
+      chosen.map((u) => loadAndResizeIcon(u, size, fetchTimeoutMs))
     );
-    
-    const maskedChampion = await sharp(processedChampion)
-      .composite([{ input: circleMask, blend: 'dest-in' }])
-      .png()
-      .toBuffer();
-    
-    // Handle champion name text sizing
-    const fontSize = getOptimalFontSize(championName, width);
-    const textSvg = createTextSvg(championName, fontSize, width, height);
-    
-    // Composite everything together
-    const finalImage = await sharp(Buffer.from(gradientSvg))
-      .composite([
-        {
-          input: maskedChampion,
-          top: Math.round((height - 300) / 2),
-          left: Math.round((width - 300) / 2),
-        },
-        {
-          input: Buffer.from(textSvg),
-          top: 0,
-          left: 0,
-        },
-      ])
-      .png()
-      .toBuffer();
-    
-    return finalImage;
-    
-  } catch (error) {
-    console.error('Error creating champion thumbnail:', error);
-    throw error;
+
+    const top = height - pillsBottom - size - 6; // sit just above/beside the pills
+
+    iconBuffers.forEach((buf, i) => {
+      overlays.push({
+        input: buf,
+        left: pillsLeft + i * (size + gap),
+        top,
+      });
+    });
   }
-}
 
-function getOptimalFontSize(text: string, imageWidth: number): number {
-  const baseSize = 48;
-  const minSize = 24; // Ensure a minimum readable font size
-  const maxWidth = imageWidth * 0.9; // Allow 90% of image width for text
-  
-  // Approximate average character width for rough calculation
-  const avgCharWidthRatio = 0.6; 
-
-  if (text.length <= 8) return baseSize;
-  
-  // For longer names, calculate based on approximate pixel width
-  // Start with baseSize assumption for initial calculation
-  let estimatedTextWidth = text.length * baseSize * avgCharWidthRatio; 
-
-  if (estimatedTextWidth > maxWidth) {
-    // Calculate required font size to fit within maxWidth
-    const calculatedFontSize = (maxWidth / text.length) / avgCharWidthRatio;
-    return Math.max(minSize, calculatedFontSize);
-  }
-  
-  // For names that don't exceed maxWidth at baseSize, but are longer than short ones
-  return Math.max(minSize, baseSize - (text.length - 8) * 1.5);
-}
-
-function createTextSvg(text: string, fontSize: number, width: number, height: number): string {
-  // Position text at bottom with some padding
-  const yPosition = height - 60;
-  
-  return `
-    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <filter id="textShadow">
-          <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.8"/>
-        </filter>
-      </defs>
-      <text 
-        x="50%" 
-        y="${yPosition}" 
-        font-family="Noto Color Emoji, Arial, sans-serif"
-        font-size="${fontSize}" 
-        font-weight="bold" 
-        fill="white" 
-        text-anchor="middle" 
-        filter="url(#textShadow)"
-      >
-        ${text}
-      </text>
-    </svg>
-  `;
+  // Final compose on a solid, consistent background (no spotlight)
+  const finalImage = await sharp(bg).composite(overlays).png().toBuffer();
+  return finalImage;
 }
 
 function getChampionImageUrl(
@@ -242,10 +550,7 @@ function getChampionImageUrl(
   return parsedImages[key];
 }
 
-
-function formatAttacks(
-  attacks: AttackWithHits[]
-): string {
+function formatAttacks(attacks: AttackWithHits[]): string {
   if (!attacks || attacks.length === 0) {
     return "Sorry, Attack type values are missing for this champion.";
   }
@@ -286,9 +591,9 @@ function formatAttacks(
         const types = Object.entries(hitCounts)
           .map(([detail, count]) => `${count}x ${detail}`)
           .join(", ");
-        attackStrings += `**${key.toUpperCase()}${ 
-            group.length > 1 ? ` 1-${group.length}` : "" 
-          } Attack**: ${types}\n`;
+        attackStrings += `**${key.toUpperCase()}${
+          group.length > 1 ? ` 1-${group.length}` : ""
+        } Attack**: ${types}\n`;
       } else {
         for (const attack of group) {
           const hitCounts = attack.hits.reduce(
@@ -325,9 +630,7 @@ function formatAttacks(
   return attackStrings;
 }
 
-function formatAbilities(
-  abilities: ChampionAbilityLinkWithAbility[]
-): string {
+function formatAbilities(abilities: ChampionAbilityLinkWithAbility[]): string {
   if (!abilities || abilities.length === 0) {
     return "This champion does not have any abilities.";
   }
@@ -335,202 +638,208 @@ function formatAbilities(
   return abilities
     .map((ability) => {
       const value = ability.source ? `• ${ability.source}` : "";
-      return `${ability.ability.emoji ? `${ability.ability.emoji} ` : ""}${ 
+      return `${ability.ability.emoji ? `${ability.ability.emoji} ` : ""}${
         ability.ability.name
       } ${value}`;
     })
     .join("\n");
 }
 
+type ChampionWithAllRelations = Champion & {
+  attacks: AttackWithHits[];
+  abilities: ChampionAbilityLinkWithAbility[];
+};
+
+async function getChampionData(
+  championName: string
+): Promise<ChampionWithAllRelations | null> {
+  return prisma.champion.findFirst({
+    where: { name: { equals: championName, mode: "insensitive" } },
+    include: {
+      attacks: { include: { hits: true } },
+      abilities: { include: { ability: true } },
+    },
+  }) as Promise<ChampionWithAllRelations | null>;
+}
+
+function handleInfo(champion: ChampionWithAllRelations): CommandResult {
+  const fullAbilities = champion.fullAbilities as FullAbilities;
+
+  if (
+    !fullAbilities ||
+    (!fullAbilities.signature && !fullAbilities.abilities_breakdown)
+  ) {
+    return {
+      content: `Detailed abilities are not available for ${champion.name}.`,
+      ephemeral: true,
+    };
+  }
+
+  const containers: ContainerBuilder[] = [];
+  let currentContainer = new ContainerBuilder().setAccentColor(
+    CLASS_COLOR[champion.class]
+  );
+  let currentLength = 0;
+  const MAX_CONTAINER_LENGTH = 4000;
+  const MAX_TEXT_DISPLAY_LENGTH = 2000;
+
+  const addTextToContainer = (text: string) => {
+    if (currentLength + text.length > MAX_CONTAINER_LENGTH) {
+      containers.push(currentContainer);
+      currentContainer = new ContainerBuilder().setAccentColor(
+        CLASS_COLOR[champion.class]
+      );
+      currentLength = 0;
+    }
+    currentContainer.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(text)
+    );
+    currentLength += text.length;
+  };
+
+  const addBlock = (title: string, description: string) => {
+    addTextToContainer(`**${title}**`);
+    const descParts =
+      description.match(new RegExp(`.{1,${MAX_TEXT_DISPLAY_LENGTH}}`, "gs")) ||
+      [];
+    for (const part of descParts) {
+      addTextToContainer(part);
+    }
+  };
+
+  addTextToContainer(`**${champion.name}**\n*${champion.class}*`);
+
+  if (fullAbilities.signature) {
+    const sig = fullAbilities.signature;
+    addBlock(
+      sig.name || "Signature Ability",
+      sig.description || "No description."
+    );
+  }
+
+  if (fullAbilities.abilities_breakdown) {
+    for (const abilityBlock of fullAbilities.abilities_breakdown) {
+      addBlock(
+        abilityBlock.title || "Ability",
+        abilityBlock.description || "No description."
+      );
+    }
+  }
+
+  if (currentContainer.components.length > 0) {
+    containers.push(currentContainer);
+  }
+
+  return {
+    components: containers,
+    isComponentsV2: true,
+  };
+}
+
+function handleAttacks(champion: ChampionWithAllRelations): CommandResult {
+  const container = new ContainerBuilder().setAccentColor(
+    CLASS_COLOR[champion.class]
+  );
+  const formattedAttacks = formatAttacks(champion.attacks);
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(formattedAttacks)
+  );
+
+  return {
+    components: [container],
+    isComponentsV2: true,
+  };
+}
+
+function handleAbilities(
+  champion: ChampionWithAllRelations,
+  subcommand: "abilities" | "immunities"
+): CommandResult {
+  const container = new ContainerBuilder().setAccentColor(
+    CLASS_COLOR[champion.class]
+  );
+  const relevantAbilities = champion.abilities.filter(
+    (a) => a.type === (subcommand === "abilities" ? "ABILITY" : "IMMUNITY")
+  );
+
+  const formattedAbilities = formatAbilities(relevantAbilities);
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(formattedAbilities)
+  );
+
+  return {
+    components: [container],
+    isComponentsV2: true,
+  };
+}
+
 export async function core(params: ChampionCoreParams): Promise<CommandResult> {
   const { subcommand, championName, userId } = params;
 
   try {
-    if (subcommand === "info") {
-      const champion = await prisma.champion.findFirst({
-        where: {
-          name: {
-            equals: championName,
-            mode: "insensitive",
-          },
-        },
-      });
+    const champion = await getChampionData(championName);
 
-      if (!champion) {
-        return {
-          content: `Champion \"${championName}\" not found.`, 
-          ephemeral: true,
-        };
-      }
-
-      const fullAbilities = champion.fullAbilities as FullAbilities;
-
-      if (
-        !fullAbilities ||
-        (!fullAbilities.signature && !fullAbilities.abilities_breakdown)
-      ) {
-        return {
-          content: `Detailed abilities are not available for ${champion.name}.`, 
-          ephemeral: true,
-        };
-      }
-
-      const containers: ContainerBuilder[] = [];
-      let currentContainer = new ContainerBuilder().setAccentColor(CLASS_COLOR[champion.class]);
-      let currentLength = 0;
-      const MAX_CONTAINER_LENGTH = 4000;
-      const MAX_TEXT_DISPLAY_LENGTH = 2000;
-
-      const addTextToContainer = (text: string) => {
-        // This function assumes text is already <= MAX_TEXT_DISPLAY_LENGTH
-        if (currentLength + text.length > MAX_CONTAINER_LENGTH) {
-            containers.push(currentContainer);
-            currentContainer = new ContainerBuilder().setAccentColor(CLASS_COLOR[champion.class]);
-            currentLength = 0;
-        }
-        currentContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(text));
-        currentLength += text.length;
-      };
-
-      const addBlock = (title: string, description: string) => {
-        addTextToContainer(`**${title}**`);
-        const descParts = description.match(new RegExp(`.{1,${MAX_TEXT_DISPLAY_LENGTH}}`, "gs")) || [];
-        for (const part of descParts) {
-            addTextToContainer(part);
-        }
-      };
-
-      addTextToContainer(`**${champion.name}**\n*${champion.class}*`);
-
-      if (fullAbilities.signature) {
-        const sig = fullAbilities.signature;
-        addBlock(sig.name || "Signature Ability", sig.description || "No description.");
-      }
-
-      if (fullAbilities.abilities_breakdown) {
-        for (const abilityBlock of fullAbilities.abilities_breakdown) {
-          addBlock(abilityBlock.title || "Ability", abilityBlock.description || "No description.");
-        }
-      }
-
-      if (currentContainer.components.length > 0) {
-        containers.push(currentContainer);
-      }
-
+    if (!champion) {
       return {
-        components: containers,
-        isComponentsV2: true,
-      };
-    } else if (subcommand === "attacks") {
-      const champion = await prisma.champion.findFirst({
-        where: {
-          name: {
-            equals: championName,
-            mode: "insensitive",
-          },
-        },
-        include: {
-          attacks: {
-            include: {
-              hits: true,
-            },
-          },
-        },
-      });
-
-      if (!champion) {
-        return {
-          content: `Champion \"${championName}\" not found.`, 
-          ephemeral: true,
-        };
-      }
-
-      const container = new ContainerBuilder().setAccentColor(CLASS_COLOR[champion.class]);
-      const headerText = new TextDisplayBuilder().setContent(`**${champion.name} - Attacks**`);
-      container.addTextDisplayComponents(headerText);
-
-      const formattedAttacks = formatAttacks(champion.attacks);
-      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(formattedAttacks));
-
-      return {
-          components: [container],
-          isComponentsV2: true,
-      };
-    } else if (subcommand === "abilities" || subcommand === "immunities") {
-      const champion = await prisma.champion.findFirst({
-        where: {
-          name: {
-            equals: championName,
-            mode: "insensitive",
-          },
-        },
-        include: {
-          abilities: {
-            where: {
-              type: subcommand === "abilities" ? "ABILITY" : "IMMUNITY",
-            },
-            include: {
-              ability: true,
-            },
-          },
-        },
-      });
-
-      if (!champion) {
-        return {
-          content: `Champion \"${championName}\" not found.`, 
-          ephemeral: true,
-        };
-      }
-
-      const container = new ContainerBuilder().setAccentColor(CLASS_COLOR[champion.class]);
-
-      const thumbnailBuffer = await createChampionThumbnail({
-        championName: champion.name,
-        championClass: champion.class,
-        imageUrl: getChampionImageUrl(champion.images, "full", "primary"),
-        // You can specify width/height here if you want to override defaults
-        // width: 800,
-        // height: 400
-      });
-
-      const thumbnailFileName = `${champion.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}_thumbnail.png`;
-      const attachment = new AttachmentBuilder(thumbnailBuffer, {
-        name: thumbnailFileName,
-        description: `Thumbnail for ${champion.name}`,
-      });
-
-      const thumbnailmediaGallery = new MediaGalleryBuilder().addItems(
-      new MediaGalleryItemBuilder()
-        .setDescription(`**${champion.name}**`) // Custom description for your new thumbnail
-        // Reference the attachment using the 'attachment://' protocol and its filename
-        .setURL(`attachment://${thumbnailFileName}`)
-    );
-      // const banner = new MediaGalleryBuilder()
-      //   .addItems(
-      //     new MediaGalleryItemBuilder()
-      //       .setDescription(`**${champion.name}** - Primary Image`)
-      //       .setURL(getChampionImageUrl(champion.images, "128", "primary")),
-      //     new MediaGalleryItemBuilder()
-      //       .setDescription(`**${champion.name}** - Secondary Image`)
-      //       .setURL(getChampionImageUrl(champion.images, "128", "secondary"))
-      //   );
-      container.addMediaGalleryComponents(thumbnailmediaGallery);
-      const headerSection = new TextDisplayBuilder().setContent(`**${champion.name} - ${ 
-              subcommand.charAt(0).toUpperCase() + subcommand.slice(1)
-            }**`);
-      container.addTextDisplayComponents(headerSection);
-
-      const formattedAbilities = formatAbilities(champion.abilities);
-      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(formattedAbilities))
-
-      return {
-          components: [container],
-          isComponentsV2: true,
-          files: [attachment],
+        content: `Champion "${championName}" not found.`,
+        ephemeral: true,
       };
     }
-    return { content: "Invalid subcommand.", ephemeral: true };
+
+    const thumbnailBuffer = await createChampionThumbnail({
+      championName: champion.name,
+      championClass: champion.class,
+      secondaryImageUrl: getChampionImageUrl(
+        champion.images,
+        "full",
+        "secondary"
+      ),
+      primaryImageUrl: getChampionImageUrl(champion.images, "full", "primary"),
+      subcommand: subcommand,
+      width: 800,
+      height: 300,
+    });
+
+    const thumbnailFileName = `${champion.name
+      .replace(/[^a-zA-Z0-9]/g, "_")
+      .toLowerCase()}_thumbnail.png`;
+    const attachment = new AttachmentBuilder(thumbnailBuffer, {
+      name: thumbnailFileName,
+      description: `Thumbnail for ${champion.name}`,
+    });
+
+    const thumbnailmediaGallery = new MediaGalleryBuilder().addItems(
+      new MediaGalleryItemBuilder()
+        .setDescription(`**${champion.name}**`)
+        .setURL(`attachment://${thumbnailFileName}`)
+    );
+
+    let result: CommandResult;
+
+    switch (subcommand) {
+      case "info":
+        result = handleInfo(champion);
+        break;
+      case "attacks":
+        result = handleAttacks(champion);
+        break;
+      case "abilities":
+      case "immunities":
+        result = handleAbilities(
+          champion,
+          subcommand as "abilities" | "immunities"
+        );
+        break;
+      default:
+        return { content: "Invalid subcommand.", ephemeral: true };
+    }
+
+    if (result.components && result.components.length > 0) {
+      result.components[0].components.unshift(thumbnailmediaGallery);
+    }
+
+    result.files = [attachment];
+    return result;
   } catch (error) {
     const { userMessage } = handleError(error, {
       location: `command:champion:${subcommand}`,
@@ -633,21 +942,21 @@ export const command: Command = {
       if (result.components && Array.isArray(result.components)) {
         const firstContainer = result.components.shift();
         if (firstContainer) {
-            await interaction.editReply({
-              content: result.content || "",
-              components: [firstContainer],
-              flags: [MessageFlags.IsComponentsV2],
-              files: result.files || [],
-            });
+          await interaction.editReply({
+            content: result.content || "",
+            components: [firstContainer],
+            flags: [MessageFlags.IsComponentsV2],
+            files: result.files || [],
+          });
         }
 
         for (const container of result.components) {
-            await interaction.followUp({
-                components: [container],
-                ephemeral: false,
-                flags: [MessageFlags.IsComponentsV2],
-                files: result.files || [],
-            });
+          await interaction.followUp({
+            components: [container],
+            ephemeral: false,
+            flags: [MessageFlags.IsComponentsV2],
+            files: result.files || [],
+          });
         }
       } else if (result.embeds) {
         await interaction.editReply({
