@@ -4,7 +4,7 @@ import {
   MessageFlags,
   ContainerBuilder,
   TextDisplayBuilder,
-  SectionBuilder,
+  AttachmentBuilder,
   MediaGalleryBuilder,
   MediaGalleryItemBuilder,
 } from "discord.js";
@@ -19,6 +19,8 @@ import {
 } from "@prisma/client";
 import { Command, CommandResult } from "../types/command";
 import { handleError, safeReply } from "../utils/errorHandler";
+import sharp from 'sharp';
+import fetch from 'node-fetch';
 
 const prisma = new PrismaClient();
 
@@ -72,6 +74,155 @@ interface ChampionImages {
   s_128: string;
   full_primary: string;
   full_secondary: string;
+}
+
+interface ChampionThumbnailOptions {
+  championName: string;
+  championClass: string;
+  imageUrl: string;
+  width?: number;
+  height?: number;
+}
+
+// Class color mappings for MCOC
+const CLASS_COLORS = {
+  COSMIC: { primary: '#00CED1', secondary: '#008B8B' }, // Cyan gradient
+  TECH: { primary: '#224bbdff', secondary: '#073374ff' },    // Cyan gradient
+  MUTANT: { primary: '#FFD700', secondary: '#FFA500' },  // Gold gradient
+  SKILL: { primary: '#DC143C', secondary: '#8B0000' },   // Red gradient
+  SCIENCE: { primary: '#32CD32', secondary: '#228B22' }, // Green gradient
+  MYSTIC: { primary: '#a51776ff', secondary: '#820286ff' }   // Pink gradient
+};
+
+export async function createChampionThumbnail(
+  options: ChampionThumbnailOptions
+): Promise<Buffer> {
+  const { championName, championClass, imageUrl, width = 800, height = 400 } = options;
+  
+  try {
+    // Download champion image
+    const response = await fetch(imageUrl);
+    if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+    const imageBuffer = await response.buffer();
+    
+    // Get class colors
+    const colors = CLASS_COLORS[championClass as keyof typeof CLASS_COLORS] 
+      || CLASS_COLORS.SKILL; // fallback
+    
+    // Create gradient background SVG
+    const gradientSvg = `
+      <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="classGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:${colors.primary};stop-opacity:0.9" />
+            <stop offset="100%" style="stop-color:${colors.secondary};stop-opacity:1" />
+          </linearGradient>
+          <filter id="noise">
+            <feTurbulence baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/>
+            <feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.1 0"/>
+            <feComposite operator="over" in2="SourceGraphic"/>
+          </filter>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#classGradient)" filter="url(#noise)"/>
+      </svg>
+    `;
+    
+    // Process champion image - resize and create circular mask
+    const processedChampion = await sharp(imageBuffer)
+      .resize(300, 300, { fit: 'cover' })
+      .png()
+      .toBuffer();
+    
+    // Create circular mask
+    const circleMask = Buffer.from(
+      `<svg width="300" height="300">
+        <circle cx="150" cy="150" r="140" fill="white"/>
+      </svg>`
+    );
+    
+    const maskedChampion = await sharp(processedChampion)
+      .composite([{ input: circleMask, blend: 'dest-in' }])
+      .png()
+      .toBuffer();
+    
+    // Handle champion name text sizing
+    const fontSize = getOptimalFontSize(championName, width);
+    const textSvg = createTextSvg(championName, fontSize, width, height);
+    
+    // Composite everything together
+    const finalImage = await sharp(Buffer.from(gradientSvg))
+      .composite([
+        {
+          input: maskedChampion,
+          top: Math.round((height - 300) / 2),
+          left: Math.round((width - 300) / 2),
+        },
+        {
+          input: Buffer.from(textSvg),
+          top: 0,
+          left: 0,
+        },
+      ])
+      .png()
+      .toBuffer();
+    
+    return finalImage;
+    
+  } catch (error) {
+    console.error('Error creating champion thumbnail:', error);
+    throw error;
+  }
+}
+
+function getOptimalFontSize(text: string, imageWidth: number): number {
+  const baseSize = 48;
+  const minSize = 24; // Ensure a minimum readable font size
+  const maxWidth = imageWidth * 0.9; // Allow 90% of image width for text
+  
+  // Approximate average character width for rough calculation
+  const avgCharWidthRatio = 0.6; 
+
+  if (text.length <= 8) return baseSize;
+  
+  // For longer names, calculate based on approximate pixel width
+  // Start with baseSize assumption for initial calculation
+  let estimatedTextWidth = text.length * baseSize * avgCharWidthRatio; 
+
+  if (estimatedTextWidth > maxWidth) {
+    // Calculate required font size to fit within maxWidth
+    const calculatedFontSize = (maxWidth / text.length) / avgCharWidthRatio;
+    return Math.max(minSize, calculatedFontSize);
+  }
+  
+  // For names that don't exceed maxWidth at baseSize, but are longer than short ones
+  return Math.max(minSize, baseSize - (text.length - 8) * 1.5);
+}
+
+function createTextSvg(text: string, fontSize: number, width: number, height: number): string {
+  // Position text at bottom with some padding
+  const yPosition = height - 60;
+  
+  return `
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="textShadow">
+          <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.8"/>
+        </filter>
+      </defs>
+      <text 
+        x="50%" 
+        y="${yPosition}" 
+        font-family="Noto Color Emoji, Arial, sans-serif"
+        font-size="${fontSize}" 
+        font-weight="bold" 
+        fill="white" 
+        text-anchor="middle" 
+        filter="url(#textShadow)"
+      >
+        ${text}
+      </text>
+    </svg>
+  `;
 }
 
 function getChampionImageUrl(
@@ -333,16 +484,38 @@ export async function core(params: ChampionCoreParams): Promise<CommandResult> {
       }
 
       const container = new ContainerBuilder().setAccentColor(CLASS_COLOR[champion.class]);
-      const banner = new MediaGalleryBuilder()
-        .addItems(
-          new MediaGalleryItemBuilder()
-            .setDescription(`**${champion.name}** - Primary Image`)
-            .setURL(getChampionImageUrl(champion.images, "128", "primary")),
-          new MediaGalleryItemBuilder()
-            .setDescription(`**${champion.name}** - Secondary Image`)
-            .setURL(getChampionImageUrl(champion.images, "128", "secondary"))
-        );
-      container.addMediaGalleryComponents(banner);
+
+      const thumbnailBuffer = await createChampionThumbnail({
+        championName: champion.name,
+        championClass: champion.class,
+        imageUrl: getChampionImageUrl(champion.images, "full", "primary"),
+        // You can specify width/height here if you want to override defaults
+        // width: 800,
+        // height: 400
+      });
+
+      const thumbnailFileName = `${champion.name.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}_thumbnail.png`;
+      const attachment = new AttachmentBuilder(thumbnailBuffer, {
+        name: thumbnailFileName,
+        description: `Thumbnail for ${champion.name}`,
+      });
+
+      const thumbnailmediaGallery = new MediaGalleryBuilder().addItems(
+      new MediaGalleryItemBuilder()
+        .setDescription(`**${champion.name}**`) // Custom description for your new thumbnail
+        // Reference the attachment using the 'attachment://' protocol and its filename
+        .setURL(`attachment://${thumbnailFileName}`)
+    );
+      // const banner = new MediaGalleryBuilder()
+      //   .addItems(
+      //     new MediaGalleryItemBuilder()
+      //       .setDescription(`**${champion.name}** - Primary Image`)
+      //       .setURL(getChampionImageUrl(champion.images, "128", "primary")),
+      //     new MediaGalleryItemBuilder()
+      //       .setDescription(`**${champion.name}** - Secondary Image`)
+      //       .setURL(getChampionImageUrl(champion.images, "128", "secondary"))
+      //   );
+      container.addMediaGalleryComponents(thumbnailmediaGallery);
       const headerSection = new TextDisplayBuilder().setContent(`**${champion.name} - ${ 
               subcommand.charAt(0).toUpperCase() + subcommand.slice(1)
             }**`);
@@ -354,6 +527,7 @@ export async function core(params: ChampionCoreParams): Promise<CommandResult> {
       return {
           components: [container],
           isComponentsV2: true,
+          files: [attachment],
       };
     }
     return { content: "Invalid subcommand.", ephemeral: true };
@@ -362,7 +536,7 @@ export async function core(params: ChampionCoreParams): Promise<CommandResult> {
       location: `command:champion:${subcommand}`,
       userId: userId,
     });
-    return { content: userMessage, ephemeral: true };
+    return { content: userMessage, ephemeral: false };
   }
 }
 
@@ -437,7 +611,7 @@ export const command: Command = {
     );
   },
   async execute(interaction: ChatInputCommandInteraction) {
-    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
+    await interaction.deferReply({ flags: [] });
 
     const subcommand = interaction.options.getSubcommand();
     const championName = interaction.options.getString("champion");
@@ -463,14 +637,16 @@ export const command: Command = {
               content: result.content || "",
               components: [firstContainer],
               flags: [MessageFlags.IsComponentsV2],
+              files: result.files || [],
             });
         }
 
         for (const container of result.components) {
             await interaction.followUp({
                 components: [container],
-                ephemeral: true,
+                ephemeral: false,
                 flags: [MessageFlags.IsComponentsV2],
+                files: result.files || [],
             });
         }
       } else if (result.embeds) {

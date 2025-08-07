@@ -32,6 +32,10 @@ RUN npm install --only=production
 # Copy the built code from the 'builder' stage
 COPY --from=builder /usr/src/app/dist ./dist
 
+# Install fonts for image generation
+USER root
+RUN apt-get update && apt-get install -y fonts-noto-color-emoji fontconfig && fc-cache -f -v && rm -rf /var/lib/apt/lists/*
+
 # Set the user to a non-root user for better security
 USER node
 
