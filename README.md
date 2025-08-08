@@ -23,6 +23,22 @@ A personal, modular Discord bot built with TypeScript, designed for Marvel Conte
 
 ---
 
+## Emoji Handling (Application Emojis)
+
+This bot uses application-owned emojis to ensure consistent rendering across production and development bots, even when emoji IDs differ.
+
+- **How it works**: Emojis are referenced by name in stored strings (e.g., `<:Blade:12345>`). At runtime, the bot resolves the name to the current application’s emoji ID and rewrites the markup automatically. Animated vs static is preserved.
+- **No guild dependency**: Resolution uses application emojis attached to the bot application (managed in the Dev Portal or via API), not guild emojis. A fallback to guild/client emoji caches exists for legacy cases, but the intended source is application emojis.
+- **Name matching required**: Ensure the same emoji NAMES exist in both your prod and dev applications. IDs can differ; names must match.
+- **Load timing**: Application emojis are loaded on startup. If you add/remove emojis, restart the bot (or add a reload command later).
+- **Troubleshooting**:
+  - If emojis don’t render, verify that the application has emojis with the expected names and that the bot has permission to use them.
+  - Startup will log a warning if the application emoji list is empty or the response shape is unrecognized.
+
+Manage emojis in: Discord Developer Portal → Your Application → Emojis.
+
+---
+
 ## Migration
 
 This section outlines the plan and progress for migrating commands from the legacy Python bot to this new TypeScript version.

@@ -13,6 +13,7 @@ import { getButtonHandler } from "./utils/buttonHandlerRegistry";
 import { startScheduler } from "./utils/schedulerService";
 import http from "http";
 import { handleError, safeReply } from "./utils/errorHandler";
+import { loadApplicationEmojis } from "./utils/applicationEmojiService";
 
 declare module "discord.js" {
   interface Client {
@@ -58,6 +59,13 @@ client.once(Events.ClientReady, async (readyClient) => {
     );
   } catch (error) {
     console.error(`❌ Failed to register global slash commands:`, error);
+  }
+  // Load application emojis once at startup so resolver can reference them
+  try {
+    await loadApplicationEmojis(client);
+    console.log("🎨 Application emojis loaded.");
+  } catch (e) {
+    console.warn("⚠️ Failed to load application emojis:", e);
   }
   // Start scheduler after bot is ready
   await startScheduler(client);

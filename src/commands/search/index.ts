@@ -34,6 +34,10 @@ async function core(
   userId: string
 ): Promise<CommandResult> {
   try {
+    // Provide client/guild to emoji resolver via a shared global for this call
+    (global as any).__discordClient = interactionClientRef;
+    (global as any).__discordGuild = interactionGuildRef;
+
     const { embed, row } = await generateResponse(
       champions,
       searchCriteria,
@@ -275,6 +279,10 @@ export const command: Command = {
       searchCache.set(searchId, { criteria: searchCriteria, pages });
       setTimeout(() => searchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
 
+      // Prepare refs to pass to resolver via global for this invocation scope
+      interactionClientRef = interaction.client;
+      interactionGuildRef = interaction.guild;
+
       const result = await core(
         pages[0],
         searchCriteria,
@@ -323,6 +331,9 @@ async function handleSearchPagination(interaction: ButtonInteraction) {
   }
 
   await interaction.deferUpdate();
+  // Make client/guild available to utils during this pagination update
+  interactionClientRef = interaction.client;
+  interactionGuildRef = interaction.guild;
   const result = await core(
     pages[newPage - 1],
     criteria,
@@ -336,6 +347,10 @@ async function handleSearchPagination(interaction: ButtonInteraction) {
 }
 
 registerButtonHandler("search", handleSearchPagination);
+
+// Shared refs to make client/guild available to util during response generation
+let interactionClientRef: ChatInputCommandInteraction["client"] | null = null;
+let interactionGuildRef: ChatInputCommandInteraction["guild"] | null = null;
 
 export default command;
 

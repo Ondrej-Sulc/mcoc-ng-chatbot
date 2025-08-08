@@ -7,6 +7,7 @@ import {
 import { Command, CommandResult } from "../types/command";
 import { PrismaClient, Ability, AbilityCategory } from "@prisma/client";
 import { handleError, safeReply } from "../utils/errorHandler";
+import { createEmojiResolver } from "../utils/emojiResolver";
 
 const prisma = new PrismaClient();
 
@@ -16,7 +17,10 @@ interface GlossaryCoreParams {
   userId: string;
 }
 
-export async function core(params: GlossaryCoreParams): Promise<CommandResult> {
+export async function core(
+  params: GlossaryCoreParams,
+  resolveEmoji: (text: string) => string
+): Promise<CommandResult> {
   const { subcommand, name, userId } = params;
 
   try {
@@ -38,7 +42,11 @@ export async function core(params: GlossaryCoreParams): Promise<CommandResult> {
       }
 
       const embed = new EmbedBuilder()
-        .setTitle(`${effect.emoji ? `${effect.emoji} ` : ""}${effect.name}`)
+        .setTitle(
+          `${
+            effect.emoji ? `${resolveEmoji(effect.emoji)} ` : ""
+          }${effect.name}`
+        )
         .setDescription(effect.description || "No description available.");
 
       if (effect.categories.length > 0) {
@@ -168,11 +176,15 @@ export const command: Command = {
     }
 
     try {
-      const result = await core({
-        subcommand,
-        name,
-        userId: interaction.user.id,
-      });
+      const resolveEmoji = createEmojiResolver(interaction.client, interaction.guild);
+      const result = await core(
+        {
+          subcommand,
+          name,
+          userId: interaction.user.id,
+        },
+        resolveEmoji
+      );
 
       if (result.embeds) {
         await interaction.editReply({

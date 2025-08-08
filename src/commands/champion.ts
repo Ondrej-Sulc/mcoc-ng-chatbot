@@ -21,6 +21,7 @@ import { Command, CommandResult } from "../types/command";
 import { handleError, safeReply } from "../utils/errorHandler";
 import sharp from "sharp";
 import fetch from "node-fetch";
+import { createEmojiResolver } from "../utils/emojiResolver";
 
 const prisma = new PrismaClient();
 
@@ -91,19 +92,18 @@ interface ChampionThumbnailOptions {
 
 // Class color mappings for MCOC
 const CLASS_COLORS = {
-  COSMIC: { primary: "#00CED1", secondary: "#008B8B" },
-  TECH: { primary: "#224bbdff", secondary: "#073374ff" },
-  MUTANT: { primary: "#FFD700", secondary: "#FFA500" },
-  SKILL: { primary: "#DC143C", secondary: "#8B0000" },
-  SCIENCE: { primary: "#32CD32", secondary: "#228B22" },
-  MYSTIC: { primary: "#a51776ff", secondary: "#820286ff" },
+  COSMIC: { primary: "#2dd4d4", secondary: "#0b7d7d" }, // bright cyan → deep teal
+  TECH: { primary: "#4a6cf7", secondary: "#1a2e8f" }, // vivid blue → navy
+  MUTANT: { primary: "#f9d648", secondary: "#d4a017" }, // warm gold → rich amber
+  SKILL: { primary: "#e63946", secondary: "#8b1e2d" }, // crimson → deep burgundy
+  SCIENCE: { primary: "#4ade80", secondary: "#166534" }, // fresh green → forest green
+  MYSTIC: { primary: "#c026d3", secondary: "#6b0f7a" }, // magenta → deep purple
 } as const;
 
 const DEFAULTS = {
-  width: 800,
+  width: 700,
   height: 300,
   padding: 28,
-  panelWidthRatio: 0.625,
   panelRadius: 15,
   avatarRing: 8,
   avatarGlow: 0,
@@ -124,6 +124,27 @@ const escapeXml = (s: string) =>
 
 const clamp = (n: number, min: number, max: number) =>
   Math.max(min, Math.min(max, n));
+
+function hexToRgba(hex: string): { r: number; g: number; b: number; a: number } {
+  const clean = hex.replace(/^#/, "");
+  const hasAlpha = clean.length === 8;
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  const a = hasAlpha ? parseInt(clean.slice(6, 8), 16) : 255;
+  return { r, g, b, a };
+}
+
+function rgbaToHex(r: number, g: number, b: number, a: number = 255): string {
+  const toHex = (v: number) => clamp(Math.round(v), 0, 255).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}${toHex(a)}`;
+}
+
+function adjustColorBrightness(hex: string, factor: number): string {
+  const { r, g, b, a } = hexToRgba(hex);
+  const adj = (v: number) => v + (factor >= 0 ? (255 - v) * factor : v * factor);
+  return rgbaToHex(adj(r), adj(g), adj(b), a);
+}
 
 async function fetchArrayBufferWithTimeout(
   url: string,
@@ -148,30 +169,94 @@ async function fetchArrayBufferWithTimeout(
 function createBackgroundSvg(
   width: number,
   height: number,
+  leftPanelWidth: number,
   primary: string,
   secondary: string
 ): Buffer {
+  const seamX = clamp(leftPanelWidth, 0, width);
+  const rightPrimary = adjustColorBrightness(primary, -0.35);
+  const rightSecondary = adjustColorBrightness(secondary, -0.45);
   const svg = `
     <svg width="${width}" height="${height}"
       viewBox="0 0 ${width} ${height}"
       xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <!-- Angled class gradient (left) -->
+        <linearGradient id="leftBg" x1="0%" y1="0%" x2="100%" y2="0%" gradientTransform="rotate(18)">
           <stop offset="0%" stop-color="${primary}" />
           <stop offset="100%" stop-color="${secondary}" />
         </linearGradient>
+
+        <!-- Darker gradient (right) -->
+        <linearGradient id="rightBg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${rightPrimary}" />
+          <stop offset="100%" stop-color="${rightSecondary}" />
+        </linearGradient>
+
+        <!-- Soft vertical sheen -->
         <linearGradient id="sheen" x1="0%" y1="0%" x2="0%" y2="100%">
           <stop offset="0%" stop-color="#ffffff" stop-opacity="0.08" />
           <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
         </linearGradient>
+
+        <!-- Vignette -->
         <radialGradient id="vign" cx="50%" cy="50%" r="75%">
           <stop offset="70%" stop-color="#000000" stop-opacity="0" />
-          <stop offset="100%" stop-color="#000000" stop-opacity="0.18" />
+          <stop offset="100%" stop-color="#000000" stop-opacity="0.22" />
         </radialGradient>
+
+        <!-- Diagonal stripe pattern -->
+        <pattern id="stripes" patternUnits="userSpaceOnUse" width="12" height="12" patternTransform="rotate(35)">
+          <rect width="12" height="12" fill="transparent"/>
+          <rect x="0" y="0" width="6" height="12" fill="#ffffff" fill-opacity="0.035"/>
+        </pattern>
+
+        <!-- Bokeh circles -->
+        <radialGradient id="bokeh" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.12"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+        </radialGradient>
+
       </defs>
-      <rect width="100%" height="100%" fill="url(#bg)"/>
+
+      <!-- Base gradients split by panel -->
+      <rect x="0" y="0" width="${seamX}" height="${height}" fill="url(#leftBg)"/>
+      <rect x="${seamX}" y="0" width="${width - seamX}" height="${height}" fill="url(#rightBg)"/>
+
+      <!-- Stripes overlay (left only) -->
+      <rect x="0" y="0" width="${seamX}" height="${height}" fill="url(#stripes)"/>
+      <!-- Bokeh accents on left panel area -->
+      <circle cx="${Math.round(seamX * 0.35)}" cy="${Math.round(
+    height * 0.28
+  )}" r="${Math.round(height * 0.35)}" fill="url(#bokeh)"/>
+      <circle cx="${Math.round(seamX * 0.58)}" cy="${Math.round(
+    height * 0.18
+  )}" r="${Math.round(height * 0.22)}" fill="url(#bokeh)"/>
+      <circle cx="${Math.round(seamX * 0.48)}" cy="${Math.round(
+    height * 0.78
+  )}" r="${Math.round(height * 0.18)}" fill="url(#bokeh)"/>
+
+      <!-- Sheen + vignette for depth -->
       <rect width="100%" height="100%" fill="url(#sheen)"/>
       <rect width="100%" height="100%" fill="url(#vign)"/>
+    </svg>
+  `;
+  return Buffer.from(svg);
+}
+
+function createSeamGlowSvg(height: number, thickness = 3): Buffer {
+  const svg = `
+    <svg width="${thickness}" height="${height}"
+      viewBox="0 0 ${thickness} ${height}"
+      xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="seam" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
+          <stop offset="50%" stop-color="#ffffff" stop-opacity="0.65"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="${thickness}" height="${height}" fill="url(#seam)"/>
     </svg>
   `;
   return Buffer.from(svg);
@@ -230,18 +315,40 @@ function createTextAndPillsSvg(opts: {
   const escapedClass = escapeXml(classLabel);
   const escapedCmd = escapeXml(subcommand.toUpperCase());
 
-  // Big title, sized to fit until panel edge
+  // Big title, sized to fit until panel edge; two-line fallback if still too long
   const maxTitleWidth = titleRightLimit - padding;
-  const baseSize = 70;
-  const minSize = 28;
-  const estimate = (t: string, s: number) => t.length * (s * 0.56);
+  const baseSize = 72;
+  const minSize = 26;
+  const estimate = (t: string, s: number) => t.length * (s * 0.54);
   let fontSize = baseSize;
   if (estimate(title, baseSize) > maxTitleWidth) {
     fontSize = clamp(
-      Math.floor(maxTitleWidth / title.length / 0.56),
+      Math.floor(maxTitleWidth / title.length / 0.54),
       minSize,
       baseSize
     );
+  }
+
+  // Determine single vs two-line
+  let lines: string[] = [escapedTitle];
+  const fitsAtMin = estimate(title, minSize) <= maxTitleWidth;
+  if (!fitsAtMin) {
+    // Try two-line split by words, greedy
+    const words = title.split(/\s+/);
+    let line1 = "";
+    let line2 = "";
+    for (const w of words) {
+      const candidate = line1 ? `${line1} ${w}` : w;
+      if (estimate(candidate, minSize) <= maxTitleWidth) {
+        line1 = candidate;
+      } else {
+        line2 = line2 ? `${line2} ${w}` : w;
+      }
+    }
+    if (line1 && line2) {
+      lines = [escapeXml(line1), escapeXml(line2)];
+      fontSize = minSize; // ensure safe size for two lines
+    }
   }
 
   // Pills
@@ -252,7 +359,7 @@ function createTextAndPillsSvg(opts: {
   const cmdW = escapedCmd.length * (chipFont * 0.62) + chipPadX * 2 + 10;
 
   const chipH = chipFont + chipPadY * 2;
-  const yTitle = padding + fontSize; // sits above avatar
+  const yTitle = padding + fontSize; // baseline for first title line
 
   const svg = `
     <svg width="${width}" height="${height}"
@@ -284,7 +391,19 @@ function createTextAndPillsSvg(opts: {
         }
       </style>
 
-      <text x="${padding}" y="${yTitle}" class="title">${escapedTitle}</text>
+      ${
+        lines.length === 1
+          ? `<text x="${padding}" y="${yTitle}" class="title">${
+              lines[0]
+            }</text>`
+          : `
+        <text x="${padding}" y="${yTitle - (fontSize + 6) / 2}" class="title">${
+            lines[0]
+          }</text>
+        <text x="${padding}" y="${yTitle + (fontSize + 6) / 2}" class="title">${
+            lines[1]
+          }</text>`
+      }
 
       <!-- Pills row (bottom-left, next to avatar) -->
       <g transform="translate(${pillsLeft}, ${height - pillsBottom - chipH})">
@@ -416,10 +535,13 @@ export async function createChampionThumbnail(
       : Promise.resolve(undefined),
   ]);
 
-  const panelWidth = Math.round(width * DEFAULTS.panelWidthRatio);
+  // Layout: reserve a square on the right sized by the canvas height.
+  const rightSquareWidth = Math.min(height, width); // safety if width < height
+  const leftPanelWidth = Math.max(0, width - rightSquareWidth);
   const bg = createBackgroundSvg(
     width,
     height,
+    leftPanelWidth,
     colors.primary,
     colors.secondary
   );
@@ -427,7 +549,7 @@ export async function createChampionThumbnail(
   // Layout metrics
   // Smaller avatar, lower to make room for big title
   const avatarDiameter = primaryAB
-    ? Math.min(Math.floor(height * 0.44), Math.floor(panelWidth * 0.34))
+    ? Math.min(Math.floor(height * 0.44), Math.floor(leftPanelWidth * 0.34))
     : 0;
 
   const avatarLeft = DEFAULTS.padding;
@@ -439,55 +561,67 @@ export async function createChampionThumbnail(
     DEFAULTS.padding + (avatarDiameter ? avatarDiameter + 6 : 0);
   const pillsBottom = DEFAULTS.padding;
 
-  // Title can span up to end of panel
-  const titleRightLimit = panelWidth - DEFAULTS.padding;
+  // Title can span up to end of left panel
+  const titleRightLimit = Math.max(0, leftPanelWidth - DEFAULTS.padding * 2);
 
   // Build overlays in order
   const overlays: sharp.OverlayOptions[] = [];
 
   // Left glass panel for readability (covers full height)
-  overlays.push({
-    input: createGlassPanelSvg(panelWidth, height, DEFAULTS.panelRadius),
-    left: 0,
-    top: 0,
-  });
+  if (leftPanelWidth > 0) {
+    overlays.push({
+      input: createGlassPanelSvg(leftPanelWidth, height, DEFAULTS.panelRadius),
+      left: 0,
+      top: 0,
+    });
+  }
 
-  // ensure champ only fills the right area (avoid overflowing left panel)
-  const overlap = 0; // small intentional overlap onto the panel
-  const rightAreaW = Math.round(width - panelWidth + overlap);
-  const characterPng = await sharp(Buffer.from(secondaryAB))
-    .resize({
-      width: rightAreaW,
-      height,
-      fit: "cover",
-      position: "right",
-      withoutEnlargement: false,
-    })
-    .png()
-    .toBuffer();
+  // Champion art in a right-side square (1:1)
+  if (rightSquareWidth > 0) {
+    const characterPng = await sharp(Buffer.from(secondaryAB))
+      .resize({
+        width: rightSquareWidth,
+        height: rightSquareWidth,
+        fit: "cover",
+        position: "center",
+        withoutEnlargement: false,
+      })
+      .png()
+      .toBuffer();
 
-  overlays.push({
-    input: characterPng,
-    left: width - rightAreaW,
-    top: 0,
-  });
+    overlays.push({
+      input: characterPng,
+      left: width - rightSquareWidth,
+      top: 0,
+    });
+    // Add a seam glow overlay to emphasize separation
+    if (leftPanelWidth > 0) {
+      overlays.push({
+        input: createSeamGlowSvg(height, 3),
+        left: leftPanelWidth - 1,
+        top: 0,
+      });
+    }
+  }
 
   // Title and pills
-  overlays.push({
-    input: createTextAndPillsSvg({
-      title: championName,
-      classLabel: championClass,
-      subcommand,
-      width: panelWidth,
-      height,
-      padding: DEFAULTS.padding,
-      titleRightLimit,
-      pillsLeft,
-      pillsBottom,
-    }),
-    left: 0,
-    top: 0,
-  });
+  if (leftPanelWidth > 0) {
+    overlays.push({
+      input: createTextAndPillsSvg({
+        title: championName,
+        classLabel: championClass,
+        subcommand,
+        width: leftPanelWidth,
+        height,
+        padding: DEFAULTS.padding,
+        titleRightLimit,
+        pillsLeft,
+        pillsBottom,
+      }),
+      left: 0,
+      top: 0,
+    });
+  }
 
   // Avatar
   if (primaryAB) {
@@ -507,10 +641,10 @@ export async function createChampionThumbnail(
   }
 
   // Optional icons row (to the right of avatar, above pills if you want)
-  if (iconUrls?.length) {
+  if (iconUrls?.length && leftPanelWidth > 0) {
     const size = DEFAULTS.iconSize;
     const gap = DEFAULTS.iconGap;
-    const available = panelWidth - pillsLeft - DEFAULTS.padding + 4; // nudge into corner
+    const available = leftPanelWidth - pillsLeft - DEFAULTS.padding + 4; // nudge into corner
     const maxIconsFit = Math.floor(available / (size + gap));
     const chosen = iconUrls.slice(0, maxIconsFit);
     const iconBuffers = await Promise.all(
@@ -630,19 +764,76 @@ function formatAttacks(attacks: AttackWithHits[]): string {
   return attackStrings;
 }
 
-function formatAbilities(abilities: ChampionAbilityLinkWithAbility[]): string {
-  if (!abilities || abilities.length === 0) {
-    return "This champion does not have any abilities.";
+function formatLinkedAbilitySection(
+  links: ChampionAbilityLinkWithAbility[],
+  resolveEmoji: (text: string) => string,
+  sectionTitle: string
+): string {
+  if (!links || links.length === 0) {
+    return `No ${sectionTitle.toLowerCase()} found.`;
   }
 
-  return abilities
-    .map((ability) => {
-      const value = ability.source ? `• ${ability.source}` : "";
-      return `${ability.ability.emoji ? `${ability.ability.emoji} ` : ""}${
-        ability.ability.name
-      } ${value}`;
-    })
-    .join("\n");
+  // Group by ability name; collect distinct sources per ability
+  const byName = new Map<
+    string,
+    {
+      name: string;
+      emoji?: string | null;
+      sources: string[];
+    }
+  >();
+
+  for (const link of links) {
+    const name = link.ability.name;
+    const key = name.toLowerCase();
+    const source = (link.source || "").trim();
+    if (!byName.has(key)) {
+      byName.set(key, {
+        name,
+        emoji: link.ability.emoji || undefined,
+        sources: [],
+      });
+    }
+    if (source) {
+      const entry = byName.get(key)!;
+      if (!entry.sources.some((s) => s.toLowerCase() === source.toLowerCase())) {
+        entry.sources.push(source);
+      }
+    }
+  }
+
+  const items = Array.from(byName.values()).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+
+  const lines: string[] = [];
+  lines.push(`**${sectionTitle}** (${items.length})`);
+
+  for (const item of items) {
+    const emoji = item.emoji ? resolveEmoji(item.emoji) : "";
+    const base = `${emoji ? `${emoji} ` : ""}**${item.name}**`;
+    if (item.sources.length > 0) {
+      lines.push(`${base} — ${item.sources.join(" • ")}`);
+    } else {
+      lines.push(base);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+function formatAbilities(
+  abilities: ChampionAbilityLinkWithAbility[],
+  resolveEmoji: (text: string) => string
+): string {
+  return formatLinkedAbilitySection(abilities, resolveEmoji, "Abilities");
+}
+
+function formatImmunities(
+  immunities: ChampionAbilityLinkWithAbility[],
+  resolveEmoji: (text: string) => string
+): string {
+  return formatLinkedAbilitySection(immunities, resolveEmoji, "Immunities");
 }
 
 type ChampionWithAllRelations = Champion & {
@@ -753,7 +944,8 @@ function handleAttacks(champion: ChampionWithAllRelations): CommandResult {
 
 function handleAbilities(
   champion: ChampionWithAllRelations,
-  subcommand: "abilities" | "immunities"
+  subcommand: "abilities" | "immunities",
+  resolveEmoji: (text: string) => string
 ): CommandResult {
   const container = new ContainerBuilder().setAccentColor(
     CLASS_COLOR[champion.class]
@@ -762,7 +954,10 @@ function handleAbilities(
     (a) => a.type === (subcommand === "abilities" ? "ABILITY" : "IMMUNITY")
   );
 
-  const formattedAbilities = formatAbilities(relevantAbilities);
+  const formattedAbilities =
+    subcommand === "abilities"
+      ? formatAbilities(relevantAbilities, resolveEmoji)
+      : formatImmunities(relevantAbilities, resolveEmoji);
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(formattedAbilities)
   );
@@ -773,7 +968,10 @@ function handleAbilities(
   };
 }
 
-export async function core(params: ChampionCoreParams): Promise<CommandResult> {
+export async function core(
+  params: ChampionCoreParams,
+  resolveEmoji: (text: string) => string
+): Promise<CommandResult> {
   const { subcommand, championName, userId } = params;
 
   try {
@@ -827,7 +1025,8 @@ export async function core(params: ChampionCoreParams): Promise<CommandResult> {
       case "immunities":
         result = handleAbilities(
           champion,
-          subcommand as "abilities" | "immunities"
+          subcommand as "abilities" | "immunities",
+          resolveEmoji
         );
         break;
       default:
@@ -933,11 +1132,15 @@ export const command: Command = {
     }
 
     try {
-      const result = await core({
-        subcommand,
-        championName,
-        userId: interaction.user.id,
-      });
+      const resolveEmoji = createEmojiResolver(interaction.client, interaction.guild);
+      const result = await core(
+        {
+          subcommand,
+          championName,
+          userId: interaction.user.id,
+        },
+        resolveEmoji
+      );
 
       if (result.components && Array.isArray(result.components)) {
         const firstContainer = result.components.shift();

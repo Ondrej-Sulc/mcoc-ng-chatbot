@@ -5,10 +5,12 @@ import {
   AttackType as AttackTypeEnum,
 } from "@prisma/client";
 import { SearchCoreParams, ChampionWithRelations } from "../../types/search";
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, Guild } from "discord.js";
+import { createEmojiResolver } from "../../utils/emojiResolver";
 
 const prisma = new PrismaClient();
 
+// Store by name so we can resolve IDs dynamically per-guild
 export const CLASS_EMOJIS: Record<ChampionClass, string> = {
   MYSTIC: "<:Mystic:1253449751555215504>",
   MUTANT: "<:Mutant:1253449731284406332>",
@@ -16,7 +18,7 @@ export const CLASS_EMOJIS: Record<ChampionClass, string> = {
   SCIENCE: "<:Science:1253449774271696967>",
   COSMIC: "<:Cosmic:1253449702595235950>",
   TECH: "<:Tech:1253449817808703519>",
-  SUPERIOR: "<:Superior:1253458213618323660>",
+  SUPERIOR: "<:Superior:1253458213618323660>",  
 };
 
 export const ATTACK_PROPERTIES = [
@@ -332,6 +334,12 @@ export async function generateResponse(
   totalPages: number,
   searchId: string
 ): Promise<{ embed: EmbedBuilder; row: ActionRowBuilder<ButtonBuilder> | null }> {
+  // Create resolver on demand; we rely on interaction context to pass client/guild in caller
+  // Fallbacks: if not provided, resolution will no-op and keep original markup
+  const maybeClient: Client | undefined = (global as any).__discordClient;
+  const maybeGuild: Guild | null = (global as any).__discordGuild || null;
+  const resolveEmoji = maybeClient ? createEmojiResolver(maybeClient, maybeGuild) : (t: string) => t;
+
   const descriptionLines: string[] = [];
   const parsedSearchCriteria = {
     abilities: parseAndOrConditions(searchCriteria.abilities).conditions.map((c) =>
@@ -353,7 +361,8 @@ export async function generateResponse(
 
   for (const champion of champions) {
     const classEmoji = CLASS_EMOJIS[champion.class] || "";
-    let champString = `${champion.discordEmoji} **${champion.name}** ${classEmoji}`;
+    const championEmoji = champion.discordEmoji ? resolveEmoji(champion.discordEmoji) : "";
+    let champString = `${championEmoji} **${champion.name}** ${classEmoji}`;
 
     const matchedAbilities = champion.abilities
       .filter(
