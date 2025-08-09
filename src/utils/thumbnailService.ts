@@ -30,6 +30,21 @@ const CLASS_COLORS = {
   SUPERIOR: { primary: "#20c997", secondary: "#0d5f4a" }, // bright teal-green → deep emerald-teal
 } as const;
 
+interface PatternConfig {
+  scale: number;
+  opacity: number;
+}
+
+const CLASS_PATTERN_CONFIG: Record<ChampionClass, PatternConfig> = {
+  COSMIC: { scale: 1.1, opacity: 2.5 },
+  TECH: { scale: 1.5, opacity: 1.25 },
+  MUTANT: { scale: 1.25, opacity: 2.5 },
+  SKILL: { scale: 1.5, opacity: 1.25 },
+  SCIENCE: { scale: 2, opacity: 1.5 },
+  MYSTIC: { scale: 1.75, opacity: 1.25 },
+  SUPERIOR: { scale: 1.0, opacity: 1.0 },
+};
+
 const CLASS_PATTERNS: Record<ChampionClass, string> = {
   COSMIC: `
   <pattern
@@ -147,110 +162,88 @@ const CLASS_PATTERNS: Record<ChampionClass, string> = {
   `,
 
   MUTANT: `
-  <pattern
-    id="classPattern"
-    patternUnits="userSpaceOnUse"
-    width="60"
-    height="60"
-    patternTransform="rotate(8)"
-  >
-    <!-- DNA backbone curves -->
-    <path
-      d="M10 0 C 20 15, 40 45, 50 60"
-      stroke="#ffffff"
-      stroke-width="1.4"
-      stroke-opacity="0.12"
-      fill="none"
-    />
-    <path
-      d="M50 0 C 40 15, 20 45, 10 60"
-      stroke="#ffffff"
-      stroke-width="1.4"
-      stroke-opacity="0.12"
-      fill="none"
-    />
-
-    <!-- Base pair rungs -->
-    <path
-      d="M15 10 L45 10
-         M12 20 L48 20
-         M15 30 L45 30
-         M12 40 L48 40
-         M15 50 L45 50"
-      stroke="#ffffff"
-      stroke-width="1"
-      stroke-opacity="0.1"
-      fill="none"
-    />
-
-    <!-- Decorative gene markers -->
-    <circle cx="30" cy="10" r="1.2" fill="#ffffff" fill-opacity="0.14" />
-    <circle cx="30" cy="30" r="1.2" fill="#ffffff" fill-opacity="0.14" />
-    <circle cx="30" cy="50" r="1.2" fill="#ffffff" fill-opacity="0.14" />
-  </pattern>
+    <pattern
+      id="classPattern"
+      patternUnits="userSpaceOnUse"
+      width="60"
+      height="60"
+      patternTransform="rotate(10)"
+    >
+      <g stroke="#ffffff" fill="none" stroke-linecap="round">
+        <!-- Main orbital path -->
+        <path d="M30 0 Q50 30 30 60 Q10 30 30 0 Z" stroke-width="1.2" stroke-opacity="0.12"/>
+        <!-- Second orbital path, crossing -->
+        <path d="M0 30 Q30 50 60 30 Q30 10 0 30 Z" stroke-width="1.2" stroke-opacity="0.12"/>
+        <!-- Central nucleus / energy core -->
+        <circle cx="30" cy="30" r="4" stroke-width="0.9" stroke-opacity="0.1"/>
+        <!-- Subtle energy lines / connections -->
+        <path d="M10 10 L50 50 M10 50 L50 10" stroke-width="0.7" stroke-opacity="0.08"/>
+      </g>
+      <g fill="#ffffff">
+        <!-- Electrons / data points -->
+        <circle cx="30" cy="0" r="1.5" fill-opacity="0.15"/>
+        <circle cx="60" cy="30" r="1.5" fill-opacity="0.15"/>
+        <circle cx="30" cy="60" r="1.5" fill-opacity="0.15"/>
+        <circle cx="0" cy="30" r="1.5" fill-opacity="0.15"/>
+        <circle cx="30" cy="30" r="2.5" fill-opacity="0.18"/> <!-- Central point -->
+        <circle cx="15" cy="45" r="1" fill-opacity="0.11"/>
+        <circle cx="45" cy="15" r="1" fill-opacity="0.11"/>
+      </g>
+    </pattern>
   `,
 
   SKILL: `
     <pattern
       id="classPattern"
       patternUnits="userSpaceOnUse"
-      width="24"
-      height="24"
-      patternTransform="rotate(15)"
-    >
-      <g stroke="#ffffff" fill="none" stroke-linecap="round">
-        <path
-          d="M0 12 L6 6 L12 12 L18 6 L24 12"
-          stroke-width="1.4"
-          stroke-opacity="0.12"
-        />
-        <path
-          d="M0 18 L6 12 L12 18 L18 12 L24 18"
-          stroke-width="1.2"
-          stroke-opacity="0.09"
-        />
-      </g>
-      <g stroke="#ffffff" stroke-opacity="0.1" fill="none">
-        <circle cx="12" cy="12" r="4.5" stroke-width="0.9" />
-        <path d="M12 8.5 V15.5 M8.5 12 H15.5" stroke-width="0.8" />
-      </g>
-    </pattern>
-  `,
-
-  SCIENCE: `
-    <pattern
-      id="classPattern"
-      patternUnits="userSpaceOnUse"
-      width="60"
-      height="34.64"
-      patternTransform="scale(1.05)"
+      width="32"
+      height="32"
+      patternTransform="rotate(20)"
     >
       <g
         stroke="#ffffff"
         fill="none"
         stroke-linecap="round"
         stroke-linejoin="round"
-        stroke-opacity="0.11"
       >
-        <path d="M5 0 L15 0 L20 8.66 L15 17.32 L5 17.32 L0 8.66 Z" />
-        <path d="M25 0 L35 0 L40 8.66 L35 17.32 L25 17.32 L20 8.66 Z" />
-        <path d="M45 0 L55 0 L60 8.66 L55 17.32 L45 17.32 L40 8.66 Z" />
-
-        <path d="M15 17.32 L25 17.32 L30 25.98 L25 34.64 L15 34.64 L10 25.98 Z" />
-        <path d="M35 17.32 L45 17.32 L50 25.98 L45 34.64 L35 34.64 L30 25.98 Z" />
+        <path d="M0 16 L16 0 L32 16 L16 32 Z" stroke-width="1.3" stroke-opacity="0.12"/>
+        <path d="M8 8 L24 24 M8 24 L24 8" stroke-width="1" stroke-opacity="0.1"/>
+        <circle cx="16" cy="16" r="6" stroke-width="0.8" stroke-opacity="0.09"/>
       </g>
-
-      <g stroke="#ffffff" stroke-opacity="0.08" fill="none">
-        <path d="M10 8.66 L20 25.98" stroke-width="0.9" />
-        <path d="M30 8.66 L40 25.98" stroke-width="0.9" />
-      </g>
-
       <g fill="#ffffff">
-        <circle cx="10" cy="8.66" r="1.1" fill-opacity="0.13" />
-        <circle cx="30" cy="8.66" r="1.1" fill-opacity="0.13" />
-        <circle cx="50" cy="8.66" r="1.1" fill-opacity="0.13" />
-        <circle cx="20" cy="25.98" r="1.1" fill-opacity="0.13" />
-        <circle cx="40" cy="25.98" r="1.1" fill-opacity="0.13" />
+        <circle cx="16" cy="16" r="1.8" fill-opacity="0.16"/>
+        <circle cx="8" cy="8" r="0.9" fill-opacity="0.11"/>
+        <circle cx="24" cy="24" r="0.9" fill-opacity="0.11"/>
+        <circle cx="8" cy="24" r="0.9" fill-opacity="0.11"/>
+        <circle cx="24" cy="8" r="0.9" fill-opacity="0.11"/>
+      </g>
+    </pattern>
+  `,
+
+  SCIENCE: `
+        <pattern id="classPattern"
+      patternUnits="userSpaceOnUse"
+      width="30"
+      height="34.64"
+    >
+      <g stroke="#ffffff" fill="none" stroke-linecap="round"
+         stroke-opacity="0.11">
+        <path
+          d="M0 4.33 L7.5 0 L15 4.33 V13 L7.5 17.32 L0 13 Z"
+          stroke-width="1"
+        />
+        <path
+          d="M15 4.33 L22.5 0 L30 4.33 V13 L22.5 17.32 L15 13 Z"
+          stroke-width="1"
+        />
+        <path
+          d="M7.5 21.65 L15 17.32 L22.5 21.65 V30 L15 34.64 L7.5 30 Z"
+          stroke-width="1"
+        />
+        <path
+          d="M-7.5 21.65 L0 17.32 L7.5 21.65 V30 L0 34.64 L-7.5 30 Z"
+          stroke-width="1"
+        />
       </g>
     </pattern>
   `,
@@ -259,64 +252,41 @@ const CLASS_PATTERNS: Record<ChampionClass, string> = {
     <pattern
       id="classPattern"
       patternUnits="userSpaceOnUse"
-      width="80"
-      height="80"
-      patternTransform="rotate(5)"
+      width="32"
+      height="32"
+      patternTransform="rotate(12)"
     >
-      <g stroke="#ffffff" fill="none" stroke-linecap="round">
-        <!-- Central glowing orb / portal effect -->
+      <g
+        stroke="#ffffff"
+        fill="none"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <circle
-          cx="40"
-          cy="40"
-          r="25"
-          stroke-width="1.8"
-          stroke-opacity="0.12"
-        />
-        <circle
-          cx="40"
-          cy="40"
-          r="10"
+          cx="16"
+          cy="16"
+          r="9"
           stroke-width="1.2"
-          stroke-opacity="0.1"
+          stroke-opacity="0.11"
         />
-
-        <!-- Swirling energy paths -->
         <path
-          d="M10 40 Q40 10, 70 40 T10 40"
-          stroke-width="1"
+          d="M16 7 L21 16 L16 25 L11 16 Z"
+          stroke-width="0.9"
           stroke-opacity="0.09"
         />
         <path
-          d="M10 40 Q40 70, 70 40 T10 40"
-          stroke-width="1"
-          stroke-opacity="0.09"
-        />
-        <path
-          d="M40 10 Q10 40, 40 70 T40 10"
-          stroke-width="1"
-          stroke-opacity="0.09"
-        />
-        <path
-          d="M40 10 Q70 40, 40 70 T40 10"
-          stroke-width="1"
-          stroke-opacity="0.09"
-        />
-
-        <!-- Subtle runic/arcane marks -->
-        <path
-          d="M30 30 L32 35 L28 35 Z"
-          stroke-width="0.8"
-          stroke-opacity="0.08"
-        />
-        <path
-          d="M50 50 L52 55 L48 55 Z"
-          stroke-width="0.8"
+          d="M16 10 L18 13 M16 22 L18 19 M16 10 L14 13 M16 22 L14 19"
+          stroke-width="0.6"
           stroke-opacity="0.08"
         />
       </g>
+
       <g fill="#ffffff">
-        <!-- Central highlight -->
-        <circle cx="40" cy="40" r="2.5" fill-opacity="0.15" />
+        <circle cx="4" cy="4" r="0.9" fill-opacity="0.12" />
+        <circle cx="28" cy="4" r="0.9" fill-opacity="0.12" />
+        <circle cx="4" cy="28" r="0.9" fill-opacity="0.12" />
+        <circle cx="28" cy="28" r="0.9" fill-opacity="0.12" />
+        <circle cx="16" cy="16" r="1.2" fill-opacity="0.14" />
       </g>
     </pattern>
   `,
@@ -1011,13 +981,19 @@ export async function createChampionThumbnail(
     width = DEFAULTS.width,
     height = DEFAULTS.height,
     fetchTimeoutMs = DEFAULTS.fetchTimeoutMs,
-    patternScale = 1.5,
-    patternOpacityMultiplier = 1.5,
+    patternScale,
+    patternOpacityMultiplier,
   } = options;
 
   const colors =
     CLASS_COLORS[championClass as keyof typeof CLASS_COLORS] ??
     CLASS_COLORS.SKILL;
+
+  const classPatternConfig =
+    CLASS_PATTERN_CONFIG[championClass] ?? CLASS_PATTERN_CONFIG.SKILL; // Default for safety
+
+  const finalPatternScale = patternScale ?? classPatternConfig.scale;
+  const finalPatternOpacity = patternOpacityMultiplier ?? classPatternConfig.opacity;
 
   // Fetch images
   const [secondaryAB, primaryAB] = await Promise.all([
@@ -1039,8 +1015,8 @@ export async function createChampionThumbnail(
     colors.primary,
     colors.secondary,
     championClass,
-    patternScale,
-    patternOpacityMultiplier
+    finalPatternScale,
+    finalPatternOpacity
   );
 
   // Layout metrics

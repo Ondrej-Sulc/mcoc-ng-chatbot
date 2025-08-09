@@ -11,6 +11,7 @@ A personal, modular Discord bot built with TypeScript, designed for Marvel Conte
 - **Centralized Error Handling:** A robust system that provides users with a unique error ID while logging detailed context for debugging.
 - **Dockerized Environment:** Fully containerized with Docker Compose for consistent development and easy deployment, including a PostgreSQL database service.
 - **AI Capabilities:** Integration with OpenRouter for advanced AI features.
+- **Dynamic Thumbnail Generation:** A sophisticated service (`src/utils/thumbnailService.ts`) that generates custom, visually rich thumbnails for champion-related commands. It uses a champion's class to theme the image with unique colors and intricate SVG background patterns. These patterns are highly configurable, allowing for easy adjustments to their scale and opacity to fine-tune the final look.
 
 ## Technology Stack
 
