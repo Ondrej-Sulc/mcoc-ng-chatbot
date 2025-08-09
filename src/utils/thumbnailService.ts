@@ -15,17 +15,343 @@ export interface ChampionThumbnailOptions {
   width?: number;
   height?: number;
   fetchTimeoutMs?: number;
+  patternScale?: number;
+  patternOpacityMultiplier?: number;
 }
 
 // Class color mappings for MCOC
 const CLASS_COLORS = {
   COSMIC: { primary: "#2dd4d4", secondary: "#0b7d7d" }, // bright cyan → deep teal
   TECH: { primary: "#4a6cf7", secondary: "#1a2e8f" }, // vivid blue → navy
-  MUTANT: { primary: "#f9d648", secondary: "#d4a017" }, // warm gold → rich amber
+  MUTANT: { primary: "#ffe600", secondary: "#d46f17" },
   SKILL: { primary: "#e63946", secondary: "#8b1e2d" }, // crimson → deep burgundy
   SCIENCE: { primary: "#4ade80", secondary: "#166534" }, // fresh green → forest green
   MYSTIC: { primary: "#c026d3", secondary: "#6b0f7a" }, // magenta → deep purple
+  SUPERIOR: { primary: "#20c997", secondary: "#0d5f4a" }, // bright teal-green → deep emerald-teal
 } as const;
+
+const CLASS_PATTERNS: Record<ChampionClass, string> = {
+  COSMIC: `
+  <pattern
+    id="classPattern"
+    patternUnits="userSpaceOnUse"
+    width="100"
+    height="100"
+    patternTransform="rotate(12)"
+  >
+    <g stroke="#ffffff" fill="none" stroke-linecap="round">
+      <!-- Main swirling paths -->
+      <path
+        d="M0 25 Q30 5, 50 25 T100 25"
+        stroke-width="1.3"
+        stroke-opacity="0.1"
+      />
+      <path
+        d="M0 75 Q30 95, 50 75 T100 75"
+        stroke-width="1.3"
+        stroke-opacity="0.1"
+      />
+      <path
+        d="M10 0 Q5 30, 25 50 T25 100"
+        stroke-width="1.1"
+        stroke-opacity="0.09"
+      />
+      <path
+        d="M90 0 Q95 30, 75 50 T75 100"
+        stroke-width="1.1"
+        stroke-opacity="0.09"
+      />
+      <!-- Secondary, lighter trails -->
+      <path
+        d="M0 45 Q20 30, 40 45 T100 45"
+        stroke-width="0.8"
+        stroke-opacity="0.07"
+      />
+      <path
+        d="M0 60 Q20 75, 40 60 T100 60"
+        stroke-width="0.8"
+        stroke-opacity="0.07"
+      />
+    </g>
+
+    <g fill="#ffffff">
+      <!-- Scattered stars/cosmic dust -->
+      <circle cx="15" cy="18" r="1.5" fill-opacity="0.15" />
+      <circle cx="85" cy="30" r="1.2" fill-opacity="0.13" />
+      <circle cx="30" cy="88" r="1.4" fill-opacity="0.14" />
+      <circle cx="60" cy="10" r="1.1" fill-opacity="0.12" />
+      <circle cx="5" cy="65" r="1.3" fill-opacity="0.14" />
+      <circle cx="95" cy="70" r="1.1" fill-opacity="0.13" />
+      <circle cx="45" cy="50" r="1" fill-opacity="0.11" />
+      <circle cx="70" cy="40" r="0.9" fill-opacity="0.1" />
+    </g>
+  </pattern>
+  `,
+  TECH: `
+    <pattern
+      id="classPattern"
+      patternUnits="userSpaceOnUse"
+      width="64"
+      height="64"
+    >
+      <g
+        stroke="#ffffff"
+        fill="none"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M0 16 H28 V28 H44 V48 H64"
+          stroke-width="1.4"
+          stroke-opacity="0.12"
+        />
+        <path
+          d="M0 36 H16 V20 H36 V8 H64"
+          stroke-width="1.2"
+          stroke-opacity="0.11"
+        />
+        <path d="M8 0 V64" stroke-width="1" stroke-opacity="0.09" />
+        <path d="M56 0 V64" stroke-width="1" stroke-opacity="0.09" />
+        <path
+          d="M24 56 H40 V64"
+          stroke-width="1"
+          stroke-opacity="0.09"
+        />
+        <path
+          d="M0 56 H12 M52 8 H64"
+          stroke-width="1"
+          stroke-opacity="0.08"
+        />
+      </g>
+      <g fill="#ffffff">
+        <circle cx="28" cy="16" r="1.6" fill-opacity="0.18" />
+        <circle cx="44" cy="28" r="1.6" fill-opacity="0.18" />
+        <circle cx="16" cy="36" r="1.4" fill-opacity="0.16" />
+        <circle cx="36" cy="20" r="1.2" fill-opacity="0.14" />
+        <circle cx="8" cy="8" r="1" fill-opacity="0.12" />
+        <circle cx="56" cy="56" r="1.2" fill-opacity="0.14" />
+      </g>
+      <g stroke="#ffffff" stroke-opacity="0.1">
+        <path
+          d="M20 44 h6 m-3 -3 v6"
+          stroke-width="0.9"
+          fill="none"
+        />
+        <path
+          d="M48 12 h5 m-2.5 -2.5 v5"
+          stroke-width="0.9"
+          fill="none"
+        />
+      </g>
+    </pattern>
+  `,
+
+  MUTANT: `
+  <pattern
+    id="classPattern"
+    patternUnits="userSpaceOnUse"
+    width="60"
+    height="60"
+    patternTransform="rotate(8)"
+  >
+    <!-- DNA backbone curves -->
+    <path
+      d="M10 0 C 20 15, 40 45, 50 60"
+      stroke="#ffffff"
+      stroke-width="1.4"
+      stroke-opacity="0.12"
+      fill="none"
+    />
+    <path
+      d="M50 0 C 40 15, 20 45, 10 60"
+      stroke="#ffffff"
+      stroke-width="1.4"
+      stroke-opacity="0.12"
+      fill="none"
+    />
+
+    <!-- Base pair rungs -->
+    <path
+      d="M15 10 L45 10
+         M12 20 L48 20
+         M15 30 L45 30
+         M12 40 L48 40
+         M15 50 L45 50"
+      stroke="#ffffff"
+      stroke-width="1"
+      stroke-opacity="0.1"
+      fill="none"
+    />
+
+    <!-- Decorative gene markers -->
+    <circle cx="30" cy="10" r="1.2" fill="#ffffff" fill-opacity="0.14" />
+    <circle cx="30" cy="30" r="1.2" fill="#ffffff" fill-opacity="0.14" />
+    <circle cx="30" cy="50" r="1.2" fill="#ffffff" fill-opacity="0.14" />
+  </pattern>
+  `,
+
+  SKILL: `
+    <pattern
+      id="classPattern"
+      patternUnits="userSpaceOnUse"
+      width="24"
+      height="24"
+      patternTransform="rotate(15)"
+    >
+      <g stroke="#ffffff" fill="none" stroke-linecap="round">
+        <path
+          d="M0 12 L6 6 L12 12 L18 6 L24 12"
+          stroke-width="1.4"
+          stroke-opacity="0.12"
+        />
+        <path
+          d="M0 18 L6 12 L12 18 L18 12 L24 18"
+          stroke-width="1.2"
+          stroke-opacity="0.09"
+        />
+      </g>
+      <g stroke="#ffffff" stroke-opacity="0.1" fill="none">
+        <circle cx="12" cy="12" r="4.5" stroke-width="0.9" />
+        <path d="M12 8.5 V15.5 M8.5 12 H15.5" stroke-width="0.8" />
+      </g>
+    </pattern>
+  `,
+
+  SCIENCE: `
+    <pattern
+      id="classPattern"
+      patternUnits="userSpaceOnUse"
+      width="60"
+      height="34.64"
+      patternTransform="scale(1.05)"
+    >
+      <g
+        stroke="#ffffff"
+        fill="none"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-opacity="0.11"
+      >
+        <path d="M5 0 L15 0 L20 8.66 L15 17.32 L5 17.32 L0 8.66 Z" />
+        <path d="M25 0 L35 0 L40 8.66 L35 17.32 L25 17.32 L20 8.66 Z" />
+        <path d="M45 0 L55 0 L60 8.66 L55 17.32 L45 17.32 L40 8.66 Z" />
+
+        <path d="M15 17.32 L25 17.32 L30 25.98 L25 34.64 L15 34.64 L10 25.98 Z" />
+        <path d="M35 17.32 L45 17.32 L50 25.98 L45 34.64 L35 34.64 L30 25.98 Z" />
+      </g>
+
+      <g stroke="#ffffff" stroke-opacity="0.08" fill="none">
+        <path d="M10 8.66 L20 25.98" stroke-width="0.9" />
+        <path d="M30 8.66 L40 25.98" stroke-width="0.9" />
+      </g>
+
+      <g fill="#ffffff">
+        <circle cx="10" cy="8.66" r="1.1" fill-opacity="0.13" />
+        <circle cx="30" cy="8.66" r="1.1" fill-opacity="0.13" />
+        <circle cx="50" cy="8.66" r="1.1" fill-opacity="0.13" />
+        <circle cx="20" cy="25.98" r="1.1" fill-opacity="0.13" />
+        <circle cx="40" cy="25.98" r="1.1" fill-opacity="0.13" />
+      </g>
+    </pattern>
+  `,
+
+  MYSTIC: `
+    <pattern
+      id="classPattern"
+      patternUnits="userSpaceOnUse"
+      width="80"
+      height="80"
+      patternTransform="rotate(5)"
+    >
+      <g stroke="#ffffff" fill="none" stroke-linecap="round">
+        <!-- Central glowing orb / portal effect -->
+        <circle
+          cx="40"
+          cy="40"
+          r="25"
+          stroke-width="1.8"
+          stroke-opacity="0.12"
+        />
+        <circle
+          cx="40"
+          cy="40"
+          r="10"
+          stroke-width="1.2"
+          stroke-opacity="0.1"
+        />
+
+        <!-- Swirling energy paths -->
+        <path
+          d="M10 40 Q40 10, 70 40 T10 40"
+          stroke-width="1"
+          stroke-opacity="0.09"
+        />
+        <path
+          d="M10 40 Q40 70, 70 40 T10 40"
+          stroke-width="1"
+          stroke-opacity="0.09"
+        />
+        <path
+          d="M40 10 Q10 40, 40 70 T40 10"
+          stroke-width="1"
+          stroke-opacity="0.09"
+        />
+        <path
+          d="M40 10 Q70 40, 40 70 T40 10"
+          stroke-width="1"
+          stroke-opacity="0.09"
+        />
+
+        <!-- Subtle runic/arcane marks -->
+        <path
+          d="M30 30 L32 35 L28 35 Z"
+          stroke-width="0.8"
+          stroke-opacity="0.08"
+        />
+        <path
+          d="M50 50 L52 55 L48 55 Z"
+          stroke-width="0.8"
+          stroke-opacity="0.08"
+        />
+      </g>
+      <g fill="#ffffff">
+        <!-- Central highlight -->
+        <circle cx="40" cy="40" r="2.5" fill-opacity="0.15" />
+      </g>
+    </pattern>
+  `,
+
+  SUPERIOR: `
+    <pattern
+      id="classPattern"
+      patternUnits="userSpaceOnUse"
+      width="40"
+      height="40"
+      patternTransform="rotate(12)"
+    >
+      <g stroke="#ffffff" fill="none" stroke-linecap="round">
+        <path
+          d="M0 20 L10 10 L20 20 L30 10 L40 20"
+          stroke-width="1.2"
+          stroke-opacity="0.1"
+        />
+        <path
+          d="M0 30 L10 20 L20 30 L30 20 L40 30"
+          stroke-width="1"
+          stroke-opacity="0.08"
+        />
+        <path
+          d="M20 0 L30 10 L20 20 L10 10 Z"
+          stroke-width="1"
+          stroke-opacity="0.09"
+        />
+      </g>
+      <g fill="#ffffff">
+        <circle cx="20" cy="20" r="1.3" fill-opacity="0.14" />
+      </g>
+    </pattern>
+  `,
+};
 
 const DEFAULTS = {
   width: 700,
@@ -50,7 +376,12 @@ const escapeXml = (s: string) =>
 const clamp = (n: number, min: number, max: number) =>
   Math.max(min, Math.min(max, n));
 
-function hexToRgba(hex: string): { r: number; g: number; b: number; a: number } {
+function hexToRgba(hex: string): {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+} {
   const clean = hex.replace(/^#/, "");
   const hasAlpha = clean.length === 8;
   const r = parseInt(clean.slice(0, 2), 16);
@@ -61,13 +392,15 @@ function hexToRgba(hex: string): { r: number; g: number; b: number; a: number } 
 }
 
 function rgbaToHex(r: number, g: number, b: number, a: number = 255): string {
-  const toHex = (v: number) => clamp(Math.round(v), 0, 255).toString(16).padStart(2, "0");
+  const toHex = (v: number) =>
+    clamp(Math.round(v), 0, 255).toString(16).padStart(2, "0");
   return `#${toHex(r)}${toHex(g)}${toHex(b)}${toHex(a)}`;
 }
 
 function adjustColorBrightness(hex: string, factor: number): string {
   const { r, g, b, a } = hexToRgba(hex);
-  const adj = (v: number) => v + (factor >= 0 ? (255 - v) * factor : v * factor);
+  const adj = (v: number) =>
+    v + (factor >= 0 ? (255 - v) * factor : v * factor);
   return rgbaToHex(adj(r), adj(g), adj(b), a);
 }
 
@@ -116,7 +449,12 @@ function computeTitleLayout(
   padding: number,
   titleRightLimit: number,
   font: opentype.Font | null
-): { lines: string[]; fontSize: number; yTitle: number; maxTitleWidth: number } {
+): {
+  lines: string[];
+  fontSize: number;
+  yTitle: number;
+  maxTitleWidth: number;
+} {
   const maxTitleWidth = titleRightLimit - padding;
   const baseSize = 72;
   const minSize = 26;
@@ -165,9 +503,7 @@ function computeTitleLayout(
     lines = [line1, line2.trim()].filter(Boolean);
     if (lines.length > 1) {
       const longerLine =
-        measure(lines[0], 100) > measure(lines[1], 100)
-          ? lines[0]
-          : lines[1];
+        measure(lines[0], 100) > measure(lines[1], 100) ? lines[0] : lines[1];
       // Recalculate font size for the wrapped lines
       for (let s = baseSize; s >= minSize; s--) {
         if (measure(longerLine, s) <= maxTitleWidth) {
@@ -230,9 +566,42 @@ function createBackgroundSvg(
   height: number,
   leftPanelWidth: number,
   primary: string,
-  secondary: string
+  secondary: string,
+  championClass: ChampionClass,
+  patternScale: number,
+  patternOpacityMultiplier: number
 ): Buffer {
   const seamX = clamp(leftPanelWidth, 0, width);
+  let pattern = CLASS_PATTERNS[championClass] ?? CLASS_PATTERNS.SKILL; // Default for safety
+
+  // Inject scale
+  const scaleTransform = `scale(${patternScale})`;
+  const transformRegex = /patternTransform="([^"]*)"/;
+  const match = pattern.match(transformRegex);
+
+  if (match) {
+    const existingTransforms = match[1];
+    pattern = pattern.replace(
+      existingTransforms,
+      `${scaleTransform} ${existingTransforms}`
+    );
+  } else {
+    pattern = pattern.replace(
+      /id="classPattern"/,
+      `id="classPattern" patternTransform="${scaleTransform}"`
+    );
+  }
+
+  // Adjust opacity
+  pattern = pattern.replace(
+    /(stroke-opacity|fill-opacity)="([^"]*)"/g,
+    (match, p1, p2) => {
+      const originalOpacity = parseFloat(p2);
+      const newOpacity = clamp(originalOpacity * patternOpacityMultiplier, 0, 1);
+      return `${p1}="${newOpacity.toFixed(3)}"`;
+    }
+  );
+
   const svg = `
     <svg width="${width}" height="${height}"
       viewBox="0 0 ${width} ${height}"
@@ -256,11 +625,8 @@ function createBackgroundSvg(
           <stop offset="100%" stop-color="#000000" stop-opacity="0.22" />
         </radialGradient>
 
-        <!-- Diagonal stripe pattern -->
-        <pattern id="stripes" patternUnits="userSpaceOnUse" width="12" height="12" patternTransform="rotate(35)">
-          <rect width="12" height="12" fill="transparent"/>
-          <rect x="0" y="0" width="6" height="12" fill="#ffffff" fill-opacity="0.035"/>
-        </pattern>
+        <!-- Class-specific pattern -->
+        ${pattern}
 
         <!-- Bokeh circles -->
         <radialGradient id="bokeh" cx="50%" cy="50%" r="50%">
@@ -273,8 +639,8 @@ function createBackgroundSvg(
       <!-- Base gradient (full width) -->
       <rect x="0" y="0" width="${width}" height="${height}" fill="url(#leftBg)"/>
 
-      <!-- Stripes overlay (full width) -->
-      <rect x="0" y="0" width="${width}" height="${height}" fill="url(#stripes)"/>
+      <!-- Pattern overlay (full width) -->
+      <rect x="0" y="0" width="${width}" height="${height}" fill="url(#classPattern)"/>
       <!-- Bokeh accents on left panel area -->
       <circle cx="${Math.round(seamX * 0.35)}" cy="${Math.round(
     height * 0.28
@@ -324,13 +690,11 @@ const getFramePath = (size: number) => {
   const cornerCut = size * 0.08;
   const strokeWidth = 6;
   const halfStroke = strokeWidth / 2;
-  return `M ${cornerCut},${halfStroke} L ${
+  return `M ${cornerCut},${halfStroke} L ${size - cornerCut},${halfStroke} L ${
+    size - halfStroke
+  },${cornerCut} L ${size - halfStroke},${size - cornerCut} L ${
     size - cornerCut
-  },${halfStroke} L ${size - halfStroke},${cornerCut} L ${
-    size - halfStroke
-  },${size - cornerCut} L ${size - cornerCut},${
-    size - halfStroke
-  } L ${cornerCut},${size - halfStroke} L ${halfStroke},${
+  },${size - halfStroke} L ${cornerCut},${size - halfStroke} L ${halfStroke},${
     size - cornerCut
   } L ${halfStroke},${cornerCut} Z`;
 };
@@ -525,17 +889,21 @@ function createTextAndPillsSvg(opts: {
           ? titleAsPaths
           : lines.length === 1
           ? `<text x="${padding}" y="${yTitle}" class="title" filter="url(#titleShadow)" ${makeTextAdjustAttrs(
-                lines[0],
-                fontSize,
-                maxTitleWidth
-              )}>${lines[0]}</text>`
+              lines[0],
+              fontSize,
+              maxTitleWidth
+            )}>${lines[0]}</text>`
           : `
-        <text x="${padding}" y="${yTitle - (fontSize + 6) / 2}" class="title" filter="url(#titleShadow)" ${makeTextAdjustAttrs(
+        <text x="${padding}" y="${
+              yTitle - (fontSize + 6) / 2
+            }" class="title" filter="url(#titleShadow)" ${makeTextAdjustAttrs(
               lines[0],
               fontSize,
               maxTitleWidth
             )}>${lines[0]}</text>
-        <text x="${padding}" y="${yTitle + (fontSize + 6) / 2}" class="title" filter="url(#titleShadow)" ${makeTextAdjustAttrs(
+        <text x="${padding}" y="${
+              yTitle + (fontSize + 6) / 2
+            }" class="title" filter="url(#titleShadow)" ${makeTextAdjustAttrs(
               lines[1] ?? "",
               fontSize,
               maxTitleWidth
@@ -602,7 +970,9 @@ async function createCircularAvatar(opts: {
         <circle cx="${cx}" cy="${cy}" r="${innerR}"
           fill="none" stroke="url(#ring)" stroke-width="${ringWidth}"/>
         <circle cx="${cx}" cy="${cy}" r="${innerR}"
-          fill="none" stroke="#ffffff" stroke-width="${ringWidth * 0.25}" stroke-opacity="0.4"/>
+          fill="none" stroke="#ffffff" stroke-width="${
+            ringWidth * 0.25
+          }" stroke-opacity="0.4"/>
       </g>
     </svg>
   `);
@@ -641,6 +1011,8 @@ export async function createChampionThumbnail(
     width = DEFAULTS.width,
     height = DEFAULTS.height,
     fetchTimeoutMs = DEFAULTS.fetchTimeoutMs,
+    patternScale = 1.5,
+    patternOpacityMultiplier = 1.5,
   } = options;
 
   const colors =
@@ -665,7 +1037,10 @@ export async function createChampionThumbnail(
     height,
     leftPanelWidth,
     colors.primary,
-    colors.secondary
+    colors.secondary,
+    championClass,
+    patternScale,
+    patternOpacityMultiplier
   );
 
   // Layout metrics
@@ -699,10 +1074,28 @@ export async function createChampionThumbnail(
       .png()
       .toBuffer();
 
+    const frameClipPath = getFramePath(rightSquareWidth);
+    const clipMask = Buffer.from(`
+      <svg width="${rightSquareWidth}" height="${rightSquareWidth}" xmlns="http://www.w3.org/2000/svg">
+        <path d="${frameClipPath}" fill="#fff"/>
+      </svg>
+    `);
+
+    const clippedCharacter = await sharp(characterPng)
+      .composite([
+        {
+          input: clipMask,
+          blend: "dest-in",
+        },
+      ])
+      .png()
+      .toBuffer();
+
+    // Base is the darkening layer, then composite the clipped character on top.
     rightPanelContent = await sharp(darkeningSvg)
       .composite([
         {
-          input: characterPng,
+          input: clippedCharacter,
           blend: "over",
         },
       ])

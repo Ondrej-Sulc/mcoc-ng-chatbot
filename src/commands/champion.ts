@@ -25,13 +25,13 @@ import { createChampionThumbnail } from "../utils/thumbnailService";
 const prisma = new PrismaClient();
 
 const CLASS_COLOR: Record<ChampionClass, number> = {
-  MYSTIC: 0x8a2be2,
-  MUTANT: 0xffd700,
-  SKILL: 0xff0000,
-  SCIENCE: 0x00ff00,
-  COSMIC: 0x00ffff,
-  TECH: 0x0000ff,
-  SUPERIOR: 0xffffff,
+  MYSTIC: 0xc026d3,   // vivid magenta-purple
+  MUTANT: 0xffc300,   // rich golden yellow (matches Option 3 gradient)
+  SKILL: 0xe63946,    // crimson red
+  SCIENCE: 0x2ecc71,  // fresh green
+  COSMIC: 0x2dd4d4,   // bright cyan
+  TECH: 0x4a6cf7,     // vivid blue
+  SUPERIOR: 0x20c997, // teal-green
 };
 
 // Define interfaces for the expected structure of the 'fullAbilities' JSON field.
