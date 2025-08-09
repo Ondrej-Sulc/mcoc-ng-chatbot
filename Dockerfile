@@ -13,6 +13,14 @@ RUN npm install
 # Copy the rest of the source code
 COPY . .
 
+# Fetch display fonts (Bebas Neue) so runtime doesn't need external network
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    mkdir -p assets/fonts && \
+    curl -L -o assets/fonts/BebasNeue-Regular.ttf https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bebasneue/BebasNeue-Regular.ttf && \
+    curl -L -o assets/fonts/BebasNeue-Regular.woff2 https://fonts.gstatic.com/s/bebasneue/v10/JTUSjIg69CK48gW7PXoo9Wlhyw.woff2 && \
+    rm -rf /var/lib/apt/lists/*
+
 # Generate Prisma Client
 RUN npx prisma generate
 
@@ -31,6 +39,7 @@ RUN npm install --only=production
 
 # Copy the built code from the 'builder' stage
 COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/assets ./assets
 
 # Install fonts for image generation
 USER root

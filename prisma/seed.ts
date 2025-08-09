@@ -3,11 +3,28 @@ import {
   ChampionClass,
   AttackType,
   AbilityLinkType,
+  Prisma,
 } from "@prisma/client";
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 
 const prisma = new PrismaClient();
+
+// Resolve a base directory compatible with both CJS (__dirname) and ESM (import.meta.url)
+const BASE_DIR = (() => {
+  try {
+    // @ts-ignore - __dirname exists in CJS
+    if (typeof __dirname !== "undefined") return __dirname as string;
+  } catch {}
+  try {
+    // Works in ESM (tsx) environments
+    return path.dirname(fileURLToPath(import.meta.url));
+  } catch {
+    // Fallback to process.cwd() if both mechanisms are unavailable
+    return process.cwd();
+  }
+})();
 
 // --- Raw JSON typings ---
 interface RawChampionData {
@@ -59,13 +76,13 @@ async function main() {
   // 2) Load JSON
   const championsRaw: RawChampionData[] = JSON.parse(
     fs.readFileSync(
-      path.join(__dirname, "..", "legacy", "champions_data.json"),
+      path.join(BASE_DIR, "..", "legacy", "champions_data.json"),
       "utf-8"
     )
   );
   const glossaryRaw: RawGlossaryData = JSON.parse(
     fs.readFileSync(
-      path.join(__dirname, "..", "legacy", "glossary.json"),
+      path.join(BASE_DIR, "..", "legacy", "glossary.json"),
       "utf-8"
     )
   );
@@ -204,6 +221,21 @@ async function seedAbilitiesAndCategories(
 }
 
 /**
+ * Normalize a list of source strings for ability/immunity links.
+ * - Accepts unknown input and coerces to an array of non-empty, trimmed strings
+ * - If the result is empty, returns a single entry: null (meaning always active)
+ */
+function normalizeSources(input: unknown): Array<string | null> {
+  if (!Array.isArray(input)) {
+    return [null];
+  }
+  const cleaned = input
+    .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .filter((value) => value.length > 0);
+  return cleaned.length > 0 ? cleaned : [null];
+}
+
+/**
  * 4) Seed Tag table
  */
 async function seedTags(
@@ -320,12 +352,7 @@ async function seedChampions(
     }
 
     // 5.3) Link Abilities & Immunities
-    const links: Array<{
-      championId: number;
-      abilityId: number;
-      type: AbilityLinkType;
-      source: string;
-    }> = [];
+    const links: Prisma.ChampionAbilityLinkCreateManyInput[] = [];
 
     // Ensure champ is defined and initialized before use
     const champ = await prisma.champion.findUnique({
@@ -336,7 +363,8 @@ async function seedChampions(
     }
 
     for (const [name, sources] of Object.entries(c.Abilities)) {
-      for (const src of sources) {
+      const normalized = normalizeSources(sources);
+      for (const src of normalized) {
         const abilityId = abilityMap.get(name);
         if (abilityId === undefined) {
           // This should not happen now, but let's be safe
@@ -349,12 +377,13 @@ async function seedChampions(
           championId: champ.id,
           abilityId: abilityId,
           type: AbilityLinkType.ABILITY,
-          source: src,
-        });
+          ...(src !== null ? { source: src } : {}),
+        } as Prisma.ChampionAbilityLinkCreateManyInput);
       }
     }
     for (const [name, sources] of Object.entries(c.Immunities)) {
-      for (const src of sources) {
+      const normalized = normalizeSources(sources);
+      for (const src of normalized) {
         const abilityId = abilityMap.get(name);
         if (abilityId === undefined) {
           console.error(
@@ -366,8 +395,8 @@ async function seedChampions(
           championId: champ.id,
           abilityId: abilityId,
           type: AbilityLinkType.IMMUNITY,
-          source: src,
-        });
+          ...(src !== null ? { source: src } : {}),
+        } as Prisma.ChampionAbilityLinkCreateManyInput);
       }
     }
 

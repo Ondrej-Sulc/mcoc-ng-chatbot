@@ -93,7 +93,7 @@ model Tag {
 model ChampionAbilityLink {
   id     Int             @id @default(autoincrement())
   type   AbilityLinkType
-  source String
+  source String?
 
   championId Int
   champion   Champion @relation(fields: [championId], references: [id], onDelete: Cascade)
