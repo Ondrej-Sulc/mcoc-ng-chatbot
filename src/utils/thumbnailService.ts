@@ -12,7 +12,6 @@ export interface ChampionThumbnailOptions {
   primaryImageUrl?: string; // circular avatar
   subcommand: string; // e.g., "abilities"
   tagline?: string; // optional, small text line
-  iconUrls?: string[]; // optional icons row
   width?: number;
   height?: number;
   fetchTimeoutMs?: number;
@@ -35,8 +34,6 @@ const DEFAULTS = {
   panelRadius: 0,
   avatarRing: 8,
   avatarGlow: 0,
-  iconSize: 32,
-  iconGap: 8,
   fetchTimeoutMs: 8000,
 };
 
@@ -464,9 +461,9 @@ function createTextAndPillsSvg(opts: {
   };
 
   // Pills
-  const chipFont = 32;
-  const chipPadX = 16; // Base padding
-  const chipPadY = 8;
+  const chipFont = 36;
+  const chipPadX = 10; // Base padding
+  const chipPadY = 10;
   const letterSpacing = 0.1; // User can adjust this to control length
   const chipH = chipFont + chipPadY * 2;
 
@@ -576,7 +573,11 @@ async function createCircularAvatar(opts: {
   ringEnd: string;
 }): Promise<Buffer> {
   const { image, diameter, ringWidth, ringStart, ringEnd } = opts;
+  const padding = 10; // Px padding to allow glow to render
+  const canvasSize = diameter + padding * 2;
   const r = diameter / 2;
+  const cx = r + padding;
+  const cy = r + padding;
   const innerR = r - ringWidth / 2;
 
   const avatar = await sharp(image)
@@ -591,7 +592,7 @@ async function createCircularAvatar(opts: {
   `);
 
   const ring = Buffer.from(`
-    <svg width="${diameter}" height="${diameter}"
+    <svg width="${canvasSize}" height="${canvasSize}"
       xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -603,9 +604,9 @@ async function createCircularAvatar(opts: {
         </filter>
       </defs>
       <g filter="url(#avatarGlow)">
-        <circle cx="${r}" cy="${r}" r="${innerR}"
+        <circle cx="${cx}" cy="${cy}" r="${innerR}"
           fill="none" stroke="url(#ring)" stroke-width="${ringWidth}"/>
-        <circle cx="${r}" cy="${r}" r="${innerR}"
+        <circle cx="${cx}" cy="${cy}" r="${innerR}"
           fill="none" stroke="#ffffff" stroke-width="${ringWidth * 0.25}" stroke-opacity="0.4"/>
       </g>
     </svg>
@@ -617,27 +618,16 @@ async function createCircularAvatar(opts: {
 
   return sharp({
     create: {
-      width: diameter,
-      height: diameter,
+      width: canvasSize,
+      height: canvasSize,
       channels: 4,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     },
   })
-    .composite([{ input: masked }, { input: ring }])
-    .png()
-    .toBuffer();
-}
-
-// ---- icons ----
-
-async function loadAndResizeIcon(
-  url: string,
-  size: number,
-  timeoutMs: number
-): Promise<Buffer> {
-  const ab = await fetchArrayBufferWithTimeout(url, timeoutMs);
-  return sharp(Buffer.from(ab))
-    .resize(size, size, { fit: "contain" })
+    .composite([
+      { input: masked, top: padding, left: padding },
+      { input: ring, top: 0, left: 0 },
+    ])
     .png()
     .toBuffer();
 }
@@ -653,7 +643,6 @@ export async function createChampionThumbnail(
     secondaryImageUrl,
     primaryImageUrl,
     subcommand,
-    iconUrls,
     width = DEFAULTS.width,
     height = DEFAULTS.height,
     fetchTimeoutMs = DEFAULTS.fetchTimeoutMs,
@@ -688,7 +677,7 @@ export async function createChampionThumbnail(
   const avatarDiameter = primaryAB
     ? Math.min(Math.floor(height * 0.44), Math.floor(leftPanelWidth * 0.34))
     : 0;
-  const avatarLeft = DEFAULTS.padding;
+  const avatarLeft = DEFAULTS.padding - 10;
   const avatarTop =
     Math.floor(height) - Math.floor(avatarDiameter) - DEFAULTS.padding;
   const pillsLeft =
@@ -815,28 +804,6 @@ export async function createChampionThumbnail(
       input: avatar,
       left: avatarLeft,
       top: avatarTop,
-    });
-  }
-
-  // Optional icons row
-  if (iconUrls?.length && leftPanelWidth > 0) {
-    const size = DEFAULTS.iconSize;
-    const gap = DEFAULTS.iconGap;
-    const available = leftPanelWidth - pillsLeft - DEFAULTS.padding + 4;
-    const maxIconsFit = Math.floor(available / (size + gap));
-    const chosen = iconUrls.slice(0, maxIconsFit);
-    const iconBuffers = await Promise.all(
-      chosen.map((u) => loadAndResizeIcon(u, size, fetchTimeoutMs))
-    );
-
-    const top = height - pillsBottom - size - 6;
-
-    iconBuffers.forEach((buf, i) => {
-      overlays.push({
-        input: buf,
-        left: pillsLeft + i * (size + gap),
-        top,
-      });
     });
   }
 
