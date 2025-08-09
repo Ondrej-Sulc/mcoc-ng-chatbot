@@ -89,12 +89,7 @@ async function fetchArrayBufferWithTimeout(
   }
 }
 
-// ---- font embedding (optional, fetched at runtime and inlined as data URL) ----
-
-
 let cachedTitleFont: opentype.Font | null = null;
-
-
 
 function nodeBufferToArrayBuffer(buf: Buffer): ArrayBuffer {
   return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
@@ -442,7 +437,7 @@ function createTextAndPillsSvg(opts: {
 
   // Big title layout (from computeTitleLayout)
   const { lines, fontSize, yTitle, maxTitleWidth } = computeTitleLayout(
-    title,
+    escapedTitle,
     padding,
     titleRightLimit,
     font
@@ -463,8 +458,8 @@ function createTextAndPillsSvg(opts: {
   // Pills
   const chipFont = 36;
   const chipPadX = 10; // Base padding
-  const chipPadY = 10;
-  const letterSpacing = 0.1; // User can adjust this to control length
+  const chipPadY = 5;
+  const letterSpacing = 0; // User can adjust this to control length
   const chipH = chipFont + chipPadY * 2;
 
   let cmdW: number;
@@ -551,10 +546,10 @@ function createTextAndPillsSvg(opts: {
       <g transform="translate(${pillsLeft}, ${height - pillsBottom - chipH})">
         <!-- subcommand chip -->
         <g>
-          <rect x="0" y="0" rx="16" ry="16"
+          <rect x="0" y="0" rx="10" ry="10"
             width="${cmdW}" height="${chipH}"
-            fill="url(#cmdGrad)" fill-opacity="1"
-            stroke="#ffffff" stroke-opacity="0.4" stroke-width="1"/>
+            fill="url(#cmdGrad)" fill-opacity="0.5"
+            stroke="#ffffff" stroke-opacity="0.4" stroke-width="1.5"/>
           ${subcommandPath}
         </g>
       </g>
@@ -677,11 +672,11 @@ export async function createChampionThumbnail(
   const avatarDiameter = primaryAB
     ? Math.min(Math.floor(height * 0.44), Math.floor(leftPanelWidth * 0.34))
     : 0;
-  const avatarLeft = DEFAULTS.padding - 10;
+  const avatarLeft = DEFAULTS.padding - 15;
   const avatarTop =
     Math.floor(height) - Math.floor(avatarDiameter) - DEFAULTS.padding;
   const pillsLeft =
-    DEFAULTS.padding + (avatarDiameter ? avatarDiameter + 6 : 0);
+    DEFAULTS.padding + (avatarDiameter ? avatarDiameter + 15 : 0);
   const pillsBottom = DEFAULTS.padding;
   const titleRightLimit = Math.max(0, leftPanelWidth - DEFAULTS.padding * 2);
 
