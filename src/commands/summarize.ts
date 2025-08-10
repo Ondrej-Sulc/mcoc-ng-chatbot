@@ -11,7 +11,7 @@ import {
   ThreadChannel,
   MessageFlags,
 } from "discord.js";
-import { getLLMSummary } from "../utils/openRouterService";
+import { getLLMSummary } from "../services/openRouterService";
 import { handleError, safeReply } from "../utils/errorHandler";
 import { Command, CommandResult } from "../types/command";
 

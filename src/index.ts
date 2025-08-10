@@ -10,10 +10,11 @@ import { config } from "./config";
 import { loadCommands, commands } from "./utils/commandHandler";
 import { Command } from "./types/command";
 import { getButtonHandler } from "./utils/buttonHandlerRegistry";
-import { startScheduler } from "./utils/schedulerService";
+import { startScheduler } from "./services/schedulerService";
 import http from "http";
 import { handleError, safeReply } from "./utils/errorHandler";
-import { loadApplicationEmojis } from "./utils/applicationEmojiService";
+import { loadApplicationEmojis } from "./services/applicationEmojiService";
+import { initializeAqReminders } from "./services/aqReminderService.js";
 
 declare module "discord.js" {
   interface Client {
@@ -69,6 +70,7 @@ client.once(Events.ClientReady, async (readyClient) => {
   }
   // Start scheduler after bot is ready
   await startScheduler(client);
+  initializeAqReminders(client);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {

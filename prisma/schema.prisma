@@ -132,3 +132,31 @@ model Hit {
 
   @@index([attackId])
 }
+
+enum ScheduleFrequency {
+  daily
+  weekly
+  monthly
+  every
+  custom
+}
+
+model Schedule {
+  id                String            @id @default(cuid())
+  name              String
+  frequency         ScheduleFrequency
+  time              String
+  command           String?
+  message           String?
+  target_channel_id String?
+  target_user_id    String?
+  is_active         Boolean           @default(true)
+  day               String?
+  interval          String?
+  unit              String?
+  cron_expression   String?
+  last_run          DateTime?
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}

@@ -3,7 +3,7 @@ import "dotenv/config";
 /**
  * Represents the application's configuration.
  */
-interface Config {
+export interface Config {
   BOT_TOKEN: string;
   OPEN_ROUTER_API_KEY: string;
   OPENROUTER_DEFAULT_MODEL: string;
@@ -11,6 +11,8 @@ interface Config {
   MCOC_SHEET_ID: string;
   SCHEDULE_SHEET_ID: string;
   TIMEZONE: string;
+  AQ_SLACKER_PING_DELAY_HOURS: number;
+  AQ_FINAL_PING_HOURS_BEFORE_END: number;
 }
 
 function getEnv(key: string, defaultValue?: string): string {
@@ -59,6 +61,8 @@ const createConfig = (): Config => {
     MCOC_SHEET_ID: getEnv("MCOC_SHEET_ID"),
     SCHEDULE_SHEET_ID: getEnv("SCHEDULE_SHEET_ID"),
     TIMEZONE: getEnv("TIMEZONE", "Europe/Prague"),
+    AQ_SLACKER_PING_DELAY_HOURS: parseInt(getEnv("AQ_SLACKER_PING_DELAY_HOURS", "8"), 10),
+    AQ_FINAL_PING_HOURS_BEFORE_END: parseInt(getEnv("AQ_FINAL_PING_HOURS_BEFORE_END", "3"), 10),
   };
 };
 

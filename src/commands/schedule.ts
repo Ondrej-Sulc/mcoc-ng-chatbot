@@ -14,10 +14,11 @@ import {
   addSchedule,
   getSchedules,
   deleteSchedule,
+  Schedule,
   ScheduleFrequency,
-} from "../utils/sheetsService";
+} from "../services/scheduleDbService";
 import { registerButtonHandler } from "../utils/buttonHandlerRegistry";
-import { startScheduler } from "../utils/schedulerService";
+import { startScheduler } from "../services/schedulerService";
 import { commands as loadedCommands } from "../utils/commandHandler";
 import { handleError, safeReply } from "../utils/errorHandler";
 
@@ -188,21 +189,21 @@ export const command: Command = {
       const frequency = interaction.options.getString(
         "frequency",
         true
-      ) as ScheduleFrequency;
+      ) as keyof typeof ScheduleFrequency;
       const time = interaction.options.getString("time", true);
-      const command = interaction.options.getString("command") || undefined;
-      const message = interaction.options.getString("message") || undefined;
+      const command = interaction.options.getString("command") || null;
+      const message = interaction.options.getString("message") || null;
       let target_channel_id =
-        interaction.options.getString("target_channel_id") || undefined;
+        interaction.options.getString("target_channel_id") || null;
       let target_user_id =
-        interaction.options.getString("target_user_id") || undefined;
-      const day = interaction.options.getString("day") || undefined;
-      const interval = interaction.options.getString("interval") || undefined;
+        interaction.options.getString("target_user_id") || null;
+      const day = interaction.options.getString("day") || null;
+      const interval = interaction.options.getString("interval") || null;
       const rawUnit = interaction.options.getString("unit");
       const unit =
-        rawUnit === "days" || rawUnit === "weeks" ? rawUnit : undefined;
+        rawUnit === "days" || rawUnit === "weeks" ? rawUnit : null;
       const cron_expression =
-        interaction.options.getString("cron_expression") || undefined;
+        interaction.options.getString("cron_expression") || null;
 
       // Require at least one of command or message
       if (!command && !message) {
@@ -230,11 +231,10 @@ export const command: Command = {
         name,
         frequency,
         time,
-        command: command || "",
-        message: message || "",
+        command,
+        message,
         target_channel_id,
         target_user_id,
-        is_active: true,
         day,
         interval,
         unit,
@@ -243,12 +243,34 @@ export const command: Command = {
       await startScheduler(interaction.client);
       await safeReply(
         interaction,
-        `✅ Scheduled task:\n- Name: **${name}**\n- Frequency: **${frequency}**\n- Time: **${time}**\n- ${
-          message ? `Message: \`${message}\`` : `Command: \`${command}\``
-        }\n${day ? `- Day: ${day}\n` : ""}${interval ? `- Interval: ${interval}\n` : ""}${unit ? `- Unit: ${unit}\n` : ""}${cron_expression ? `- Cron: \`${cron_expression}\`\n` : ""}${target_channel_id ? `- Channel: <#${target_channel_id}>\n` : ""}${target_user_id ? `- User: <@${target_user_id}>\n` : ""}`
+        `✅ Scheduled task:
+- Name: **${name}**
+- Frequency: **${frequency}**
+- Time: **${time}**
+- ${ 
+          message ? `Message: 
+
+${message}` : `Command: 
+
+${command}`
+        }
+${day ? `- Day: ${day}
+` : ""}${ 
+        interval ? `- Interval: ${interval}
+` : ""
+      }${unit ? `- Unit: ${unit}
+` : ""}${ 
+        cron_expression ? `- Cron: 
+
+${cron_expression}` : ""
+      }${ 
+        target_channel_id ? `- Channel: <#${target_channel_id}>
+` : ""
+      }${target_user_id ? `- User: <@${target_user_id}>
+` : ""}`
       );
     } else if (subcommand === "list") {
-      const schedules = (await getSchedules()).filter((s) => s.is_active);
+      const schedules = await getSchedules();
       if (!schedules.length) {
         await safeReply(interaction, "No active schedules found.");
         return;
@@ -259,15 +281,20 @@ export const command: Command = {
       );
       container.addTextDisplayComponents(header);
 
-      schedules.forEach((s, i) => {
+      schedules.forEach((s: Schedule, i: number) => {
         const section = new SectionBuilder()
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `**${i + 1}.** [${s.name}] ${s.frequency} at ${s.time} — ${
-                s.message ? `"${s.message}"` : `\`${s.command}\``
-              } (ID: \`${s.id}\`)${
-                s.target_channel_id ? ` (<#${s.target_channel_id}>)` : ""
-              }${s.target_user_id ? ` (<@${s.target_user_id}>)` : ""}`
+              `**${i + 1}.** [${s.name}] ${s.frequency} at ${s.time} — ${ 
+                s.message ? `"${s.message}"` : `
+
+${s.command}`
+              } (ID: 
+
+${s.id})
+${s.target_channel_id ? ` (<#${s.target_channel_id}>)` : ""}${ 
+                s.target_user_id ? ` (<@${s.target_user_id}>)` : ""
+              }`
             )
           )
           .setButtonAccessory(
@@ -286,7 +313,7 @@ export const command: Command = {
       let id = interaction.options.getString("id");
       const number = interaction.options.getInteger("number");
       if (!id && number) {
-        const schedules = (await getSchedules()).filter((s) => s.is_active);
+        const schedules = await getSchedules();
         if (number < 1 || number > schedules.length) {
           await safeReply(
             interaction,
@@ -307,7 +334,9 @@ export const command: Command = {
       await startScheduler(interaction.client);
       await safeReply(
         interaction,
-        `❌ Schedule with ID \`${id}\` has been removed (set inactive).`
+        `❌ Schedule with ID 
+
+${id} has been removed (set inactive).`
       );
     }
   },
@@ -317,7 +346,7 @@ export const command: Command = {
     let choices: string[] = [];
     switch (focusedOption.name) {
       case "frequency":
-        choices = ["daily", "weekly", "monthly", "every", "custom"];
+        choices = Object.keys(ScheduleFrequency);
         break;
       case "unit":
         choices = ["days", "weeks"];
@@ -358,3 +387,4 @@ export const command: Command = {
     await interaction.respond(filtered.map((c) => ({ name: c, value: c })));
   },
 };
+

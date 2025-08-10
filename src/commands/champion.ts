@@ -20,7 +20,7 @@ import {
 import { Command, CommandResult } from "../types/command";
 import { handleError, safeReply } from "../utils/errorHandler";
 import { createEmojiResolver } from "../utils/emojiResolver";
-import { createChampionThumbnail } from "../utils/thumbnailService";
+import { createChampionThumbnail } from "../services/thumbnailService";
 
 const prisma = new PrismaClient();
 

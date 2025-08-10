@@ -127,27 +127,15 @@ _This list will be populated to track the migration status of each command._
 
 ### 1. Clone the Repository
 
-```bash
-git clone <your-repo-url>
-cd mcoc-ng-chatbot
-```
-
 ### 2. Set Up Environment Variables
 
 Create a `.env` file by copying the example:
-
-```bash
-cp .env.example .env
-```
 
 Fill in the values in the `.env` file. This includes your Discord bot token, API keys, and the connection details for your PostgreSQL database.
 
 **Important:** For `GOOGLE_CREDENTIALS_JSON`, you must provide the full JSON content of your service account key, encoded in Base64. You can generate this with the following command:
 
 ```bash
-# For Linux/macOS
-cat /path/to/your/credentials.json | base64 -w 0
-
 # For Windows (in PowerShell)
 [Convert]::ToBase64String([IO.File]::ReadAllBytes("/path/to/your/credentials.json"))
 ```
@@ -176,10 +164,21 @@ mcoc-ng-chatbot/
 │ │ └── search/ # Example of a command with sub-files
 │ │   ├── index.ts # Main command logic
 │ │   └── utils.ts # Command-specific helpers
+│ ├── services/ # Modules for external APIs and business logic
 │ ├── types/ # Shared TypeScript interfaces and types
-│ ├── utils/ # Service clients and helper functions
+│ ├── utils/ # Generic helpers and internal logic handlers
 │ ├── config.ts # Environment variable loading and validation
 │ └── index.ts # Bot entry point, client setup, event handlers
 ├── Dockerfile # Multi-stage build for lean production images
 ├── docker-compose.yaml # Development environment setup
 └── README.md # You are here
+
+### Directory Distinction
+
+To maintain a clean and scalable architecture, the project distinguishes between `services` and `utils`:
+
+-   **`src/services`**: This directory is for modules that connect to external APIs or manage a specific, stateful, or long-running part of the application's business logic. They act as specialized providers of functionality.
+    -   *Examples*: `openRouterService.ts`, `sheetsService.ts`, `schedulerService.ts`, `aqReminderService.ts`, `thumbnailService.ts`.
+
+-   **`src/utils`**: This directory contains more generic, often stateless helper functions, formatters, type guards, or internal application logic handlers (like command and error handling). They are broadly reusable across different parts of the application.
+    -   *Examples*: `errorHandler.ts`, `emojiResolver.ts`, `commandHandler.ts`, `aqState.ts`, `aqView.ts`.

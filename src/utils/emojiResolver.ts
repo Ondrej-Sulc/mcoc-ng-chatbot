@@ -1,5 +1,5 @@
 import { Client, Guild } from "discord.js";
-import { getApplicationEmojiMarkupByName } from "./applicationEmojiService";
+import { getApplicationEmojiMarkupByName } from "../services/applicationEmojiService";
 
 /**
  * Creates a resolver function that rewrites custom emoji markup strings
