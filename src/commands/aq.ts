@@ -16,7 +16,7 @@ import { AQState, getState, SectionKey, setState } from "../utils/aqState";
 import { buildAQContainer } from "../utils/aqView";
 
 async function updateAqMessage(interaction: { client: any }, channelId: string) {
-  const state = getState(channelId);
+  const state = await getState(channelId);
   if (!state) return;
   try {
     const channel = await interaction.client.channels.fetch(channelId);
@@ -40,7 +40,7 @@ async function handleTogglePath(
   } catch {}
   const channelId = interaction.channelId as string;
   const userId = interaction.user.id as string;
-  const state = getState(channelId);
+  const state = await getState(channelId);
   if (!state || state.status !== "active") {
     await interaction.followUp({
       content: "This AQ tracker is not active.",
@@ -57,7 +57,7 @@ async function handleTogglePath(
     return;
   }
   state.players[section][userId].done = !state.players[section][userId].done;
-  setState(channelId, state);
+  await setState(channelId, state);
   await updateAqMessage(interaction, channelId);
   await interaction.followUp({
     content: `Your progress for Section ${section.slice(1)} has been updated.`,
@@ -71,7 +71,7 @@ async function handleSectionClear(
   which: string
 ) {
   const channelId = interaction.channelId as string;
-  const state = getState(channelId);
+  const state = await getState(channelId);
   if (!state || state.status !== "active") {
     await interaction.reply({
       content: "This AQ tracker is not active.",
@@ -104,13 +104,13 @@ async function handleSectionClear(
       content: `${roleMention} ${interaction.user} defeated the ${which}!`,
     });
   }
-  setState(channelId, state);
+  await setState(channelId, state);
   await updateAqMessage(interaction, channelId);
 }
 
 async function handleMapClear(interaction: ButtonInteraction) {
   const channelId = interaction.channelId as string;
-  const state = getState(channelId);
+  const state = await getState(channelId);
   if (!state || state.status !== "active") {
     await interaction.reply({
       content: "No active AQ tracker in that channel.",
@@ -132,7 +132,7 @@ async function handleMapClear(interaction: ButtonInteraction) {
 
   state.status = "completed";
   state.mapStatus = "✅ MAP COMPLETE";
-  setState(channelId, state);
+  await setState(channelId, state);
   const roleMention = `<@&${state.roleId}>`;
   await interaction.channel.send({
     content: `🎉 ${roleMention} The map is 100% complete! Great work, everyone!`,
@@ -188,7 +188,7 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
     }
 
     const channelId = channel.id;
-    const existing = getState(channelId);
+    const existing = await getState(channelId);
     if (existing && existing.status === "active") {
       return {
         content: "An AQ tracker is already active in that channel.",
@@ -200,6 +200,8 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
     if (!role) {
       return { content: "Selected role not found.", ephemeral: true };
     }
+
+    await guild.members.fetch();
 
     const now = new Date();
     const end = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -230,13 +232,13 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
       flags: [MessageFlags.IsComponentsV2],
     });
     state.messageId = sent.id;
-    setState(channelId, state);
+    await setState(channelId, state);
 
     return { content: "AQ Tracker started successfully.", ephemeral: true };
   } else if (params.subcommand === "end") {
     const { channel, user } = params;
     const channelId = channel.id;
-    const state = getState(channelId);
+    const state = await getState(channelId);
     if (!state || state.status !== "active") {
       return {
         content: "No active AQ tracker in that channel.",
@@ -244,7 +246,7 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
       };
     }
     state.status = "ended_manual";
-    setState(channelId, state);
+    await setState(channelId, state);
     try {
       const message = await (channel as any).messages.fetch(state.messageId);
       await message.edit({
@@ -252,7 +254,7 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
         components: [],
       });
     } catch {}
-    setState(channelId, undefined);
+    await setState(channelId, undefined);
     return { content: "AQ tracker ended.", ephemeral: true };
   }
   return { content: "Invalid subcommand.", ephemeral: true };

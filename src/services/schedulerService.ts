@@ -84,7 +84,7 @@ async function executeScheduledCommand(client: Client, schedule: Schedule) {
         return;
     }
 
-    const hasSubcommands = command.data.toJSON().options.some((o: any) => o.type === 1 || o.type === 2);
+    const hasSubcommands = command.data?.toJSON().options?.some((o: any) => o.type === 1 || o.type === 2);
     const subcommand = hasSubcommands ? commandParts.shift() : null;
     
     const argsString = commandParts.join(' ');
@@ -102,6 +102,7 @@ async function executeScheduledCommand(client: Client, schedule: Schedule) {
             return; 
         }
     }
+    const guild = channel?.guild;
 
     const user = targetUserId ? await client.users.fetch(targetUserId) : null;
 
@@ -109,7 +110,7 @@ async function executeScheduledCommand(client: Client, schedule: Schedule) {
         client,
         channel,
         user,
-        guild: channel?.guild,
+        guild,
         commandName,
         type: InteractionType.ApplicationCommand,
         applicationId: client.application?.id || '',
@@ -139,13 +140,32 @@ async function executeScheduledCommand(client: Client, schedule: Schedule) {
             _subcommand: subcommand,
             _hoistedOptions: [],
             getSubcommand: (required = false) => subcommand,
-            getString: (name: string) => args.get(name) || null,
+            getString: (name: string) => {
+                const value = args.get(name);
+                if (!value) return null;
+                if (name === 'role' && guild) {
+                    const role = guild.roles.cache.find(r => r.name === value || r.id === value);
+                    return role ? role.id : null;
+                }
+                return value;
+            },
             getInteger: (name: string) => parseInt(args.get(name) || '0'),
             getBoolean: (name: string) => args.get(name) === 'true',
             getUser: (name: string) => null, 
             getMember: (name: string) => null,
-            getChannel: (name: string) => null,
-            getRole: (name: string) => null,
+            getChannel: (name: string) => {
+                const value = args.get(name);
+                if (!value) return null;
+                const channelName = value.replace(/^#/, '');
+                if (!guild) return null;
+                return guild.channels.cache.find(c => c.name === channelName || c.id === value) || null;
+            },
+            getRole: (name: string) => {
+                const value = args.get(name);
+                if (!value) return null;
+                if (!guild) return null;
+                return guild.roles.cache.get(value) || guild.roles.cache.find(r => r.name === value) || null;
+            },
             getMentionable: (name: string) => null,
             getAttachment: (name: string) => null,
             getNumber: (name: string) => parseFloat(args.get(name) || '0'),

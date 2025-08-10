@@ -160,3 +160,9 @@ model Schedule {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 }
+
+model AQState {
+  channelId String @id
+  state     Json
+  updatedAt DateTime @updatedAt
+}

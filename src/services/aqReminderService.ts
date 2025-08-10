@@ -1,7 +1,7 @@
 import { Client, TextChannel } from "discord.js";
 import cron from "node-cron";
 import { config } from "../config";
-import { readAllState, setState, AQState } from "../utils/aqState";
+import { getAllStates, setState, AQState } from "../utils/aqState";
 
 function getSlackers(state: AQState, isFinal: boolean): string[] {
   const slackers: Set<string> = new Set();
@@ -49,11 +49,10 @@ async function sendReminderPing(
 }
 
 async function checkAqStatuses(client: Client) {
-  const allStates = readAllState();
+  const allStates = await getAllStates();
   const now = new Date();
 
-  for (const channelId in allStates) {
-    const state = allStates[channelId];
+  for (const state of allStates) {
     if (state.status !== "active") continue;
 
     const startTime = new Date(state.startTimeIso);
@@ -62,9 +61,9 @@ async function checkAqStatuses(client: Client) {
     // Auto-end
     if (now >= endTime) {
       state.status = "ended";
-      setState(channelId, state);
+      await setState(state.channelId, state);
       try {
-        const channel = await client.channels.fetch(channelId);
+        const channel = await client.channels.fetch(state.channelId);
         if (channel && channel.isTextBased()) {
           const message = await (channel as TextChannel).messages.fetch(
             state.messageId
@@ -73,7 +72,7 @@ async function checkAqStatuses(client: Client) {
         }
       } catch (e) {
         console.error(
-          `Could not edit AQ message for channel ${channelId} after auto-ending.`,
+          `Could not edit AQ message for channel ${state.channelId} after auto-ending.`,
           e
         );
       }
@@ -88,7 +87,7 @@ async function checkAqStatuses(client: Client) {
     if (!state.slackerPingSent && now >= slackerPingTime) {
       await sendReminderPing(client, state, false);
       state.slackerPingSent = true;
-      setState(channelId, state);
+      await setState(state.channelId, state);
     }
 
     // Final ping
@@ -98,7 +97,7 @@ async function checkAqStatuses(client: Client) {
     if (!state.finalPingSent && now >= finalPingTime) {
       await sendReminderPing(client, state, true);
       state.finalPingSent = true;
-      setState(channelId, state);
+      await setState(state.channelId, state);
     }
   }
 }

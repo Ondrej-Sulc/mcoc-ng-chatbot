@@ -1,5 +1,7 @@
-import fs from "node:fs";
-import path from "node:path";
+import { PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export type SectionKey = "s1" | "s2" | "s3";
 
@@ -22,41 +24,30 @@ export interface AQState {
   finalPingSent?: boolean;
 }
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const STATE_FILE = path.join(DATA_DIR, "aq_state.json");
-
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
+export async function getState(channelId: string): Promise<AQState | null> {
+  const record = await prisma.aQState.findUnique({
+    where: { channelId },
+  });
+  return record ? record.state as unknown as AQState : null;
 }
 
-export function readAllState(): Record<string, AQState> {
-  try {
-    if (!fs.existsSync(STATE_FILE)) return {};
-    const raw = fs.readFileSync(STATE_FILE, "utf-8");
-    return JSON.parse(raw);
-  } catch {
-    return {};
-  }
-}
-
-export function writeAllState(state: Record<string, AQState>) {
-  ensureDataDir();
-  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), "utf-8");
-}
-
-export function getState(channelId: string): AQState | undefined {
-  const all = readAllState();
-  return all[channelId];
-}
-
-export function setState(channelId: string, state: AQState | undefined) {
-  const all = readAllState();
+export async function setState(channelId: string, state: AQState | undefined): Promise<void> {
   if (state) {
-    all[channelId] = state;
+    await prisma.aQState.upsert({
+      where: { channelId },
+      update: { state: state as unknown as Prisma.InputJsonValue },
+      create: { channelId, state: state as unknown as Prisma.InputJsonValue },
+    });
   } else {
-    delete all[channelId];
+    try {
+      await prisma.aQState.delete({ where: { channelId } });
+    } catch (e) {
+      // Ignore if not found
+    }
   }
-  writeAllState(all);
+}
+
+export async function getAllStates(): Promise<AQState[]> {
+    const records = await prisma.aQState.findMany();
+    return records.map(r => r.state as unknown as AQState);
 }
