@@ -42,20 +42,74 @@ export async function core(
       }
 
       const embed = new EmbedBuilder()
+        .setColor(0x5865f2)
         .setTitle(
           `${
             effect.emoji ? `${resolveEmoji(effect.emoji)} ` : ""
           }${effect.name}`
         )
-        .setDescription(effect.description || "No description available.");
+        .setDescription(
+          effect.description
+            ? `*${effect.description}*`
+            : "No description available."
+        );
 
       if (effect.categories.length > 0) {
-        embed.addFields({
-          name: "Categories",
-          value: effect.categories
-            .map((c: AbilityCategory) => c.name)
-            .join(", "),
-        });
+        // Show each category with its description
+        for (const category of effect.categories as AbilityCategory[]) {
+          embed.addFields({
+            name: `Category: ${category.name}`,
+            value: category.description
+              ? `*${category.description}*`
+              : "*No description available.*",
+          });
+        }
+
+        // Find related effects from the same categories (excluding the current effect)
+        const categoryIds = effect.categories.map((c) => c.id);
+        if (categoryIds.length > 0) {
+          const relatedRaw = await prisma.ability.findMany({
+            where: {
+              id: { not: effect.id },
+              categories: {
+                some: {
+                  id: { in: categoryIds },
+                },
+              },
+            },
+            take: 100, // safety cap; we'll dedupe and trim below
+          });
+
+          // Dedupe by id and format with emojis
+          const seen = new Set<number>();
+          const relatedFormatted: string[] = [];
+          for (const rel of relatedRaw) {
+            if (seen.has(rel.id)) continue;
+            seen.add(rel.id);
+            const prefix = rel.emoji ? `${resolveEmoji(rel.emoji)} ` : "";
+            const namePart = rel.name;
+            const label = `${prefix}${namePart}`;
+            relatedFormatted.push(label);
+          }
+
+          if (relatedFormatted.length > 0) {
+            // Ensure we don't exceed Discord's 1024 char field limit
+            let value = relatedFormatted.join(", ");
+            if (value.length > 1024) {
+              // Trim conservatively by adding items until near the limit
+              const parts: string[] = [];
+              let currentLen = 0;
+              for (const part of relatedFormatted) {
+                const addition = parts.length === 0 ? part : `, ${part}`;
+                if (currentLen + addition.length > 1000) break; // leave room for ellipsis
+                parts.push(part);
+                currentLen += addition.length;
+              }
+              value = `${parts.join(", ")}, …`;
+            }
+            embed.addFields({ name: "Related Effects 🔗", value });
+          }
+        }
       }
 
       return { embeds: [embed] };
@@ -77,13 +131,36 @@ export async function core(
       }
 
       const embed = new EmbedBuilder()
+        .setColor(0x5865f2)
         .setTitle(category.name)
-        .setDescription(category.description || "");
+        .setDescription(
+          category.description ? `*${category.description}*` : ""
+        );
 
       if (category.abilities.length > 0) {
+        const formatted = category.abilities.map((a: Ability) => {
+          const prefix = a.emoji ? `${resolveEmoji(a.emoji)} ` : "";
+          const namePart = a.name;
+          return `${prefix}${namePart}`;
+        });
+
+        // Ensure we don't exceed Discord's 1024 char field limit
+        let value = formatted.join(", ");
+        if (value.length > 1024) {
+          const parts: string[] = [];
+          let currentLen = 0;
+          for (const part of formatted) {
+            const addition = parts.length === 0 ? part : `, ${part}`;
+            if (currentLen + addition.length > 1000) break;
+            parts.push(part);
+            currentLen += addition.length;
+          }
+          value = `${parts.join(", ")}, …`;
+        }
+
         embed.addFields({
           name: "Effects",
-          value: category.abilities.map((a: Ability) => a.name).join(", "),
+          value,
         });
       }
 
