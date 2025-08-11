@@ -969,7 +969,7 @@ async function createCircularAvatar(opts: {
 
 // ---- main ----
 
-export async function createChampionThumbnail(
+export async function generateChampionThumbnail(
   options: ChampionThumbnailOptions
 ): Promise<Buffer> {
   const {

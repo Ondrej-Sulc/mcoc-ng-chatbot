@@ -1,10 +1,13 @@
 import {
   ContainerBuilder,
   TextDisplayBuilder,
-  SectionBuilder,
+  SeparatorBuilder,
   ButtonBuilder,
   ButtonStyle,
   ActionRowBuilder,
+  SeparatorSpacingSize,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
 } from "discord.js";
 import { AQState, SectionKey } from "./aqState";
 
@@ -25,14 +28,24 @@ export function buildProgressLines(state: AQState): string {
     const s3 = state.players.s3[userId]?.done ? "🏆" : "⚔️";
     lines.push(`${s1} ${s2} ${s3} <@${userId}>`);
   }
+  lines.push("");
   lines.push("Legend: ⚔️ = In Progress, 🏆 = Completed");
   return lines.join("\n");
 }
 
-export function buildAQContainer(state: AQState): ContainerBuilder {
+export function buildAQContainer(
+  state: AQState,
+  channelName: string,
+  roleName: string
+): ContainerBuilder {
   const container = new ContainerBuilder();
+
+  const headerImage = new MediaGalleryBuilder().addItems(
+    new MediaGalleryItemBuilder().setURL("attachment://aq_header.png")
+  );
+  container.addMediaGalleryComponents(headerImage);
   const header = new TextDisplayBuilder().setContent(
-    `**Alliance Quest – Day ${state.day}**\nStatus: ${state.mapStatus}`
+    `Status: ${state.mapStatus}`
   );
   const endTs = Math.floor(new Date(state.endTimeIso).getTime() / 1000);
   const timing = new TextDisplayBuilder().setContent(`Ends <t:${endTs}:R>`);
@@ -40,7 +53,14 @@ export function buildAQContainer(state: AQState): ContainerBuilder {
     buildProgressLines(state)
   );
 
-  container.addTextDisplayComponents(header, timing, progress);
+  container.addTextDisplayComponents(header, timing);
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+  );
+  container.addTextDisplayComponents(progress);
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+  );
 
   const pathButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
@@ -57,21 +77,26 @@ export function buildAQContainer(state: AQState): ContainerBuilder {
       .setStyle(ButtonStyle.Secondary)
   );
 
+  container.addActionRowComponents(pathButtons);
+  container.addSeparatorComponents(
+  new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+  );
+
   const clearButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId("aq:boss:s1")
-      .setLabel("Mini S1 Down")
+      .setLabel("Miniboss S1")
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
       .setCustomId("aq:boss:s2")
-      .setLabel("Mini S2 Down")
+      .setLabel("Miniboss S2")
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
       .setCustomId("aq:map_clear")
-      .setLabel("MAP CLEAR")
+      .setLabel("MAP Complete")
       .setStyle(ButtonStyle.Success)
   );
 
-  container.addActionRowComponents(pathButtons, clearButtons);
+  container.addActionRowComponents(clearButtons);
   return container;
 }

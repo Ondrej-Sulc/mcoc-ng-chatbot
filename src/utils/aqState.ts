@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -12,6 +12,7 @@ export interface PlayerSectionState {
 export interface AQState {
   channelId: string;
   messageId: string;
+  threadId?: string;
   roleId: string;
   day: number;
   status: "active" | "ended" | "completed" | "ended_manual";
@@ -28,10 +29,13 @@ export async function getState(channelId: string): Promise<AQState | null> {
   const record = await prisma.aQState.findUnique({
     where: { channelId },
   });
-  return record ? record.state as unknown as AQState : null;
+  return record ? (record.state as unknown as AQState) : null;
 }
 
-export async function setState(channelId: string, state: AQState | undefined): Promise<void> {
+export async function setState(
+  channelId: string,
+  state: AQState | undefined
+): Promise<void> {
   if (state) {
     await prisma.aQState.upsert({
       where: { channelId },
@@ -48,6 +52,6 @@ export async function setState(channelId: string, state: AQState | undefined): P
 }
 
 export async function getAllStates(): Promise<AQState[]> {
-    const records = await prisma.aQState.findMany();
-    return records.map(r => r.state as unknown as AQState);
+  const records = await prisma.aQState.findMany();
+  return records.map((r) => r.state as unknown as AQState);
 }

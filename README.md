@@ -78,10 +78,10 @@ _This list will be populated to track the migration status of each command._
   - `/sync_commands`: Not to be migrated (not necessary anymore)
   - `/update`: Not to be migrated (not necessary anymore)
 - **`aq.py`**:
-  - `/aq` (group command): To be reviewed
-    - `/aq start`: To be reviewed
-    - `/aq end`: To be reviewed
-    - `/aq test_ping`: To be reviewed
+  - `/aq` (group command): Migrated
+    - `/aq start`: Migrated 
+    - `/aq end`: Migrated
+    - `/aq test_ping`: Just migrated for testing then removed
 - **`champion_info.py`**:
   - `/full_abilities`: Migrated to `/champion info`
   - `/glossary`: Migrated to `/glossary effect`

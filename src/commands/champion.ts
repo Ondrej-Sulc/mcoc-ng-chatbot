@@ -20,7 +20,7 @@ import {
 import { Command, CommandResult } from "../types/command";
 import { handleError, safeReply } from "../utils/errorHandler";
 import { createEmojiResolver } from "../utils/emojiResolver";
-import { createChampionThumbnail } from "../services/thumbnailService";
+import { generateChampionThumbnail } from "../utils/thumbnailGenerator";
 
 const prisma = new PrismaClient();
 
@@ -392,7 +392,7 @@ export async function core(
       };
     }
 
-    const thumbnailBuffer = await createChampionThumbnail({
+          const thumbnail = await generateChampionThumbnail({
       championName: champion.name.toUpperCase(),
       championClass: champion.class,
       secondaryImageUrl: getChampionImageUrl(
@@ -411,7 +411,7 @@ export async function core(
     const thumbnailFileName = `${champion.name
       .replace(/[^a-zA-Z0-9]/g, "_")
       .toLowerCase()}_thumbnail_${cacheBust}.png`;
-    const attachment = new AttachmentBuilder(thumbnailBuffer, {
+    const attachment = new AttachmentBuilder(thumbnail, {
       name: thumbnailFileName,
       description: `Thumbnail for ${champion.name}`,
     });

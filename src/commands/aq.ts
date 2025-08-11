@@ -13,15 +13,20 @@ import { Command, CommandResult } from "../types/command";
 import { handleError, safeReply } from "../utils/errorHandler";
 import { registerButtonHandler } from "../utils/buttonHandlerRegistry";
 import { AQState, getState, SectionKey, setState } from "../utils/aqState";
+import { generateAQHeader } from "../utils/aqHeaderGenerator";
 import { buildAQContainer } from "../utils/aqView";
 
-async function updateAqMessage(interaction: { client: any }, channelId: string) {
+async function updateAqMessage(
+  interaction: { client: any },
+  channelId: string
+) {
   const state = await getState(channelId);
   if (!state) return;
   try {
     const channel = await interaction.client.channels.fetch(channelId);
     const message = await (channel as any).messages.fetch(state.messageId);
-    const container = buildAQContainer(state);
+    const role = await (channel as any).guild.roles.fetch(state.roleId);
+    const container = buildAQContainer(state, channel.name, role.name);
     await message.edit({
       components: [container],
       flags: [MessageFlags.IsComponentsV2],
@@ -82,25 +87,27 @@ async function handleSectionClear(
 
   await interaction.deferUpdate();
 
-  if (
-    !interaction.channel ||
-    !interaction.channel.isTextBased() ||
-    interaction.channel.isDMBased()
-  ) {
+  const targetChannel = state.threadId
+    ? await interaction.client.channels.fetch(state.threadId)
+    : interaction.channel;
+
+  if (!targetChannel || !targetChannel.isTextBased()) {
     console.error("Cannot send message to non-text-based guild channel.");
     return;
   }
 
   const roleMention = `<@&${state.roleId}>`;
   if (section < 3) {
-    await interaction.channel.send({
-      content: `${roleMention} ${interaction.user} defeated the Section ${section} ${which}! Section ${
+    await (targetChannel as any).send({
+      content: `${roleMention} ${
+        interaction.user
+      } defeated the Section ${section} ${which}! Section ${
         section + 1
       } is now open.`,
     });
     state.mapStatus = `Section ${section + 1} in Progress`;
   } else {
-    await interaction.channel.send({
+    await (targetChannel as any).send({
       content: `${roleMention} ${interaction.user} defeated the ${which}!`,
     });
   }
@@ -121,11 +128,11 @@ async function handleMapClear(interaction: ButtonInteraction) {
 
   await interaction.deferUpdate();
 
-  if (
-    !interaction.channel ||
-    !interaction.channel.isTextBased() ||
-    interaction.channel.isDMBased()
-  ) {
+  const targetChannel = state.threadId
+    ? await interaction.client.channels.fetch(state.threadId)
+    : interaction.channel;
+
+  if (!targetChannel || !targetChannel.isTextBased()) {
     console.error("Cannot send message to non-text-based guild channel.");
     return;
   }
@@ -134,10 +141,21 @@ async function handleMapClear(interaction: ButtonInteraction) {
   state.mapStatus = "✅ MAP COMPLETE";
   await setState(channelId, state);
   const roleMention = `<@&${state.roleId}>`;
-  await interaction.channel.send({
+  await (targetChannel as any).send({
     content: `🎉 ${roleMention} The map is 100% complete! Great work, everyone!`,
   });
   await updateAqMessage(interaction, channelId);
+
+  if (state.threadId) {
+    try {
+      const thread = await interaction.client.channels.fetch(state.threadId);
+      if (thread && thread.isThread()) {
+        await thread.setLocked(true);
+      }
+    } catch (e) {
+      console.error("Failed to lock thread:", e);
+    }
+  }
 }
 
 // Register button handlers (prefix-based)
@@ -166,6 +184,9 @@ interface AQCoreStartParams {
   roleId: string;
   channel: GuildBasedChannel;
   guild: Guild;
+  createThread: boolean;
+  channelName: string;
+  roleName: string;
 }
 
 interface AQCoreEndParams {
@@ -178,7 +199,7 @@ type AQCoreParams = AQCoreStartParams | AQCoreEndParams;
 
 export async function core(params: AQCoreParams): Promise<CommandResult> {
   if (params.subcommand === "start") {
-    const { day, roleId, channel, guild } = params;
+    const { day, roleId, channel, guild, createThread, channelName, roleName } = params;
 
     if (!("send" in channel)) {
       return {
@@ -226,12 +247,33 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
       state.players.s3[member.id] = { done: false };
     }
 
-    const container = buildAQContainer(state);
+    const headerImage = await generateAQHeader({
+      day,
+      channelName,
+      roleName,
+    });
+
+    const container = buildAQContainer(state, channelName, roleName);
     const sent = await (channel as any).send({
       components: [container],
+      files: [{ attachment: headerImage, name: "aq_header.png" }],
       flags: [MessageFlags.IsComponentsV2],
     });
     state.messageId = sent.id;
+
+    if (createThread) {
+      try {
+        const thread = await sent.startThread({
+          name: `AQ Day ${day} Updates`,
+          autoArchiveDuration: 1440, // 24 hours
+        });
+        state.threadId = thread.id;
+      } catch (e) {
+        console.error("Failed to create thread:", e);
+        // best-effort
+      }
+    }
+
     await setState(channelId, state);
 
     return { content: "AQ Tracker started successfully.", ephemeral: true };
@@ -253,6 +295,16 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
         content: `AQ tracker manually ended by ${user}.`,
         components: [],
       });
+      if (state.threadId) {
+        try {
+          const thread = await (channel as any).threads.fetch(state.threadId);
+          if (thread) {
+            await thread.setLocked(true);
+          }
+        } catch (e) {
+          console.error("Failed to lock thread:", e);
+        }
+      }
     } catch {}
     await setState(channelId, undefined);
     return { content: "AQ tracker ended.", ephemeral: true };
@@ -271,10 +323,10 @@ export const command: Command = {
         .addIntegerOption((o) =>
           o
             .setName("day")
-            .setDescription("Current AQ day (1-5)")
+            .setDescription("Current AQ day (1-4)")
             .setRequired(true)
             .setMinValue(1)
-            .setMaxValue(5)
+            .setMaxValue(4)
         )
         .addStringOption((o) =>
           o
@@ -292,6 +344,11 @@ export const command: Command = {
               ChannelType.PublicThread,
               ChannelType.PrivateThread
             )
+        )
+        .addBooleanOption((o) =>
+          o
+            .setName("create_thread")
+            .setDescription("Create a thread for updates (defaults to yes)")
         )
     )
     .addSubcommand((sub) =>
@@ -352,6 +409,8 @@ export const command: Command = {
 
         const day = interaction.options.getInteger("day", true);
         const roleId = interaction.options.getString("role", true);
+        const createThread =
+          interaction.options.getBoolean("create_thread") ?? false;
         const targetChannel = (interaction.options.getChannel("channel") ||
           interaction.channel) as GuildBasedChannel | null;
         if (!targetChannel) {
@@ -367,12 +426,21 @@ export const command: Command = {
           return;
         }
 
+        const role = await guild.roles.fetch(roleId);
+        if (!role) {
+          await interaction.editReply("Role not found.");
+          return;
+        }
+
         const result = await core({
           subcommand: "start",
           day,
           roleId,
           channel: targetChannel,
           guild,
+          createThread,
+          channelName: targetChannel.name,
+          roleName: role.name,
         });
         await interaction.editReply(result);
       } else if (sub === "end") {
