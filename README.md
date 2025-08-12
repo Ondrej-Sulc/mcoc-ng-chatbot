@@ -11,7 +11,7 @@ A personal, modular Discord bot built with TypeScript, designed for Marvel Conte
 - **Centralized Error Handling:** A robust system that provides users with a unique error ID while logging detailed context for debugging.
 - **Dockerized Environment:** Fully containerized with Docker Compose for consistent development and easy deployment, including a PostgreSQL database service.
 - **AI Capabilities:** Integration with OpenRouter for advanced AI features.
-- **Dynamic Thumbnail Generation:** A sophisticated service (`src/utils/thumbnailService.ts`) that generates custom, visually rich thumbnails for champion-related commands. It uses a champion's class to theme the image with unique colors and intricate SVG background patterns. These patterns are highly configurable, allowing for easy adjustments to their scale and opacity to fine-tune the final look.
+- **Dynamic Thumbnail Generation:** A sophisticated service (`src/utils/thumbnailGenerator.ts`) that generates custom, visually rich thumbnails for champion-related commands. It uses a champion's class to theme the image with unique colors and intricate SVG background patterns. These patterns are highly configurable, allowing for easy adjustments to their scale and opacity to fine-tune the final look.
 
 ## Technology Stack
 
@@ -178,7 +178,7 @@ mcoc-ng-chatbot/
 To maintain a clean and scalable architecture, the project distinguishes between `services` and `utils`:
 
 -   **`src/services`**: This directory is for modules that connect to external APIs or manage a specific, stateful, or long-running part of the application's business logic. They act as specialized providers of functionality.
-    -   *Examples*: `openRouterService.ts`, `sheetsService.ts`, `schedulerService.ts`, `aqReminderService.ts`, `thumbnailService.ts`.
+    -   *Examples*: `openRouterService.ts`, `sheetsService.ts`, `schedulerService.ts`, `aqReminderService.ts`.
 
 -   **`src/utils`**: This directory contains more generic, often stateless helper functions, formatters, type guards, or internal application logic handlers (like command and error handling). They are broadly reusable across different parts of the application.
     -   *Examples*: `errorHandler.ts`, `emojiResolver.ts`, `commandHandler.ts`, `aqState.ts`, `aqView.ts`.
