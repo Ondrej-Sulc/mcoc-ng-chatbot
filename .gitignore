@@ -135,6 +135,9 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+# crush
+.crush
+
 legacy/
 /src/generated/prisma
 temp_*.ts

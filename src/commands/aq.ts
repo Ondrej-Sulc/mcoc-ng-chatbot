@@ -80,7 +80,7 @@ async function handleSectionClear(
   if (!state || state.status !== "active") {
     await interaction.reply({
       content: "This AQ tracker is not active.",
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
     return;
   }
@@ -121,7 +121,7 @@ async function handleMapClear(interaction: ButtonInteraction) {
   if (!state || state.status !== "active") {
     await interaction.reply({
       content: "No active AQ tracker in that channel.",
-      ephemeral: true,
+      flags: [MessageFlags.Ephemeral],
     });
     return;
   }

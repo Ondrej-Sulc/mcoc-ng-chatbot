@@ -86,7 +86,6 @@ export async function extractPrestigeFromImage(
 
   const rawText = fullData?.text || "";
   const lines: string[] =
-    fullData?.lines?.map((l: any) => l.text).filter(Boolean) ||
     rawText
       .split(/\r?\n/)
       .map((l) => l.trim())
@@ -105,7 +104,7 @@ export async function extractPrestigeFromImage(
         );
       }
 
-      const dline = fullData?.lines?.[i];
+      const dline = (fullData as any)?.lines?.[i];
       if (dline?.words) {
         const wordNum = dline.words
           .map((w: any) => w.text)
