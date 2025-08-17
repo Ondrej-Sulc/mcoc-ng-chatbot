@@ -166,3 +166,21 @@ model AQState {
   state     Json
   updatedAt DateTime @updatedAt
 }
+
+// --- Player and Prestige Logging ---
+
+model Player {
+  id          String @id @default(cuid())
+  discordId   String @unique
+  ingameName  String
+  guildId     String
+
+  summonerPrestige   Int?
+  championPrestige   Int?
+  relicPrestige      Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([guildId])
+}
