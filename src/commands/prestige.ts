@@ -2,12 +2,18 @@ import {
   SlashCommandBuilder,
   ChatInputCommandInteraction,
   Attachment,
-  AttachmentBuilder,
   AutocompleteInteraction,
   ComponentType,
   ButtonStyle,
   ActionRowBuilder,
   ButtonBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  MessageFlags,
 } from "discord.js";
 import { Command, CommandResult } from "../types/command";
 import { handleError, safeReply } from "../utils/errorHandler";
@@ -443,7 +449,21 @@ async function updatePrestige(params: {
       `🔮 Relic Prestige: **${relicPrestige}**\n` +
       `\n*Prestige has been updated for ${player.ingameName}.*`;
 
-    return { content: prestigeInfo, files: [new AttachmentBuilder(imageBuffer)] };
+    const container = new ContainerBuilder();
+    container.setAccentColor(0xFFD700); // Gold color for prestige
+    container.addMediaGalleryComponents(
+      new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder().setURL(imageUrl)
+      )
+    )
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+    )
+    container.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(prestigeInfo)
+    );
+
+    return { components: [container], isComponentsV2: true };
   } else {
     return {
       content:
@@ -499,8 +519,16 @@ export const command: Command = {
         debug,
         interaction,
       });
-
-      await interaction.editReply(result);
+      if (result.content) {
+        await interaction.editReply({
+          content: result.content});
+      }
+      else if (result.components) {
+        await interaction.editReply({
+          flags: [MessageFlags.IsComponentsV2],
+          components: result.components,
+        });
+      }
     } catch (error) {
       const { userMessage, errorId } = handleError(error, {
         location: "command:prestige",

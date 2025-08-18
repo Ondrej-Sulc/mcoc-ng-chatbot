@@ -8,6 +8,8 @@ import {
   Guild,
   User,
   ButtonInteraction,
+  AttachmentBuilder,
+  FileBuilder,
 } from "discord.js";
 import { Command, CommandResult } from "../types/command";
 import { handleError, safeReply } from "../utils/errorHandler";
@@ -254,9 +256,11 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
     });
 
     const container = buildAQContainer(state, channelName, roleName);
+    const file = new AttachmentBuilder(headerImage)
+      .setName("aq_header.png");
     const sent = await (channel as any).send({
       components: [container],
-      files: [{ attachment: headerImage, name: "aq_header.png" }],
+      files: [file],
       flags: [MessageFlags.IsComponentsV2],
     });
     state.messageId = sent.id;

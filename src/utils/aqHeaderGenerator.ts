@@ -22,7 +22,7 @@ const DEFAULTS = {
 let cachedTitleFont: opentype.Font | null = null;
 
 function nodeBufferToArrayBuffer(buf: Buffer): ArrayBuffer {
-  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+  return Uint8Array.from(buf).buffer;
 }
 
 async function loadTitleFont(): Promise<opentype.Font | null> {
