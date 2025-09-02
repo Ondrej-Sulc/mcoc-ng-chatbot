@@ -14,6 +14,7 @@ import {
   SeparatorBuilder,
   SeparatorSpacingSize,
   MessageFlags,
+  AttachmentBuilder,
 } from "discord.js";
 import { Command, CommandResult } from "../types/command";
 import { handleError, safeReply } from "../utils/errorHandler";
@@ -334,21 +335,15 @@ export async function core(params: {
 
     const authorPlayer = await prisma.player.findUnique({ where: { discordId: userId } });
     if (!authorPlayer) {
-      return { content: `You are not registered. Please register with \
-/profile register\
- first.` };
+      return { content: `You are not registered. Please register with \n/profile register\n first.` };
     }
 
     const targetPlayer = await prisma.player.findUnique({ where: { discordId: finalUserId } });
 
     if (!targetPlayer) {
       const content = targetUserId
-        ? `Player with Discord ID ${targetUserId} is not registered. They must register with \
-/profile register\
- first.`
-        : `You are not registered. Please register with \
-/profile register\
- first.`;
+        ? `Player with Discord ID ${targetUserId} is not registered. They must register with \n/profile register\n first.`
+        : `You are not registered. Please register with \n/profile register\n first.`;
       return { content };
     }
 
@@ -422,6 +417,56 @@ async function updatePrestige(params: {
   const imageBuffer = Buffer.from(await res.arrayBuffer());
 
   const result = await extractPrestigeFromImage(imageBuffer, debug);
+
+  if (debug) {
+    const attachments: AttachmentBuilder[] = [];
+    let debugContent = "## Prestige Debug Info\n";
+
+    if (result.debugInfo?.croppedImage) {
+      attachments.push(
+        new AttachmentBuilder(result.debugInfo.croppedImage, {
+          name: "cropped_debug.png",
+        })
+      );
+    }
+
+    debugContent += `**Success:** ${result.success}\n`;
+    debugContent += `**Fallback Used:** ${result.fallback ?? false}\n`;
+    if (result.error) {
+      debugContent += `**Error:** ${result.error}\n`;
+    }
+
+    if (result.debugInfo?.cropAttempt) {
+      debugContent += "\n### Crop Attempt\n";
+      if (result.debugInfo.cropAttempt.error) {
+        debugContent += `**Error:** ${result.debugInfo.cropAttempt.error}\n`;
+      }
+      if (result.debugInfo.cropAttempt.detectedLabels) {
+        debugContent += `**Detected:** S: ${result.debugInfo.cropAttempt.detectedLabels.summoner}, C: ${result.debugInfo.cropAttempt.detectedLabels.champion}, R: ${result.debugInfo.cropAttempt.detectedLabels.relic}\n`;
+      }
+      if (result.debugInfo.cropAttempt.text) {
+        debugContent += "**OCR Text:**\n```\n" + result.debugInfo.cropAttempt.text.substring(0, 1000) + "\n```\n";
+      }
+    }
+
+    if (result.debugInfo?.fullAttempt) {
+      debugContent += "\n### Full Image Attempt\n";
+      if (result.debugInfo.fullAttempt.error) {
+        debugContent += `**Error:** ${result.debugInfo.fullAttempt.error}\n`;
+      }
+      if (result.debugInfo.fullAttempt.detectedLabels) {
+        debugContent += `**Detected:** S: ${result.debugInfo.fullAttempt.detectedLabels.summoner}, C: ${result.debugInfo.fullAttempt.detectedLabels.champion}, R: ${result.debugInfo.fullAttempt.detectedLabels.relic}\n`;
+      }
+      if (result.debugInfo.fullAttempt.text) {
+        debugContent += "**OCR Text:**\n```\n" + result.debugInfo.fullAttempt.text.substring(0, 1000) + "\n```\n";
+      }
+    }
+
+    return {
+      content: debugContent,
+      files: attachments,
+    };
+  }
 
   const {
     success,
@@ -502,11 +547,11 @@ export const command: Command = {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    await interaction.deferReply({});
+    const debug = interaction.options.getBoolean("debug") ?? false;
+    await interaction.deferReply({ ephemeral: debug });
     try {
       const image = interaction.options.getAttachment("image") as Attachment;
       const targetUserId = interaction.options.getString("player") ?? undefined;
-      const debug = interaction.options.getBoolean("debug") ?? false;
 
       if (!image || !image.url) {
         throw new Error("No image provided.");
@@ -519,14 +564,17 @@ export const command: Command = {
         debug,
         interaction,
       });
-      if (result.content) {
-        await interaction.editReply({
-          content: result.content});
-      }
-      else if (result.components) {
+
+      if (result.isComponentsV2) {
         await interaction.editReply({
           flags: [MessageFlags.IsComponentsV2],
           components: result.components,
+        });
+      } else {
+        await interaction.editReply({
+          content: result.content,
+          files: result.files,
+          embeds: result.embeds,
         });
       }
     } catch (error) {
