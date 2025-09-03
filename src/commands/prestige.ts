@@ -93,9 +93,9 @@ function parsePrestigesFromOcr(text: string): OCRResult {
 
   // More specific keyword patterns
   const patterns: Record<keyof OCRResult, RegExp> = {
-    summoner: /summoner prestige/i,
-    champion: /champion prestige/i,
-    relic: /relic prestige/i,
+    summoner: /top 30 prestige/i,
+    champion: /champion/i,
+    relic: /relic/i,
   };
 
   // Clean a matched numeric token: remove non-digits and return integer
@@ -322,6 +322,73 @@ async function autocomplete(interaction: AutocompleteInteraction) {
   );
 }
 
+async function handleUpdate(interaction: ChatInputCommandInteraction) {
+  const debug = interaction.options.getBoolean("debug") ?? false;
+  await interaction.deferReply({ ephemeral: debug });
+
+  const image = interaction.options.getAttachment("image") as Attachment;
+  const targetUserId = interaction.options.getString("player") ?? undefined;
+
+  if (!image || !image.url) {
+    throw new Error("No image provided.");
+  }
+
+  const result = await core({
+    userId: interaction.user.id,
+    imageUrl: image.url,
+    targetUserId,
+    debug,
+    interaction,
+  });
+
+  if (result.isComponentsV2) {
+    await interaction.editReply({
+      flags: [MessageFlags.IsComponentsV2],
+      components: result.components,
+    });
+  } else {
+    await interaction.editReply({
+      content: result.content,
+      files: result.files,
+      embeds: result.embeds,
+    });
+  }
+}
+
+async function handleLeaderboard(interaction: ChatInputCommandInteraction) {
+  await interaction.deferReply();
+  const guildId = interaction.guildId;
+  if (!guildId) {
+    await interaction.editReply("This command can only be used in a server.");
+    return;
+  }
+
+  const players = await prisma.player.findMany({
+    where: {
+      guildId,
+      summonerPrestige: {
+        not: null,
+      },
+    },
+    orderBy: {
+      summonerPrestige: "desc",
+    },
+    take: 10,
+  });
+
+  if (players.length === 0) {
+    await interaction.editReply("No players with prestige found in this server.");
+    return;
+  }
+
+  let leaderboardString = "🏆 **Prestige Leaderboard** 🏆\n\n";
+  players.forEach((p, index) => {
+    leaderboardString += `${index + 1}. **${p.ingameName}** - ${p.summonerPrestige}\n`;
+  });
+
+  await interaction.editReply(leaderboardString);
+}
+
 export async function core(params: {
   userId: string;
   imageUrl: string;
@@ -478,6 +545,8 @@ async function updatePrestige(params: {
   const isValid = success && summonerPrestige! === championPrestige! + relicPrestige!;
 
   if (isValid) {
+    const oldPrestige = player.summonerPrestige;
+
     await prisma.player.update({
       where: { id: player.id },
       data: {
@@ -487,9 +556,17 @@ async function updatePrestige(params: {
       },
     });
 
+    const prestigeChange = oldPrestige && oldPrestige > 0 ? summonerPrestige! - oldPrestige : 0;
+    const changeString =
+      prestigeChange > 0
+        ? `(+${prestigeChange})`
+        : prestigeChange < 0
+        ? `(${prestigeChange})`
+        : "";
+
     const prestigeInfo =
       `**Prestige Values for ${player.ingameName}**:\n` +
-      `🏆 Summoner Prestige: **${summonerPrestige}**\n` +
+      `🏆 TOP 30 Prestige: **${summonerPrestige}** ${changeString}\n` +
       `⚔️ Champion Prestige: **${championPrestige}**\n` +
       `🔮 Relic Prestige: **${relicPrestige}**\n` +
       `\n*Prestige has been updated for ${player.ingameName}.*`;
@@ -523,59 +600,44 @@ async function updatePrestige(params: {
 export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("prestige")
-    .setDescription("Extract prestige values from an MCOC screenshot.")
-    .addAttachmentOption((option) =>
-      option
-        .setName("image")
-        .setDescription(
-          "Screenshot of your MCOC profile showing prestige values."
+    .setDescription("Extract prestige values from an MCOC screenshot or view the leaderboard.")
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('update')
+        .setDescription('Extract prestige values from an MCOC screenshot.')
+        .addAttachmentOption(option =>
+          option
+            .setName("image")
+            .setDescription("Screenshot of your MCOC profile showing prestige values.")
+            .setRequired(true)
         )
-        .setRequired(true)
+        .addStringOption(option =>
+          option
+            .setName("player")
+            .setDescription("The player to update prestige for.")
+            .setRequired(false)
+            .setAutocomplete(true)
+        )
+        .addBooleanOption(option =>
+          option
+            .setName("debug")
+            .setDescription("Return extra debug info, including the cropped image.")
+            .setRequired(false)
+        )
     )
-    .addStringOption((option) =>
-      option
-        .setName("player")
-        .setDescription("The player to update prestige for.")
-        .setRequired(false)
-        .setAutocomplete(true)
-    )
-    .addBooleanOption((option) =>
-      option
-        .setName("debug")
-        .setDescription("Return extra debug info, including the cropped image.")
-        .setRequired(false)
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName('leaderboard')
+        .setDescription('Shows the server prestige leaderboard.')
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    const debug = interaction.options.getBoolean("debug") ?? false;
-    await interaction.deferReply({ ephemeral: debug });
     try {
-      const image = interaction.options.getAttachment("image") as Attachment;
-      const targetUserId = interaction.options.getString("player") ?? undefined;
-
-      if (!image || !image.url) {
-        throw new Error("No image provided.");
-      }
-
-      const result = await core({
-        userId: interaction.user.id,
-        imageUrl: image.url,
-        targetUserId,
-        debug,
-        interaction,
-      });
-
-      if (result.isComponentsV2) {
-        await interaction.editReply({
-          flags: [MessageFlags.IsComponentsV2],
-          components: result.components,
-        });
-      } else {
-        await interaction.editReply({
-          content: result.content,
-          files: result.files,
-          embeds: result.embeds,
-        });
+      const subcommand = interaction.options.getSubcommand();
+      if (subcommand === 'update') {
+        await handleUpdate(interaction);
+      } else if (subcommand === 'leaderboard') {
+        await handleLeaderboard(interaction);
       }
     } catch (error) {
       const { userMessage, errorId } = handleError(error, {
