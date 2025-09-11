@@ -17,10 +17,17 @@ async function handleUpdate(interaction: ChatInputCommandInteraction): Promise<v
   const stars = interaction.options.getInteger("stars", true);
   const rank = interaction.options.getInteger("rank", true);
   const playerOption = interaction.options.getUser("player");
+  const debug = interaction.options.getBoolean("debug") || false;
 
   const targetUser = playerOption || interaction.user;
 
   try {
+    if (debug) {
+      const result = await processRosterScreenshot(image.url, stars, rank, true);
+      await safeReply(interaction, result);
+      return;
+    }
+
     const player = await prisma.player.findUnique({
       where: { discordId: targetUser.id },
     });
@@ -30,7 +37,7 @@ async function handleUpdate(interaction: ChatInputCommandInteraction): Promise<v
       return;
     }
 
-    const result = await processRosterScreenshot(image.url, player.id, stars, rank);
+    const result = await processRosterScreenshot(image.url, stars, rank, false, player.id);
     await safeReply(interaction, result);
   } catch (error) {
     const { userMessage } = handleError(error, {
@@ -126,6 +133,12 @@ export const command: Command = {
           option
             .setName("player")
             .setDescription("The player to update the roster for (defaults to you).")
+            .setRequired(false)
+        )
+        .addBooleanOption((option) =>
+          option
+            .setName("debug")
+            .setDescription("Run in debug mode without saving to the database.")
             .setRequired(false)
         )
     )

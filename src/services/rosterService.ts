@@ -5,8 +5,32 @@ import Fuse from 'fuse.js';
 // @ts-ignore
 import { imageHash } from 'image-hash';
 
+import { config } from '../config';
+
 const prisma = new PrismaClient();
-const visionClient = new v1.ImageAnnotatorClient();
+
+if (!config.GOOGLE_CREDENTIALS_JSON) {
+  throw new Error('GOOGLE_CREDENTIALS_JSON is not defined in the .env file.');
+}
+let credentials;
+try {
+  // Decode the Base64 string back to JSON string
+  const decodedCredentialsString = Buffer.from(
+    config.GOOGLE_CREDENTIALS_JSON,
+    'base64'
+  ).toString('utf8');
+  // Parse the decoded JSON string
+  credentials = JSON.parse(decodedCredentialsString);
+} catch (error) {
+  console.error(
+    `Error loading/parsing Google credentials from environment variable:`,
+    error
+  );
+  throw new Error(
+    `Failed to load Google credentials. Check Base64 encoding in GitHub Secrets.`
+  );
+}
+const visionClient = new v1.ImageAnnotatorClient({ credentials });
 
 // --- Interfaces for data structures ---
 type Vertex = { x: number; y: number };
@@ -23,16 +47,28 @@ interface ChampionGridCell {
   isAwakened?: boolean;
 }
 
-export async function processRosterScreenshot(imageUrl: string, playerId: string, stars: number, rank: number): Promise<string> {
+export async function processRosterScreenshot(
+  imageUrl: string,
+  stars: number,
+  rank: number,
+  debugMode: boolean = false,
+  playerId?: string,
+): Promise<string> {
+  if (debugMode) console.log(`[DEBUG] Starting roster processing for URL: ${imageUrl}`);
+
   // 1. Download image
   const imageBuffer = await downloadImage(imageUrl);
+  if (debugMode) console.log(`[DEBUG] Image downloaded, size: ${imageBuffer.length} bytes`);
 
   // 2. Crop image
   const croppedImageBuffer = await cropImage(imageBuffer);
+  if (debugMode) console.log(`[DEBUG] Image cropped, new size: ${croppedImageBuffer.length} bytes`);
 
   // 3. Run OCR using Google Cloud Vision
+  if (debugMode) console.log('[DEBUG] Sending image to Google Cloud Vision for OCR...');
   const [result] = await visionClient.textDetection(croppedImageBuffer);
   const detections = result.textAnnotations;
+  if (debugMode) console.log(`[DEBUG] OCR complete, ${detections?.length || 0} text annotations found.`);
 
   if (!detections || detections.length === 0) {
     return "Could not detect any text in the image.";
@@ -40,15 +76,42 @@ export async function processRosterScreenshot(imageUrl: string, playerId: string
 
   // 4. Process OCR results
   const ocrResults = processOcrDetections(detections);
+  if (debugMode) {
+    console.log(`[DEBUG] Processed ${ocrResults.length} OCR results.`);
+    // Log a sample of OCR results
+    console.log('[DEBUG] OCR results sample:', ocrResults.slice(0, 5).map(r => r.text));
+  }
 
   // 5. Estimate grid and parse champions
+  if (debugMode) console.log('[DEBUG] Estimating champion grid...');
   let grid = await estimateGrid(ocrResults, croppedImageBuffer);
+  if (debugMode) {
+    console.log(`[DEBUG] Grid estimated with ${grid.length} rows and ${grid[0]?.length || 0} columns.`);
+    console.log('[DEBUG] Parsed grid before name solving:\n' + gridToString(grid));
+  }
 
   // 6. Solve ambiguous short names
+  if (debugMode) console.log('[DEBUG] Solving ambiguous short names...');
   grid = await solveShortNames(grid, croppedImageBuffer);
+  if (debugMode) console.log('[DEBUG] Short names solved.');
+
+
+  if (debugMode) {
+    // In debug mode, return the string representation of the grid
+    if (debugMode) console.log('[DEBUG] Debug mode enabled, skipping database save.');
+    return `--- DEBUG MODE --- 
+Final parsed roster: 
+${gridToString(grid)}`;
+  }
+
+  if (!playerId) {
+    throw new Error("playerId is required when not in debug mode.");
+  }
 
   // 7. Save roster to database
+  console.log(`Saving roster for player ${playerId}...`);
   const count = await saveRoster(grid, playerId, stars, rank);
+  console.log(`${count} champions saved.`);
 
   return `Successfully added/updated ${count} champions to the roster.`;
 }
