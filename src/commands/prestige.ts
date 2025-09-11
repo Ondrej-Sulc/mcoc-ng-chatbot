@@ -93,7 +93,7 @@ function parsePrestigesFromOcr(text: string): OCRResult {
 
   // More specific keyword patterns
   const patterns: Record<keyof OCRResult, RegExp> = {
-    summoner: /top 30 prestige/i,
+    summoner: /top\s+\d{2}\s+prestige/i,
     champion: /champion/i,
     relic: /relic/i,
   };

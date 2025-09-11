@@ -75,6 +75,7 @@ model Champion {
   tags      Tag[]
   abilities ChampionAbilityLink[]
   attacks   Attack[]
+  roster    Roster[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -179,8 +180,30 @@ model Player {
   championPrestige   Int?
   relicPrestige      Int?
 
+  roster    Roster[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([guildId])
+}
+
+model Roster {
+  id           String   @id @default(cuid())
+  stars        Int
+  rank         Int
+  isAwakened   Boolean
+  powerRating  Int?
+
+  player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  playerId     String
+  champion     Champion @relation(fields: [championId], references: [id], onDelete: Cascade)
+  championId   Int
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([playerId, championId, stars])
+  @@index([playerId])
+  @@index([championId])
 }

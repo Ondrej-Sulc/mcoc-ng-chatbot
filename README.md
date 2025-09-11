@@ -69,7 +69,7 @@ The bot now utilizes a PostgreSQL database managed by Prisma for persistent stor
 _This list will be populated to track the migration status of each command._
 
 - **`account.py`**:
-  - `/link_account`: To be reviewed
+  - `/link_account`: Migrated to `/profile register`
   - `/delete_account_link`: To be reviewed
   - `/register_thread`: To be reviewed
   - `/unregister_thread`: To be reviewed
@@ -97,19 +97,19 @@ _This list will be populated to track the migration status of each command._
   - `/summarize`: Migrated
   - `/hello`: Not to be migrated (redundant)
 - **`prestige.py`**:
-  - `/prestige_list`: To be reviewed
-  - `/prestige`: To be reviewed
+  - `/prestige_list`: Migrated to `/prestige leaderboard`
+  - `/prestige`: Migrated to `/prestige update`
 - **`remind.py`**:
   - `/remind`: Not to be migrated (replaced by new scheduler)
   - `/remind_mute`: Not to be migrated (replaced by new scheduler)
   - `/remind_list`: Not to be migrated (replaced by new scheduler)
   - `/remind_delete`: Not to be migrated (replaced by new scheduler)
 - **`roster.py`**:
-  - `$roster` (text command, needs migration to slash): To be reviewed
-  - `/roster_clear_cache`: To be reviewed
-  - `/roster_add`: To be reviewed
-  - `/roster_delete`: To be reviewed
-  - `/roster_convert`: To be reviewed
+  - `$roster` (text command, needs migration to slash): Migrated to `/roster update` and `/roster view`
+  - `/roster_clear_cache`: Obsolete
+  - `/roster_add`: Obsolete
+  - `/roster_delete`: Migrated to `/roster delete`
+  - `/roster_convert`: Obsolete
 - **`war.py`**:
   - `/aw_plan`: to be migrated as `/aw plan`
   - `/aw_details`: to be migrated as `/aw details`
