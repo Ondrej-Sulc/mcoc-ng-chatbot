@@ -4,6 +4,9 @@ import { v1 } from '@google-cloud/vision';
 import Fuse from 'fuse.js';
 // @ts-ignore
 import { imageHash } from 'image-hash';
+import { promises as fs } from 'fs';
+import * as path from 'path';
+import { tmpdir } from 'os';
 
 import { config } from '../config';
 
@@ -47,13 +50,19 @@ interface ChampionGridCell {
   isAwakened?: boolean;
 }
 
+export interface RosterDebugResult {
+  message: string;
+  croppedImageBuffer?: Buffer;
+  gridImageBuffer?: Buffer;
+}
+
 export async function processRosterScreenshot(
   imageUrl: string,
   stars: number,
   rank: number,
   debugMode: boolean = false,
   playerId?: string,
-): Promise<string> {
+): Promise<string | RosterDebugResult> {
   if (debugMode) console.log(`[DEBUG] Starting roster processing for URL: ${imageUrl}`);
 
   // 1. Download image
@@ -90,6 +99,14 @@ export async function processRosterScreenshot(
     console.log('[DEBUG] Parsed grid before name solving:\n' + gridToString(grid));
   }
 
+  // Create debug image with grid
+  let gridImageBuffer: Buffer | undefined;
+  if (debugMode) {
+    console.log('[DEBUG] Drawing grid on image for debugging...');
+    gridImageBuffer = await drawGridOnImage(croppedImageBuffer, grid);
+    console.log('[DEBUG] Grid image created.');
+  }
+
   // 6. Solve ambiguous short names
   if (debugMode) console.log('[DEBUG] Solving ambiguous short names...');
   grid = await solveShortNames(grid, croppedImageBuffer);
@@ -99,9 +116,13 @@ export async function processRosterScreenshot(
   if (debugMode) {
     // In debug mode, return the string representation of the grid
     if (debugMode) console.log('[DEBUG] Debug mode enabled, skipping database save.');
-    return `--- DEBUG MODE --- 
+    return {
+      message: `--- DEBUG MODE --- 
 Final parsed roster: 
-${gridToString(grid)}`;
+${gridToString(grid)}`,
+      croppedImageBuffer: croppedImageBuffer,
+      gridImageBuffer: gridImageBuffer,
+    };
   }
 
   if (!playerId) {
@@ -157,8 +178,21 @@ async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer):
       if (cell.championName && ambiguousShortNames.includes(cell.championName)) {
         const possibleChampions = championsByShortName[cell.championName];
         const [topLeft, , bottomRight] = cell.bounds;
+        
+        const extractOptions = {
+          left: Math.round(topLeft.x),
+          top: Math.round(topLeft.y),
+          width: Math.round(bottomRight.x - topLeft.x),
+          height: Math.round(bottomRight.y - topLeft.y)
+        };
+
+        if (extractOptions.width <= 0 || extractOptions.height <= 0) {
+            console.log(`[DEBUG] Skipping invalid extract region for ${cell.championName}`, extractOptions);
+            continue;
+        }
+
         const championImageBuffer = await sharp(imageBuffer)
-          .extract({ left: topLeft.x, top: topLeft.y, width: bottomRight.x - topLeft.x, height: bottomRight.y - topLeft.y })
+          .extract(extractOptions)
           .toBuffer();
 
         const championHash = await getImageHash(championImageBuffer);
@@ -167,7 +201,12 @@ async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer):
         let bestMatchScore = Infinity;
 
         for (const possibleChampion of possibleChampions) {
-          const officialImageBuffer = await downloadImage((possibleChampion.images as any).official);
+          const imageUrl = (possibleChampion.images as any)?.official;
+          if (!imageUrl) {
+            console.log(`[DEBUG] Skipping champion ${possibleChampion.name} due to missing official image URL.`);
+            continue;
+          }
+          const officialImageBuffer = await downloadImage(imageUrl);
           const officialImageHash = await getImageHash(officialImageBuffer);
           const score = compareHashes(championHash, officialImageHash);
 
@@ -187,11 +226,18 @@ async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer):
 }
 
 function getImageHash(imageBuffer: Buffer): Promise<string> {
-  return new Promise((resolve, reject) => {
-    imageHash(`data:image/png;base64,${imageBuffer.toString('base64')}`, 16, true, (error: any, data: string) => {
-      if (error) reject(error);
-      resolve(data);
-    });
+  const tempPath = path.join(tmpdir(), `image-hash-${Date.now()}.webp`);
+  return new Promise(async (resolve, reject) => {
+    try {
+      await fs.writeFile(tempPath, imageBuffer);
+      imageHash(tempPath, 16, true, (error: any, data: string) => {
+        fs.unlink(tempPath).catch(err => console.error(`Failed to delete temp file: ${tempPath}`, err));
+        if (error) return reject(error);
+        resolve(data);
+      });
+    } catch (error) {
+      reject(error);
+    }
   });
 }
 
@@ -203,6 +249,34 @@ function compareHashes(hash1: string, hash2: string): number {
     }
   }
   return distance;
+}
+
+async function drawGridOnImage(imageBuffer: Buffer, grid: ChampionGridCell[][]): Promise<Buffer> {
+  const overlayElements: sharp.OverlayOptions[] = [];
+
+  for (const row of grid) {
+    for (const cell of row) {
+      if (!cell.bounds || cell.bounds.length < 4) continue;
+      const [topLeft, , bottomRight] = cell.bounds;
+      const width = Math.abs(bottomRight.x - topLeft.x);
+      const height = Math.abs(bottomRight.y - topLeft.y);
+
+      if (width > 0 && height > 0) {
+        const svgRect = `<svg width="${width}" height="${height}"><rect x="0" y="0" width="${width}" height="${height}" stroke="lime" stroke-width="4" fill="none" /></svg>`;
+        overlayElements.push({
+          input: Buffer.from(svgRect),
+          left: Math.round(topLeft.x),
+          top: Math.round(topLeft.y),
+        });
+      }
+    }
+  }
+
+  if (overlayElements.length === 0) {
+    return imageBuffer;
+  }
+
+  return sharp(imageBuffer).composite(overlayElements).toBuffer();
 }
 
 function gridToString(grid: ChampionGridCell[][]): string {

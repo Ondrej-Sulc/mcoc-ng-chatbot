@@ -24,7 +24,11 @@ async function handleUpdate(interaction: ChatInputCommandInteraction): Promise<v
   try {
     if (debug) {
       const result = await processRosterScreenshot(image.url, stars, rank, true);
-      await safeReply(interaction, result);
+      if (typeof result === 'string') {
+        await safeReply(interaction, result);
+      } else {
+        await safeReply(interaction, result.message);
+      }
       return;
     }
 
@@ -38,7 +42,11 @@ async function handleUpdate(interaction: ChatInputCommandInteraction): Promise<v
     }
 
     const result = await processRosterScreenshot(image.url, stars, rank, false, player.id);
-    await safeReply(interaction, result);
+    if (typeof result === 'string') {
+        await safeReply(interaction, result);
+    } else {
+        await safeReply(interaction, result.message);
+    }
   } catch (error) {
     const { userMessage } = handleError(error, {
       location: "command:roster:update",
