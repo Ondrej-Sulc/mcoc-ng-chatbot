@@ -139,5 +139,7 @@ dist
 .crush
 
 legacy/
+debug/
 /src/generated/prisma
 temp_*.ts
+eng.traineddata

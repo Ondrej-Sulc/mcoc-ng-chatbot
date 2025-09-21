@@ -65,33 +65,7 @@ interface ChampionCoreParams {
   userId: string;
 }
 
-interface ChampionImages {
-  p_32: string;
-  p_64: string;
-  s_32: string;
-  s_64: string;
-  p_128: string;
-  s_128: string;
-  full_primary: string;
-  full_secondary: string;
-}
-
-function getChampionImageUrl(
-  images: any,
-  size: "32" | "64" | "128" | "full" = "full",
-  type: "primary" | "secondary" = "primary"
-): string {
-  const parsedImages = images as ChampionImages;
-
-  if (size === "full") {
-    return type === "primary"
-      ? parsedImages.full_primary
-      : parsedImages.full_secondary;
-  }
-
-  const key = `${type.charAt(0)}_${size}` as keyof ChampionImages;
-  return parsedImages[key];
-}
+import { getChampionImageUrl } from "../utils/championHelper";
 
 function formatAttacks(attacks: AttackWithHits[]): string {
   if (!attacks || attacks.length === 0) {
