@@ -6,7 +6,7 @@ import * as path from 'path';
 const prisma = new PrismaClient();
 
 // URL from the user
-const imageUrl = 'https://media.discordapp.net/attachments/1282672011654725742/1419446678838317308/Screenshot_20250922-001245.png?ex=68d1ca3c&is=68d078bc&hm=abe0a27f6dacc4d887d8052d0bc0ad13255ba688062ea8b4b46c5c790c70f678&=&format=webp&quality=lossless&width=953&height=440';
+const imageUrl = 'https://media.discordapp.net/attachments/1282672011654725742/1419446632046526564/Screenshot_20250922-001052.png?ex=68d272f1&is=68d12171&hm=f695a61101002bbcd9dbc15177dd02bcb367e7508037890f6bfa8c2edc7c8174&=&format=webp&quality=lossless&width=1542&height=712';
 const stars = 6;
 const rank = 5;
 
@@ -45,29 +45,14 @@ async function testRoster() {
       await fs.mkdir(debugDir, { recursive: true });
 
       if (result.imageBuffer) {
-        const bassePath = path.join(debugDir, 'roster_basee.png');
-        await fs.writeFile(bassePath, result.imageBuffer);
-        console.log(`Saved debug image to: ${bassePath}`);
+        const basePath = path.join(debugDir, 'roster_base.png');
+        await fs.writeFile(basePath, result.imageBuffer);
+        console.log(`Saved base image to: ${basePath}`);
       }
-      if (result.gridImageBuffer) {
-        const gridPath = path.join(debugDir, 'roster_grid.png');
-        await fs.writeFile(gridPath, result.gridImageBuffer);
-        console.log(`Saved grid debug image to: ${gridPath}`);
-      }
-      if (result.ocrBoundsImageBuffer) {
-        const ocrBoundsPath = path.join(debugDir, 'roster_ocr_bounds.png');
-        await fs.writeFile(ocrBoundsPath, result.ocrBoundsImageBuffer);
-        console.log(`Saved OCR bounds debug image to: ${ocrBoundsPath}`);
-      }
-      if (result.awakenedCheckImageBuffer) {
-        const awakenedCheckPath = path.join(debugDir, 'roster_awakened_check.png');
-        await fs.writeFile(awakenedCheckPath, result.awakenedCheckImageBuffer);
-        console.log(`Saved awakened check debug image to: ${awakenedCheckPath}`);
-      }
-      if (result.shortNameSolveImageBuffer) {
-        const shortNameSolvePath = path.join(debugDir, 'roster_short_name_solve.png');
-        await fs.writeFile(shortNameSolvePath, result.shortNameSolveImageBuffer);
-        console.log(`Saved short name solve debug image to: ${shortNameSolvePath}`);
+      if (result.debugImageBuffer) {
+        const debugPath = path.join(debugDir, 'roster_debug.png');
+        await fs.writeFile(debugPath, result.debugImageBuffer);
+        console.log(`Saved debug image to: ${debugPath}`);
       }
     }
   } catch (error) {

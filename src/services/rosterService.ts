@@ -57,10 +57,7 @@ interface ChampionGridCell {
 export interface RosterDebugResult {
   message: string;
   imageBuffer?: Buffer;
-  gridImageBuffer?: Buffer;
-  ocrBoundsImageBuffer?: Buffer;
-  awakenedCheckImageBuffer?: Buffer;
-  shortNameSolveImageBuffer?: Buffer;
+  debugImageBuffer?: Buffer;
 }
 
 export async function processRosterScreenshot(
@@ -89,13 +86,6 @@ export async function processRosterScreenshot(
     return "Could not detect any text in the image.";
   }
 
-  let ocrBoundsImageBuffer: Buffer | undefined;
-  if (debugMode && detections) {
-    console.log('[DEBUG] Drawing OCR bounds on image for debugging...');
-    ocrBoundsImageBuffer = await drawOcrBoundsOnImage(imageBuffer, detections);
-    console.log('[DEBUG] OCR bounds image created.');
-  }
-
   // 4. Process OCR results
   const ocrResults = processOcrDetections(detections);
   if (debugMode) {
@@ -106,37 +96,22 @@ export async function processRosterScreenshot(
 
   // 5. Estimate grid and parse champions
   if (debugMode) console.log('[DEBUG] Estimating champion grid...');
-  let grid = await estimateGrid(ocrResults, imageBuffer, debugMode);
+  const { grid, topBoundary } = await estimateGrid(ocrResults, imageBuffer, debugMode);
   if (debugMode) {
     console.log(`[DEBUG] Grid estimated with ${grid.length} rows and ${grid[0]?.length || 0} columns.`);
     console.log('[DEBUG] Parsed grid before name solving:\n' + gridToString(grid));
   }
 
-  // Create debug image with grid
-  let gridImageBuffer: Buffer | undefined;
-  if (debugMode) {
-    console.log('[DEBUG] Drawing grid on image for debugging...');
-    gridImageBuffer = await drawGridOnImage(imageBuffer, grid);
-    console.log('[DEBUG] Grid image created.');
-  }
-
   // 6. Solve ambiguous short names
   if (debugMode) console.log('[DEBUG] Solving ambiguous short names...');
-  grid = await solveShortNames(grid, imageBuffer);
+  const solvedGrid = await solveShortNames(grid, imageBuffer);
   if (debugMode) console.log('[DEBUG] Short names solved.');
 
-  let awakenedCheckImageBuffer: Buffer | undefined;
+  let debugImageBuffer: Buffer | undefined;
   if (debugMode) {
-    console.log('[DEBUG] Drawing awakened check areas on image for debugging...');
-    awakenedCheckImageBuffer = await drawAwakenedCheckOnImage(imageBuffer, grid);
-    console.log('[DEBUG] Awakened check image created.');
-  }
-
-  let shortNameSolveImageBuffer: Buffer | undefined;
-  if (debugMode) {
-    console.log('[DEBUG] Drawing short name solve areas on image for debugging...');
-    shortNameSolveImageBuffer = await drawShortNameSolveOnImage(imageBuffer, grid);
-    console.log('[DEBUG] Short name solve image created.');
+    console.log('[DEBUG] Drawing debug bounds on image...');
+    debugImageBuffer = await drawDebugBoundsOnImage(imageBuffer, solvedGrid, topBoundary);
+    console.log('[DEBUG] Debug bounds image created.');
   }
 
 
@@ -146,12 +121,9 @@ export async function processRosterScreenshot(
     return {
       message: `--- DEBUG MODE --- 
 Final parsed roster: 
-${gridToString(grid)}`,
+${gridToString(solvedGrid)}`,
       imageBuffer: imageBuffer,
-      gridImageBuffer: gridImageBuffer,
-      ocrBoundsImageBuffer: ocrBoundsImageBuffer,
-      awakenedCheckImageBuffer,
-      shortNameSolveImageBuffer,
+      debugImageBuffer: debugImageBuffer,
     };
   }
 
@@ -161,7 +133,7 @@ ${gridToString(grid)}`,
 
   // 7. Save roster to database
   console.log(`Saving roster for player ${playerId}...`);
-  const count = await saveRoster(grid, playerId, stars, rank);
+  const count = await saveRoster(solvedGrid, playerId, stars, rank);
   console.log(`${count} champions saved.`);
 
   return `Successfully added/updated ${count} champions to the roster.`;
@@ -205,90 +177,97 @@ async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer):
   for (let r = 0; r < grid.length; r++) {
     for (let c = 0; c < grid[r].length; c++) {
       const cell = grid[r][c];
-      if (cell.championName && ambiguousShortNames.includes(cell.championName)) {
-        const possibleChampions = championsByShortName[cell.championName];
-        const [topLeft, , bottomRight] = cell.bounds;
-        
-        const boxWidth = bottomRight.x - topLeft.x;
-        const boxHeight = bottomRight.y - topLeft.y;
+      if (cell.championName) {
+        if (ambiguousShortNames.includes(cell.championName)) {
+          const possibleChampions = championsByShortName[cell.championName];
+          const [topLeft, , bottomRight] = cell.bounds;
+          
+          const boxWidth = bottomRight.x - topLeft.x;
+          const boxHeight = bottomRight.y - topLeft.y;
 
-        const cropTop = boxHeight * 0;
-        const cropBottom = boxHeight * 0.33;
-        const cropLeft = boxWidth * 0.10;
-        const cropRight = boxWidth * 0.10;
+          const cropTop = boxHeight * 0;
+          const cropBottom = boxHeight * 0.33;
+          const cropLeft = boxWidth * 0.10;
+          const cropRight = boxWidth * 0.10;
 
-        const extractOptions = {
-          left: Math.round(topLeft.x + cropLeft),
-          top: Math.round(topLeft.y + cropTop),
-          width: Math.round(boxWidth - cropLeft - cropRight),
-          height: Math.round(boxHeight - cropTop - cropBottom)
-        };
+          const extractOptions = {
+            left: Math.round(topLeft.x + cropLeft),
+            top: Math.round(topLeft.y + cropTop),
+            width: Math.round(boxWidth - cropLeft - cropRight),
+            height: Math.round(boxHeight - cropTop - cropBottom)
+          };
 
-        cell.shortNameSolveBounds = [
-            { x: extractOptions.left, y: extractOptions.top },
-            { x: extractOptions.left + extractOptions.width, y: extractOptions.top },
-            { x: extractOptions.left + extractOptions.width, y: extractOptions.top + extractOptions.height },
-            { x: extractOptions.left, y: extractOptions.top + extractOptions.height }
-        ];
+          cell.shortNameSolveBounds = [
+              { x: extractOptions.left, y: extractOptions.top },
+              { x: extractOptions.left + extractOptions.width, y: extractOptions.top },
+              { x: extractOptions.left + extractOptions.width, y: extractOptions.top + extractOptions.height },
+              { x: extractOptions.left, y: extractOptions.top + extractOptions.height }
+          ];
 
-        if (extractOptions.width <= 0 || extractOptions.height <= 0) {
-            console.log(`[DEBUG] Skipping invalid extract region for ${cell.championName}`, extractOptions);
-            continue;
-        }
-
-        const championImageBuffer = await sharp(imageBuffer)
-          .extract(extractOptions)
-          .toBuffer();
-
-        // Second crop - 15% from all sides
-        const champImageMetadata = await sharp(championImageBuffer).metadata();
-        const champWidth = champImageMetadata.width || 0;
-        const champHeight = champImageMetadata.height || 0;
-        const champCropLeft = Math.floor(champWidth * 0.15);
-        const champCropTop = Math.floor(champHeight * 0.15);
-        const champCropWidth = Math.floor(champWidth * 0.70);
-        const champCropHeight = Math.floor(champHeight * 0.70);
-
-        const innerChampionImageBuffer = await sharp(championImageBuffer)
-          .extract({ left: champCropLeft, top: champCropTop, width: champCropWidth, height: champCropHeight })
-          .toBuffer();
-
-        const championHash = await getImageHash(innerChampionImageBuffer);
-
-        let bestMatch: Champion | null = null;
-        let bestMatchScore = Infinity;
-
-        for (const possibleChampion of possibleChampions) {
-          const imageUrl = getChampionImageUrl(possibleChampion.images, 'full', 'primary');
-          if (!imageUrl) {
-            console.log(`[DEBUG] Skipping champion ${possibleChampion.name} due to missing official image URL.`);
-            continue;
+          if (extractOptions.width <= 0 || extractOptions.height <= 0) {
+              console.log(`[DEBUG] Skipping invalid extract region for ${cell.championName}`, extractOptions);
+              continue;
           }
-          const officialImageBuffer = await downloadImage(imageUrl);
 
-          // Second crop for official image
-          const officialImageMetadata = await sharp(officialImageBuffer).metadata();
-          const officialWidth = officialImageMetadata.width || 0;
-          const officialHeight = officialImageMetadata.height || 0;
-          const officialCropLeft = Math.floor(officialWidth * 0.15);
-          const officialCropTop = Math.floor(officialHeight * 0.15);
-          const officialCropWidth = Math.floor(officialWidth * 0.70);
-          const officialCropHeight = Math.floor(officialHeight * 0.70);
-
-          const innerOfficialImageBuffer = await sharp(officialImageBuffer)
-            .extract({ left: officialCropLeft, top: officialCropTop, width: officialCropWidth, height: officialCropHeight })
+          const championImageBuffer = await sharp(imageBuffer)
+            .extract(extractOptions)
             .toBuffer();
 
-          const officialImageHash = await getImageHash(innerOfficialImageBuffer);
-          const score = compareHashes(championHash, officialImageHash);
+          // Second crop - 15% from all sides
+          const champImageMetadata = await sharp(championImageBuffer).metadata();
+          const champWidth = champImageMetadata.width || 0;
+          const champHeight = champImageMetadata.height || 0;
+          const champCropLeft = Math.floor(champWidth * 0.15);
+          const champCropTop = Math.floor(champHeight * 0.15);
+          const champCropWidth = Math.floor(champWidth * 0.70);
+          const champCropHeight = Math.floor(champHeight * 0.70);
 
-          if (score < bestMatchScore) {
-            bestMatchScore = score;
-            bestMatch = possibleChampion;
+          const innerChampionImageBuffer = await sharp(championImageBuffer)
+            .extract({ left: champCropLeft, top: champCropTop, width: champCropWidth, height: champCropHeight })
+            .toBuffer();
+
+          const championHash = await getImageHash(innerChampionImageBuffer);
+
+          let bestMatch: Champion | null = null;
+          let bestMatchScore = Infinity;
+
+          for (const possibleChampion of possibleChampions) {
+            const imageUrl = getChampionImageUrl(possibleChampion.images, 'full', 'primary');
+            if (!imageUrl) {
+              console.log(`[DEBUG] Skipping champion ${possibleChampion.name} due to missing official image URL.`);
+              continue;
+            }
+            const officialImageBuffer = await downloadImage(imageUrl);
+
+            // Second crop for official image
+            const officialImageMetadata = await sharp(officialImageBuffer).metadata();
+            const officialWidth = officialImageMetadata.width || 0;
+            const officialHeight = officialImageMetadata.height || 0;
+            const officialCropLeft = Math.floor(officialWidth * 0.15);
+            const officialCropTop = Math.floor(officialHeight * 0.15);
+            const officialCropWidth = Math.floor(officialWidth * 0.70);
+            const officialCropHeight = Math.floor(officialHeight * 0.70);
+
+            const innerOfficialImageBuffer = await sharp(officialImageBuffer)
+              .extract({ left: officialCropLeft, top: officialCropTop, width: officialCropWidth, height: officialCropHeight })
+              .toBuffer();
+
+            const officialImageHash = await getImageHash(innerOfficialImageBuffer);
+            const score = compareHashes(championHash, officialImageHash);
+
+            if (score < bestMatchScore) {
+              bestMatchScore = score;
+              bestMatch = possibleChampion;
+            }
           }
-        }
-        if (bestMatch) {
-          grid[r][c].championName = bestMatch.name;
+          if (bestMatch) {
+            grid[r][c].championName = bestMatch.name;
+          }
+        } else {
+          const champions = championsByShortName[cell.championName];
+          if (champions && champions.length === 1) {
+            cell.championName = champions[0].name;
+          }
         }
       }
     }
@@ -324,9 +303,12 @@ function compareHashes(hash1: string, hash2: string): number {
   return distance;
 }
 
-async function drawGridOnImage(imageBuffer: Buffer, grid: ChampionGridCell[][]): Promise<Buffer> {
+async function drawDebugBoundsOnImage(imageBuffer: Buffer, grid: ChampionGridCell[][], topBoundary: number): Promise<Buffer> {
   const overlayElements: sharp.OverlayOptions[] = [];
+  const metadata = await sharp(imageBuffer).metadata();
+  const imageWidth = metadata.width || 0;
 
+  // Grid bounds (lime)
   for (const row of grid) {
     for (const cell of row) {
       if (!cell.bounds || cell.bounds.length < 4) continue;
@@ -345,46 +327,7 @@ async function drawGridOnImage(imageBuffer: Buffer, grid: ChampionGridCell[][]):
     }
   }
 
-  if (overlayElements.length === 0) {
-    return imageBuffer;
-  }
-
-  return sharp(imageBuffer).composite(overlayElements).toBuffer();
-}
-
-async function drawOcrBoundsOnImage(imageBuffer: Buffer, detections: any[]): Promise<Buffer> {
-  const overlayElements: sharp.OverlayOptions[] = [];
-
-  // Start from the second element, as the first is the entire detected text block
-  for (const detection of detections.slice(1)) {
-    const vertices = detection.boundingPoly?.vertices;
-    if (!vertices || vertices.length < 4) continue;
-
-    const [topLeft, topRight, , bottomLeft] = vertices.map((v: any) => ({ x: v.x || 0, y: v.y || 0 }));
-
-    const width = Math.abs(topRight.x - topLeft.x);
-    const height = Math.abs(bottomLeft.y - topLeft.y);
-
-    if (width > 0 && height > 0) {
-      const svgRect = `<svg width="${width}" height="${height}"><rect x="0" y="0" width="${width}" height="${height}" stroke="lime" stroke-width="2" fill="none" /></svg>`;
-      overlayElements.push({
-        input: Buffer.from(svgRect),
-        left: Math.round(topLeft.x),
-        top: Math.round(topLeft.y),
-      });
-    }
-  }
-
-  if (overlayElements.length === 0) {
-    return imageBuffer;
-  }
-
-  return sharp(imageBuffer).composite(overlayElements).toBuffer();
-}
-
-async function drawAwakenedCheckOnImage(imageBuffer: Buffer, grid: ChampionGridCell[][]): Promise<Buffer> {
-  const overlayElements: sharp.OverlayOptions[] = [];
-
+  // Awakened check bounds (blue)
   for (const row of grid) {
     for (const cell of row) {
       if (cell.awakenedCheckBounds) {
@@ -393,7 +336,7 @@ async function drawAwakenedCheckOnImage(imageBuffer: Buffer, grid: ChampionGridC
         const height = Math.abs(bottomRight.y - topLeft.y);
 
         if (width > 0 && height > 0) {
-          const svgRect = `<svg width="${width}" height="${height}"><rect x="0" y="0" width="${width}" height="${height}" stroke="lime" stroke-width="2" fill="none" /></svg>`;
+          const svgRect = `<svg width="${width}" height="${height}"><rect x="0" y="0" width="${width}" height="${height}" stroke="blue" stroke-width="2" fill="none" /></svg>`;
           overlayElements.push({
             input: Buffer.from(svgRect),
             left: Math.round(topLeft.x),
@@ -404,16 +347,7 @@ async function drawAwakenedCheckOnImage(imageBuffer: Buffer, grid: ChampionGridC
     }
   }
 
-  if (overlayElements.length === 0) {
-    return imageBuffer;
-  }
-
-  return sharp(imageBuffer).composite(overlayElements).toBuffer();
-}
-
-async function drawShortNameSolveOnImage(imageBuffer: Buffer, grid: ChampionGridCell[][]): Promise<Buffer> {
-  const overlayElements: sharp.OverlayOptions[] = [];
-
+  // Short name solve bounds (orange)
   for (const row of grid) {
     for (const cell of row) {
       if (cell.shortNameSolveBounds) {
@@ -433,6 +367,16 @@ async function drawShortNameSolveOnImage(imageBuffer: Buffer, grid: ChampionGrid
     }
   }
 
+  // Top boundary line (red)
+  if (topBoundary > 0 && imageWidth > 0) {
+    const svgLine = `<svg width="${imageWidth}" height="${metadata.height}"><line x1="0" y1="${topBoundary}" x2="${imageWidth}" y2="${topBoundary}" stroke="red" stroke-width="3" /></svg>`;
+    overlayElements.push({
+      input: Buffer.from(svgLine),
+      top: 0,
+      left: 0,
+    });
+  }
+
   if (overlayElements.length === 0) {
     return imageBuffer;
   }
@@ -444,9 +388,9 @@ function gridToString(grid: ChampionGridCell[][]): string {
   let gridString = "";
   for (const row of grid) {
     for (const cell of row) {
-      const awakened = cell.isAwakened ? '*' : '';
+      const awakened = cell.isAwakened ? '★' : '☆';
       const rating = cell.powerRating ? ` (${cell.powerRating})` : '';
-      gridString += `[${cell.championName || '-'}${rating}${awakened}] `;
+      gridString += `${awakened} ${cell.championName || '[-]'}${rating} `;
     }
     gridString += '\n';
   }
@@ -469,12 +413,27 @@ function ocrCorrection(text: string): string {
   return text.split('').map(char => corrections[char] || char).join('');
 }
 
-function mergeOcrResults(ocrResults: OcrResult[], horizontalThreshold = 20): OcrResult[] {
+function mergeOcrResults(ocrResults: OcrResult[], horizontalThreshold = 40): OcrResult[] {
   if (ocrResults.length === 0) {
     return [];
   }
 
+  // Sort by vertical position, then horizontal to ensure correct reading order
+  ocrResults.sort((a, b) => {
+    const aY = a.bounds[0].y;
+    const bY = b.bounds[0].y;
+    const aX = a.bounds[0].x;
+    const bX = b.bounds[0].x;
+
+    // A small tolerance for vertical alignment, allows for slight variations in y-coordinates on the same line
+    if (Math.abs(aY - bY) > 10) {
+      return aY - bY;
+    }
+    return aX - bX;
+  });
+
   const merged: OcrResult[] = [];
+  if (ocrResults.length === 0) return [];
   let current = ocrResults[0];
 
   for (let i = 1; i < ocrResults.length; i++) {
@@ -485,13 +444,18 @@ function mergeOcrResults(ocrResults: OcrResult[], horizontalThreshold = 20): Ocr
     // Check for horizontal proximity and vertical overlap
     const horizontalDistance = nextBox[0].x - currentBox[1].x;
     const verticalOverlap = Math.max(0, Math.min(currentBox[3].y, nextBox[3].y) - Math.max(currentBox[0].y, nextBox[0].y));
-    const isHorizontallyClose = horizontalDistance >= 0 && horizontalDistance < horizontalThreshold;
+    const isHorizontallyClose = horizontalDistance >= -10 && horizontalDistance < horizontalThreshold;
     const hasEnoughVerticalOverlap = verticalOverlap > (nextBox[3].y - nextBox[0].y) * 0.7;
 
     const ratingPattern = /^(\d{1,2}[.,]\d{3}|\d{3}).*$/;
+
     if (isHorizontallyClose && hasEnoughVerticalOverlap && !ratingPattern.test(current.text) && !ratingPattern.test(next.text)) {
       // Merge text and bounds
-      current.text += ' ' + next.text;
+      let separator = ' ';
+      if (next.text === '-' || current.text.endsWith('-')) {
+        separator = '';
+      }
+      current.text += separator + next.text;
       current.bounds[1] = next.bounds[1]; // top-right
       current.bounds[2] = next.bounds[2]; // bottom-right
     } else {
@@ -504,22 +468,24 @@ function mergeOcrResults(ocrResults: OcrResult[], horizontalThreshold = 20): Ocr
   return merged;
 }
 
-async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugMode: boolean): Promise<ChampionGridCell[][]> {
+async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugMode: boolean): Promise<{ grid: ChampionGridCell[][], topBoundary: number }> {
   // --- Constants for easy tuning ---
   const COL_WIDTH_RATIO = 0.83;
   const ROW_HEIGHT_RATIO = 0.98;
   const HORIZONTAL_PAIRING_TOLERANCE = 75;
   const VERTICAL_PAIRING_TOLERANCE = 150;
 
-  const mergedOcrResults = mergeOcrResults(ocrResults);
-
+  const mergedOcrResultsForBoundary = mergeOcrResults(ocrResults);
   // Find the top boundary based on the "INFORMATION" text
-  const infoText = mergedOcrResults.find(r => r.text.includes('INFORMATION'));
+  const infoText = mergedOcrResultsForBoundary.find(r => r.text.includes('INFORMATION'));
   let topBoundary = 0;
   if (infoText) {
     topBoundary = infoText.bounds[3].y; // Use the bottom y-coordinate
     if (debugMode) console.log(`[DEBUG] Found top boundary at y=${topBoundary}`);
   }
+
+  const ocrResultsBelowBoundary = ocrResults.filter(r => r.bounds[0].y > topBoundary);
+  const mergedOcrResults = mergeOcrResults(ocrResultsBelowBoundary);
 
   const ratingPattern = /^(\d{1,2}[.,]\d{3}|\d{3}).*$/;
   const starPattern = /^\*+$/; // Matches one or more asterisks
@@ -540,7 +506,7 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
 
   if (ratingTexts.length === 0) {
     console.log('[DEBUG] No ratings found, cannot estimate grid.');
-    return [];
+    return { grid: [], topBoundary: 0 };
   }
 
   // Pair champions with ratings
@@ -583,7 +549,7 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
 
   if (championData.length === 0) {
     console.log('[DEBUG] Could not pair any champions with ratings.');
-    return [];
+    return { grid: [], topBoundary: 0 };
   }
 
   // Grid estimation based on rating positions
@@ -615,7 +581,7 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
   const numCols = columnStarts.length;
   let numRows = rowStarts.length;
 
-  if (numCols === 0 || numRows === 0) return [];
+  if (numCols === 0 || numRows === 0) return { grid: [], topBoundary: 0 };
 
   const avgColDist = numCols > 1 ? (columnStarts[numCols - 1] - columnStarts[0]) / (numCols - 1) : ((await sharp(imageBuffer).metadata()).width || 0) / 7;
   const avgRowDist = numRows > 1 ? (rowStarts[numRows - 1] - rowStarts[0]) / (numRows - 1) : avgColDist * 0.95;
@@ -658,6 +624,7 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
   }
 
   // Place champions in grid
+  if (debugMode) console.log(`[DEBUG] Placing ${championData.length} identified champions into the grid...`);
   for (const champ of championData) {
     const centerX = (champ.nameBounds[0].x + champ.nameBounds[1].x) / 2;
     const centerY = (champ.nameBounds[0].y + champ.nameBounds[2].y) / 2;
@@ -682,8 +649,11 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
     }
 
     if (bestCell) {
+      if (debugMode) console.log(`[DEBUG] Placing '${champ.name}' (${champ.rating}) into grid cell [${bestCell.r}, ${bestCell.c}].`);
       grid[bestCell.r][bestCell.c].championName = champ.name;
       grid[bestCell.r][bestCell.c].powerRating = champ.rating;
+    } else {
+      if (debugMode) console.warn(`[DEBUG] Could not find a grid cell for champion '${champ.name}'.`);
     }
   }
 
@@ -696,7 +666,7 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
       if (cell.championName) {
         const results = fuse.search(cell.championName);
         if (results.length > 0) {
-          cell.championName = results[0].item.name;
+          cell.championName = results[0].item.shortName;
           const { isAwakened, awakenedCheckBounds } = await isChampionAwakened(imageBuffer, cell.bounds, debugMode);
           cell.isAwakened = isAwakened;
           cell.awakenedCheckBounds = awakenedCheckBounds;
@@ -705,7 +675,7 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
     }
   }
 
-  return grid;
+  return { grid, topBoundary };
 }
 
 async function isChampionAwakened(imageBuffer: Buffer, bounds: Vertex[], debugMode: boolean): Promise<{ isAwakened: boolean; awakenedCheckBounds: Vertex[] }> {
