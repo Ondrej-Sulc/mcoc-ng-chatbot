@@ -4,34 +4,22 @@ import {
   Attachment,
   User,
 } from "discord.js";
-import { Command, CommandResult } from "../types/command";
+import { Command } from "../types/command";
 import { handleError, safeReply } from "../utils/errorHandler";
-import { processRosterScreenshot, getRoster, deleteRoster } from "../services/rosterService";
+import { processRosterScreenshot, getRoster, deleteRoster, RosterUpdateResult } from "../services/rosterService";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function handleUpdate(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply();
-  const image = interaction.options.getAttachment("image", true) as Attachment;
   const stars = interaction.options.getInteger("stars", true);
   const rank = interaction.options.getInteger("rank", true);
   const playerOption = interaction.options.getUser("player");
-  const debug = interaction.options.getBoolean("debug") || false;
 
   const targetUser = playerOption || interaction.user;
 
   try {
-    if (debug) {
-      const result = await processRosterScreenshot(image.url, stars, rank, true);
-      if (typeof result === 'string') {
-        await safeReply(interaction, result);
-      } else {
-        await safeReply(interaction, result.message);
-      }
-      return;
-    }
-
     const player = await prisma.player.findUnique({
       where: { discordId: targetUser.id },
     });
@@ -41,12 +29,43 @@ async function handleUpdate(interaction: ChatInputCommandInteraction): Promise<v
       return;
     }
 
-    const result = await processRosterScreenshot(image.url, stars, rank, false, player.id);
-    if (typeof result === 'string') {
-        await safeReply(interaction, result);
-    } else {
-        await safeReply(interaction, result.message);
+    const images: Attachment[] = [];
+    for (let i = 1; i <= 5; i++) {
+        const image = interaction.options.getAttachment(`image${i}`);
+        if (image) {
+            images.push(image);
+        }
     }
+
+    if (images.length === 0) {
+        await interaction.editReply('You must provide at least one image.');
+        return;
+    }
+
+    let totalChampionsAdded = 0;
+    const resultMessages: string[] = [];
+
+    await interaction.editReply(`Processing ${images.length} image(s)...`);
+
+    for (const image of images) {
+        try {
+            const result = await processRosterScreenshot(image.url, stars, rank, false, player.id) as RosterUpdateResult;
+            totalChampionsAdded += result.count;
+            resultMessages.push(`- ${image.name}: ${result.message}`);
+        } catch (error) {
+            const { userMessage } = handleError(error, {
+                location: "command:roster:update:image",
+                userId: interaction.user.id,
+                extra: { imageName: image.name },
+            });
+            resultMessages.push(`- ${image.name}: Error - ${userMessage}`);
+        }
+    }
+
+    await interaction.followUp(
+        `Roster update complete. Total champions added/updated: ${totalChampionsAdded}.\n\n**Details:**\n${resultMessages.join('\n')}`
+    );
+
   } catch (error) {
     const { userMessage } = handleError(error, {
       location: "command:roster:update",
@@ -118,37 +137,15 @@ export const command: Command = {
     .addSubcommand((subcommand) =>
       subcommand
         .setName("update")
-        .setDescription("Update your roster from a screenshot.")
-        .addAttachmentOption((option) =>
-          option
-            .setName("image")
-            .setDescription("A screenshot of your champion roster.")
-            .setRequired(true)
-        )
-        .addIntegerOption((option) =>
-          option
-            .setName("stars")
-            .setDescription("The star level of the champions in the screenshot.")
-            .setRequired(true)
-        )
-        .addIntegerOption((option) =>
-          option
-            .setName("rank")
-            .setDescription("The rank of the champions in the screenshot.")
-            .setRequired(true)
-        )
-        .addUserOption((option) =>
-          option
-            .setName("player")
-            .setDescription("The player to update the roster for (defaults to you).")
-            .setRequired(false)
-        )
-        .addBooleanOption((option) =>
-          option
-            .setName("debug")
-            .setDescription("Run in debug mode without saving to the database.")
-            .setRequired(false)
-        )
+        .setDescription("Update your roster from one or more screenshots.")
+        .addIntegerOption((option) => option.setName("stars").setDescription("The star level of the champions in the screenshot.").setRequired(true))
+        .addIntegerOption((option) => option.setName("rank").setDescription("The rank of the champions in the screenshot.").setRequired(true))
+        .addAttachmentOption((option) => option.setName("image1").setDescription("A screenshot of your champion roster.").setRequired(true))
+        .addAttachmentOption((option) => option.setName("image2").setDescription("Another screenshot.").setRequired(false))
+        .addAttachmentOption((option) => option.setName("image3").setDescription("Another screenshot.").setRequired(false))
+        .addAttachmentOption((option) => option.setName("image4").setDescription("Another screenshot.").setRequired(false))
+        .addAttachmentOption((option) => option.setName("image5").setDescription("Another screenshot.").setRequired(false))
+        .addUserOption((option) => option.setName("player").setDescription("The player to update the roster for (defaults to you).").setRequired(false))
     )
     .addSubcommand((subcommand) =>
       subcommand

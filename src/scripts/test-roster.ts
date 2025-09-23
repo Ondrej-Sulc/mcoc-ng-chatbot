@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { processRosterScreenshot, RosterDebugResult } from '../services/rosterService';
+import { processRosterScreenshot, RosterDebugResult, RosterUpdateResult } from '../services/rosterService';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
@@ -21,7 +21,7 @@ async function testRoster() {
   const debugMode = true; // Set to true to test without saving to DB
   console.log(`Starting roster processing test... (Debug mode: ${debugMode})`);
   try {
-    let result: string | RosterDebugResult;
+    let result: RosterUpdateResult | RosterDebugResult;
     if (debugMode) {
       result = await processRosterScreenshot(imageUrl, stars, rank, true);
     } else {
@@ -36,11 +36,9 @@ async function testRoster() {
     }
     console.log('Processing finished.');
 
-    if (typeof result === 'string') {
-      console.log('Result:', result);
-    }
-    else {
-      console.log('Result:', result.message);
+    console.log('Result:', result.message);
+
+    if ('debugImageBuffer' in result && result.debugImageBuffer) {
       const debugDir = path.join(__dirname, '..', '..', 'debug');
       await fs.mkdir(debugDir, { recursive: true });
 
@@ -55,6 +53,7 @@ async function testRoster() {
         console.log(`Saved debug image to: ${debugPath}`);
       }
     }
+
   } catch (error) {
     console.error('An error occurred during roster processing:', error);
   } finally {

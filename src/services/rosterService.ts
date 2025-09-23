@@ -56,6 +56,11 @@ interface ChampionGridCell {
   bestMatchImageBuffer?: Buffer | null;
 }
 
+export interface RosterUpdateResult {
+  message: string;
+  count: number;
+}
+
 export interface RosterDebugResult {
   message: string;
   imageBuffer?: Buffer;
@@ -67,8 +72,8 @@ export async function processRosterScreenshot(
   stars: number,
   rank: number,
   debugMode: boolean = false,
-  playerId?: string,
-): Promise<string | RosterDebugResult> {
+  playerId?: string
+): Promise<RosterUpdateResult | RosterDebugResult> {
   if (debugMode) console.log(`[DEBUG] Starting roster processing for URL: ${imageUrl}`);
 
   // 1. Download image
@@ -85,7 +90,11 @@ export async function processRosterScreenshot(
   if (debugMode) console.log(`[DEBUG] OCR complete, ${detections?.length || 0} text annotations found.`);
 
   if (!detections || detections.length === 0) {
-    return "Could not detect any text in the image.";
+    const message = "Could not detect any text in the image.";
+    if (debugMode) {
+        return { message };
+    }
+    return { message, count: 0 };
   }
 
   // 4. Process OCR results

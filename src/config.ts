@@ -13,6 +13,7 @@ export interface Config {
   TIMEZONE: string;
   AQ_SLACKER_PING_DELAY_HOURS: number;
   AQ_FINAL_PING_HOURS_BEFORE_END: number;
+  DEV_USER_IDS?: string;
 }
 
 function getEnv(key: string, defaultValue?: string): string {
@@ -63,6 +64,7 @@ const createConfig = (): Config => {
     TIMEZONE: getEnv("TIMEZONE", "Europe/Prague"),
     AQ_SLACKER_PING_DELAY_HOURS: parseInt(getEnv("AQ_SLACKER_PING_DELAY_HOURS", "8"), 10),
     AQ_FINAL_PING_HOURS_BEFORE_END: parseInt(getEnv("AQ_FINAL_PING_HOURS_BEFORE_END", "3"), 10),
+    DEV_USER_IDS: process.env.DEV_USER_IDS,
   };
 };
 
