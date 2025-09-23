@@ -52,6 +52,8 @@ interface ChampionGridCell {
   isAwakened?: boolean;
   awakenedCheckBounds?: Vertex[];
   shortNameSolveBounds?: Vertex[];
+  innerPortraitCropBounds?: Vertex[];
+  bestMatchImageBuffer?: Buffer | null;
 }
 
 export interface RosterDebugResult {
@@ -163,6 +165,16 @@ async function saveRoster(grid: ChampionGridCell[][], playerId: string, stars: n
 }
 
 async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer): Promise<ChampionGridCell[][]> {
+  // --- Constants for tuning the image-based short name solving ---
+  // The ratio of the cell height to crop from the bottom to isolate the portrait.
+  const PORTRAIT_CROP_BOTTOM_RATIO = 0.33;
+  // The ratio of the cell width to crop from the sides to isolate the portrait.
+  const PORTRAIT_CROP_HORIZONTAL_RATIO = 0.10;
+  // The ratio to crop from the sides of the extracted portrait for the inner hash.
+  const INNER_PORTRAIT_CROP_RATIO = 0.15;
+  // The width ratio for the inner portrait hash.
+  const INNER_PORTRAIT_WIDTH_RATIO = 0.70;
+
   const allChampions = await prisma.champion.findMany();
   const championsByShortName = allChampions.reduce((acc, champ) => {
     if (!acc[champ.shortName]) {
@@ -186,9 +198,9 @@ async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer):
           const boxHeight = bottomRight.y - topLeft.y;
 
           const cropTop = boxHeight * 0;
-          const cropBottom = boxHeight * 0.33;
-          const cropLeft = boxWidth * 0.10;
-          const cropRight = boxWidth * 0.10;
+          const cropBottom = boxHeight * PORTRAIT_CROP_BOTTOM_RATIO;
+          const cropLeft = boxWidth * PORTRAIT_CROP_HORIZONTAL_RATIO;
+          const cropRight = boxWidth * PORTRAIT_CROP_HORIZONTAL_RATIO;
 
           const extractOptions = {
             left: Math.round(topLeft.x + cropLeft),
@@ -217,10 +229,22 @@ async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer):
           const champImageMetadata = await sharp(championImageBuffer).metadata();
           const champWidth = champImageMetadata.width || 0;
           const champHeight = champImageMetadata.height || 0;
-          const champCropLeft = Math.floor(champWidth * 0.15);
-          const champCropTop = Math.floor(champHeight * 0.15);
-          const champCropWidth = Math.floor(champWidth * 0.70);
-          const champCropHeight = Math.floor(champHeight * 0.70);
+          const champCropLeft = Math.floor(champWidth * INNER_PORTRAIT_CROP_RATIO);
+          const champCropTop = Math.floor(champHeight * INNER_PORTRAIT_CROP_RATIO);
+          const champCropWidth = Math.floor(champWidth * INNER_PORTRAIT_WIDTH_RATIO);
+          const champCropHeight = Math.floor(champHeight * INNER_PORTRAIT_WIDTH_RATIO);
+
+          const abs_left = extractOptions.left + champCropLeft;
+          const abs_top = extractOptions.top + champCropTop;
+          const abs_right = abs_left + champCropWidth;
+          const abs_bottom = abs_top + champCropHeight;
+
+          cell.innerPortraitCropBounds = [
+            { x: abs_left, y: abs_top },
+            { x: abs_right, y: abs_top },
+            { x: abs_right, y: abs_bottom },
+            { x: abs_left, y: abs_bottom },
+          ];
 
           const innerChampionImageBuffer = await sharp(championImageBuffer)
             .extract({ left: champCropLeft, top: champCropTop, width: champCropWidth, height: champCropHeight })
@@ -230,6 +254,7 @@ async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer):
 
           let bestMatch: Champion | null = null;
           let bestMatchScore = Infinity;
+          let bestMatchOfficialImageBuffer: Buffer | null = null;
 
           for (const possibleChampion of possibleChampions) {
             const imageUrl = getChampionImageUrl(possibleChampion.images, 'full', 'primary');
@@ -243,10 +268,10 @@ async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer):
             const officialImageMetadata = await sharp(officialImageBuffer).metadata();
             const officialWidth = officialImageMetadata.width || 0;
             const officialHeight = officialImageMetadata.height || 0;
-            const officialCropLeft = Math.floor(officialWidth * 0.15);
-            const officialCropTop = Math.floor(officialHeight * 0.15);
-            const officialCropWidth = Math.floor(officialWidth * 0.70);
-            const officialCropHeight = Math.floor(officialHeight * 0.70);
+            const officialCropLeft = Math.floor(officialWidth * INNER_PORTRAIT_CROP_RATIO);
+            const officialCropTop = Math.floor(officialHeight * INNER_PORTRAIT_CROP_RATIO);
+            const officialCropWidth = Math.floor(officialWidth * INNER_PORTRAIT_WIDTH_RATIO);
+            const officialCropHeight = Math.floor(officialHeight * INNER_PORTRAIT_WIDTH_RATIO);
 
             const innerOfficialImageBuffer = await sharp(officialImageBuffer)
               .extract({ left: officialCropLeft, top: officialCropTop, width: officialCropWidth, height: officialCropHeight })
@@ -258,10 +283,12 @@ async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer):
             if (score < bestMatchScore) {
               bestMatchScore = score;
               bestMatch = possibleChampion;
+              bestMatchOfficialImageBuffer = officialImageBuffer;
             }
           }
           if (bestMatch) {
             grid[r][c].championName = bestMatch.name;
+            grid[r][c].bestMatchImageBuffer = bestMatchOfficialImageBuffer;
           }
         } else {
           const champions = championsByShortName[cell.championName];
@@ -377,6 +404,45 @@ async function drawDebugBoundsOnImage(imageBuffer: Buffer, grid: ChampionGridCel
     });
   }
 
+  // Inner portrait crop bounds (yellow)
+  for (const row of grid) {
+    for (const cell of row) {
+      if (cell.innerPortraitCropBounds) {
+        const [topLeft, , bottomRight] = cell.innerPortraitCropBounds;
+        const width = Math.abs(bottomRight.x - topLeft.x);
+        const height = Math.abs(bottomRight.y - topLeft.y);
+
+        if (width > 0 && height > 0) {
+          const svgRect = `<svg width="${width}" height="${height}"><rect x="0" y="0" width="${width}" height="${height}" stroke="yellow" stroke-width="2" fill="none" /></svg>`;
+          overlayElements.push({
+            input: Buffer.from(svgRect),
+            left: Math.round(topLeft.x),
+            top: Math.round(topLeft.y),
+          });
+        }
+      }
+    }
+  }
+
+  // Best match image previews
+  for (const row of grid) {
+    for (const cell of row) {
+      if (cell.bestMatchImageBuffer) {
+        const [topLeft, topRight, ,] = cell.bounds;
+        
+        const resizedThumbnail = await sharp(cell.bestMatchImageBuffer)
+          .resize(50, 50)
+          .toBuffer();
+
+        overlayElements.push({
+          input: resizedThumbnail,
+          left: Math.round(topRight.x - 50),
+          top: Math.round(topLeft.y),
+        });
+      }
+    }
+  }
+
   if (overlayElements.length === 0) {
     return imageBuffer;
   }
@@ -410,10 +476,27 @@ function ocrCorrection(text: string): string {
     'Ο': 'O', 'Κ': 'K', 'Υ': 'Y', 'Ε': 'E', 'Α': 'A', 'Τ': 'T', 'Ι': 'I',
     'Ν': 'N', 'Μ': 'M', 'Η': 'H', 'Ρ': 'P', 'Χ': 'X', 'Β': 'B', 'Ζ': 'Z',
   };
+  const wordCorrections: { [key: string]: string } = {
+    'AGON': 'AEGON',
+  };
+
+  const upperText = text.toUpperCase();
+  if (wordCorrections[upperText]) {
+    return wordCorrections[upperText];
+  }
+
   return text.split('').map(char => corrections[char] || char).join('');
 }
 
 function mergeOcrResults(ocrResults: OcrResult[], horizontalThreshold = 40): OcrResult[] {
+  // --- Constants for tuning the merge logic ---
+  // The maximum vertical distance between two text boxes to be considered on the same line.
+  const VERTICAL_ALIGNMENT_TOLERANCE = 10; // in pixels
+  // The minimum vertical overlap required for two text boxes to be merged, as a ratio of the height of the next box.
+  const VERTICAL_OVERLAP_THRESHOLD_RATIO = 0.7;
+  // The maximum horizontal distance allowed for a merge. Allows for a small overlap.
+  const HORIZONTAL_OVERLAP_TOLERANCE = -10; // in pixels
+
   if (ocrResults.length === 0) {
     return [];
   }
@@ -425,8 +508,7 @@ function mergeOcrResults(ocrResults: OcrResult[], horizontalThreshold = 40): Ocr
     const aX = a.bounds[0].x;
     const bX = b.bounds[0].x;
 
-    // A small tolerance for vertical alignment, allows for slight variations in y-coordinates on the same line
-    if (Math.abs(aY - bY) > 10) {
+    if (Math.abs(aY - bY) > VERTICAL_ALIGNMENT_TOLERANCE) {
       return aY - bY;
     }
     return aX - bX;
@@ -444,8 +526,8 @@ function mergeOcrResults(ocrResults: OcrResult[], horizontalThreshold = 40): Ocr
     // Check for horizontal proximity and vertical overlap
     const horizontalDistance = nextBox[0].x - currentBox[1].x;
     const verticalOverlap = Math.max(0, Math.min(currentBox[3].y, nextBox[3].y) - Math.max(currentBox[0].y, nextBox[0].y));
-    const isHorizontallyClose = horizontalDistance >= -10 && horizontalDistance < horizontalThreshold;
-    const hasEnoughVerticalOverlap = verticalOverlap > (nextBox[3].y - nextBox[0].y) * 0.7;
+    const isHorizontallyClose = horizontalDistance >= HORIZONTAL_OVERLAP_TOLERANCE && horizontalDistance < horizontalThreshold;
+    const hasEnoughVerticalOverlap = verticalOverlap > (nextBox[3].y - nextBox[0].y) * VERTICAL_OVERLAP_THRESHOLD_RATIO;
 
     const ratingPattern = /^(\d{1,2}[.,]\d{3}|\d{3}).*$/;
 
@@ -469,11 +551,30 @@ function mergeOcrResults(ocrResults: OcrResult[], horizontalThreshold = 40): Ocr
 }
 
 async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugMode: boolean): Promise<{ grid: ChampionGridCell[][], topBoundary: number }> {
-  // --- Constants for easy tuning ---
+  // --- Constants for tuning the grid estimation logic ---
+  // The ratio of the average column distance used to determine the cell width.
   const COL_WIDTH_RATIO = 0.83;
+  // The ratio of the average row distance used to determine the cell height.
   const ROW_HEIGHT_RATIO = 0.98;
+  // The horizontal tolerance in pixels for pairing a champion name with a rating.
   const HORIZONTAL_PAIRING_TOLERANCE = 75;
+  // The vertical tolerance in pixels for pairing a champion name with a rating.
   const VERTICAL_PAIRING_TOLERANCE = 150;
+  // The pixel tolerance for clustering X and Y coordinates to determine grid columns and rows.
+  const GRID_PIXEL_TOLERANCE = 40;
+  // The ratio to adjust the calculated x-center of a cell.
+  const X_CENTER_ADJUSTMENT_RATIO = 0.18;
+  // The ratio to adjust the calculated y-center of a cell.
+  const Y_CENTER_ADJUSTMENT_RATIO = 0.08;
+
+  // --- Constants for the single champion case ---
+  // The multiplier for the average character width of the rating to estimate the cell width.
+  const SINGLE_CHAMP_CELL_WIDTH_MULTIPLIER = 11;
+  // The ratio of the cell width to its height.
+  const SINGLE_CHAMP_CELL_ASPECT_RATIO = 1.2;
+  // The padding below the rating to determine the cell bottom.
+  const SINGLE_CHAMP_CELL_BOTTOM_PADDING = 10;
+
 
   const mergedOcrResultsForBoundary = mergeOcrResults(ocrResults);
   // Find the top boundary based on the "INFORMATION" text
@@ -488,7 +589,7 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
   const mergedOcrResults = mergeOcrResults(ocrResultsBelowBoundary);
 
   const ratingPattern = /^(\d{1,2}[.,]\d{3}|\d{3}).*$/;
-  const starPattern = /^\*+$/; // Matches one or more asterisks
+  const starPattern = /^[\*X]+$/; // Matches one or more asterisks or X's
   const championTexts: OcrResult[] = [];
   const ratingTexts: OcrResult[] = [];
 
@@ -498,7 +599,8 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
     } else if (
       result.text.length > 1 &&
       result.text.toUpperCase() === result.text &&
-      !starPattern.test(result.text) // Exclude strings of only asterisks
+      !starPattern.test(result.text) && // Exclude strings of only asterisks
+      !/^[0-9]+$/.test(result.text) // Exclude strings of only numbers
     ) {
       championTexts.push(result);
     }
@@ -547,6 +649,45 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
     }
   }
 
+  if (championData.length === 1) {
+    const champ = championData[0];
+    const nameBounds = champ.nameBounds;
+    const ratingBounds = champ.ratingBounds;
+    const ratingText = champ.rating;
+
+    const ratingWidth = ratingBounds[1].x - ratingBounds[0].x;
+    const numCharsInRating = ratingText.length;
+    const avgCharWidth = ratingWidth / numCharsInRating;
+    const cellWidth = avgCharWidth * SINGLE_CHAMP_CELL_WIDTH_MULTIPLIER;
+
+    const cellHeight = cellWidth * SINGLE_CHAMP_CELL_ASPECT_RATIO;
+
+    const nameCenter_x = (nameBounds[0].x + nameBounds[1].x) / 2;
+
+    const cellBottom = ratingBounds[2].y + SINGLE_CHAMP_CELL_BOTTOM_PADDING;
+    const cellTop = cellBottom - cellHeight;
+
+    const cellLeft = nameCenter_x - cellWidth / 2;
+    const cellRight = nameCenter_x + cellWidth / 2;
+
+    const singleCell: ChampionGridCell = {
+      bounds: [
+        { x: cellLeft, y: cellTop },
+        { x: cellRight, y: cellTop },
+        { x: cellRight, y: cellBottom },
+        { x: cellLeft, y: cellBottom },
+      ],
+      championName: champ.name,
+      powerRating: champ.rating,
+    };
+
+    const grid: ChampionGridCell[][] = [[singleCell]];
+    // Place the champion in the cell for awakened check and short name solve
+    grid[0][0] = singleCell;
+
+    return { grid, topBoundary };
+  }
+
   if (championData.length === 0) {
     console.log('[DEBUG] Could not pair any champions with ratings.');
     return { grid: [], topBoundary: 0 };
@@ -557,12 +698,11 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
   const sortedX = [...new Set(positions.map(p => p.x))].sort((a, b) => a - b);
   const sortedY = [...new Set(positions.map(p => p.y))].sort((a, b) => a - b);
 
-  const pixelTolerance = 40;
   const columnStarts: number[] = [];
   if (sortedX.length > 0) {
     columnStarts.push(sortedX[0]);
     for (let i = 1; i < sortedX.length; i++) {
-      if (sortedX[i] > columnStarts[columnStarts.length - 1] + pixelTolerance) {
+      if (sortedX[i] > columnStarts[columnStarts.length - 1] + GRID_PIXEL_TOLERANCE) {
         columnStarts.push(sortedX[i]);
       }
     }
@@ -572,7 +712,7 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
   if (sortedY.length > 0) {
     rowStarts.push(sortedY[0]);
     for (let i = 1; i < sortedY.length; i++) {
-      if (sortedY[i] > rowStarts[rowStarts.length - 1] + pixelTolerance) {
+      if (sortedY[i] > rowStarts[rowStarts.length - 1] + GRID_PIXEL_TOLERANCE) {
         rowStarts.push(sortedY[i]);
       }
     }
@@ -594,8 +734,8 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
   // Create grid cells with bounds
   for (let r = 0; r < numRows; r++) {
     for (let c = 0; c < numCols; c++) {
-      const x_center = columnStarts[c] + avgColDist / 2 - cellWidth * 0.18;
-      const y_center = rowStarts[r] - avgRowDist / 2 + cellHeight * 0.08;
+      const x_center = columnStarts[c] + avgColDist / 2 - cellWidth * X_CENTER_ADJUSTMENT_RATIO;
+      const y_center = rowStarts[r] - avgRowDist / 2 + cellHeight * Y_CENTER_ADJUSTMENT_RATIO;
 
       const left = x_center - cellWidth / 2;
       const top = y_center - cellHeight / 2;
@@ -675,18 +815,41 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
     }
   }
 
+  // Trim empty cells from the end of the last row
+  if (grid.length > 0) {
+    const lastRow = grid[grid.length - 1];
+    let lastChampionIndex = -1;
+    for (let c = lastRow.length - 1; c >= 0; c--) {
+      if (lastRow[c].championName) {
+        lastChampionIndex = c;
+        break;
+      }
+    }
+    grid[grid.length - 1] = lastRow.slice(0, lastChampionIndex + 1);
+  }
+
   return { grid, topBoundary };
 }
 
 async function isChampionAwakened(imageBuffer: Buffer, bounds: Vertex[], debugMode: boolean): Promise<{ isAwakened: boolean; awakenedCheckBounds: Vertex[] }> {
+  // --- Constants for tuning the awakened gem detection ---
+  // The width of the color strip to check, as a ratio of the cell width.
+  const STRIP_WIDTH_RATIO = 0.4;
+  // The height of the color strip to check, as a ratio of the cell height.
+  const STRIP_HEIGHT_RATIO = 0.1;
+  // The vertical offset of the color strip from the top of the cell, as a ratio of the cell height.
+  const STRIP_Y_OFFSET_RATIO = 0.6;
+  // The average blue value a pixel must have to be considered part of an awakened gem.
+  const AWAKENED_BLUE_THRESHOLD = 90;
+
   const [topLeft, , bottomRight] = bounds;
   const boxWidth = bottomRight.x - topLeft.x;
   const boxHeight = bottomRight.y - topLeft.y;
 
-  const stripWidth = Math.floor(boxWidth * 0.4);
-  const stripHeight = Math.floor(boxHeight * 0.1);
+  const stripWidth = Math.floor(boxWidth * STRIP_WIDTH_RATIO);
+  const stripHeight = Math.floor(boxHeight * STRIP_HEIGHT_RATIO);
   const stripX = Math.floor(topLeft.x + (boxWidth - stripWidth) / 2);
-  const stripY = Math.floor(topLeft.y + boxHeight * 0.6);
+  const stripY = Math.floor(topLeft.y + boxHeight * STRIP_Y_OFFSET_RATIO);
 
   const awakenedCheckBounds: Vertex[] = [
     { x: stripX, y: stripY },
@@ -714,7 +877,7 @@ async function isChampionAwakened(imageBuffer: Buffer, bounds: Vertex[], debugMo
     console.log(`[DEBUG] Awakened check for champion at [${bounds[0].x.toFixed(0)}, ${bounds[0].y.toFixed(0)}]: avgBlue = ${avgBlue.toFixed(2)}`);
   }
 
-  return { isAwakened: avgBlue > 90, awakenedCheckBounds };
+  return { isAwakened: avgBlue > AWAKENED_BLUE_THRESHOLD, awakenedCheckBounds };
 }
 
 
