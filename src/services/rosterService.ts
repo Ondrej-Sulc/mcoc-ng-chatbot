@@ -147,7 +147,10 @@ ${gridToString(solvedGrid)}`,
   const count = await saveRoster(solvedGrid, playerId, stars, rank);
   console.log(`${count} champions saved.`);
 
-  return `Successfully added/updated ${count} champions to the roster.`;
+  return {
+    message: `${count} champions saved.`,
+    count,
+  }
 }
 
 async function saveRoster(grid: ChampionGridCell[][], playerId: string, stars: number, rank: number): Promise<number> {
@@ -465,7 +468,7 @@ function gridToString(grid: ChampionGridCell[][]): string {
     for (const cell of row) {
       const awakened = cell.isAwakened ? '★' : '☆';
       const rating = cell.powerRating ? ` (${cell.powerRating})` : '';
-      gridString += `${awakened} ${cell.championName || '[-]'}${rating} `;
+      gridString += `${awakened} ${cell.championName}${rating} `;
     }
     gridString += '\n';
   }
