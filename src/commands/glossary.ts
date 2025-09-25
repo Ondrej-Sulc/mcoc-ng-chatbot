@@ -253,7 +253,7 @@ export const command: Command = {
     }
 
     try {
-      const resolveEmoji = createEmojiResolver(interaction.client, interaction.guild);
+      const resolveEmoji = createEmojiResolver(interaction.client);
       const result = await core(
         {
           subcommand,

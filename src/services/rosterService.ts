@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { PrismaClient, Champion } from '@prisma/client';
+import { PrismaClient, Champion, Roster } from '@prisma/client';
 import { v1 } from '@google-cloud/vision';
 import Fuse from 'fuse.js';
 // @ts-ignore
@@ -48,12 +48,20 @@ interface OcrResult {
 interface ChampionGridCell {
   bounds: Vertex[];
   championName?: string;
+  champion?: ChampionData;
   powerRating?: string;
   isAwakened?: boolean;
   awakenedCheckBounds?: Vertex[];
   shortNameSolveBounds?: Vertex[];
   innerPortraitCropBounds?: Vertex[];
   bestMatchImageBuffer?: Buffer | null;
+}
+
+export interface ChampionData {
+  id: number;
+  name: string;
+  shortName: string;
+  discordEmoji: string | null;
 }
 
 export interface RosterUpdateResult {
@@ -66,6 +74,8 @@ export interface RosterDebugResult {
   imageBuffer?: Buffer;
   debugImageBuffer?: Buffer;
 }
+
+export type RosterWithChampion = Roster & { champion: Champion };
 
 export async function processRosterScreenshot(
   imageUrl: string,
@@ -110,7 +120,7 @@ export async function processRosterScreenshot(
   const { grid, topBoundary } = await estimateGrid(ocrResults, imageBuffer, debugMode);
   if (debugMode) {
     console.log(`[DEBUG] Grid estimated with ${grid.length} rows and ${grid[0]?.length || 0} columns.`);
-    console.log('[DEBUG] Parsed grid before name solving:\n' + gridToString(grid));
+    console.log('[DEBUG] Parsed grid before name solving:\n' + (await gridToString(grid)));
   }
 
   // 6. Solve ambiguous short names
@@ -132,7 +142,7 @@ export async function processRosterScreenshot(
     return {
       message: `--- DEBUG MODE --- 
 Final parsed roster: 
-${gridToString(solvedGrid)}`,
+${await gridToString(solvedGrid)}`,
       imageBuffer: imageBuffer,
       debugImageBuffer: debugImageBuffer,
     };
@@ -300,12 +310,15 @@ async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer):
           }
           if (bestMatch) {
             grid[r][c].championName = bestMatch.name;
+            grid[r][c].champion = bestMatch;
             grid[r][c].bestMatchImageBuffer = bestMatchOfficialImageBuffer;
           }
         } else {
           const champions = championsByShortName[cell.championName];
           if (champions && champions.length === 1) {
-            cell.championName = champions[0].name;
+            const champion = champions[0];
+            cell.championName = champion.name;
+            cell.champion = champion;
           }
         }
       }
@@ -462,13 +475,26 @@ async function drawDebugBoundsOnImage(imageBuffer: Buffer, grid: ChampionGridCel
   return sharp(imageBuffer).composite(overlayElements).toBuffer();
 }
 
-function gridToString(grid: ChampionGridCell[][]): string {
+async function gridToString(grid: ChampionGridCell[][]): Promise<string> {
   let gridString = "";
+  const championNames = grid.flat().map(cell => cell.championName).filter(name => !!name) as string[];
+  
+  const champions = await prisma.champion.findMany({
+    where: {
+      name: { in: championNames }
+    },
+    select: { name: true, discordEmoji: true }
+  });
+  const emojiMap = new Map(champions.map(c => [c.name, c.discordEmoji]));
+
   for (const row of grid) {
     for (const cell of row) {
-      const awakened = cell.isAwakened ? '★' : '☆';
-      const rating = cell.powerRating ? ` (${cell.powerRating})` : '';
-      gridString += `${awakened} ${cell.championName}${rating} `;
+      if (cell.championName) {
+        const awakened = cell.isAwakened ? '★' : '☆';
+        const rating = cell.powerRating ? ` (${cell.powerRating})` : '';
+        const emoji = emojiMap.get(cell.championName) || '';
+        gridString += `${awakened} ${emoji} ${cell.championName}${rating} `;
+      }
     }
     gridString += '\n';
   }
@@ -902,7 +928,7 @@ async function downloadImage(url: string): Promise<Buffer> {
   return Buffer.from(arrayBuffer);
 }
 
-export async function getRoster(playerId: string, stars: number | null, rank: number | null): Promise<string> {
+export async function getRoster(playerId: string, stars: number | null, rank: number | null): Promise<RosterWithChampion[] | string> {
     const where: any = { playerId };
     if (stars) {
         where.stars = stars;
@@ -921,13 +947,7 @@ export async function getRoster(playerId: string, stars: number | null, rank: nu
         return "No champions found in the roster that match the criteria.";
     }
 
-    let response = "";
-    for (const entry of rosterEntries) {
-        const awakened = entry.isAwakened ? '*' : '';
-        response += `${entry.champion.name} ${entry.stars}* R${entry.rank}${awakened}\n`;
-    }
-
-    return response;
+    return rosterEntries;
 }
 
 export async function deleteRoster(playerId: string): Promise<string> {

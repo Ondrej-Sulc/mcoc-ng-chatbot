@@ -1,14 +1,13 @@
-import { Client, Guild } from "discord.js";
+import { Client } from "discord.js";
 import { getApplicationEmojiMarkupByName } from "../services/applicationEmojiService";
 
 /**
  * Creates a resolver function that rewrites custom emoji markup strings
  * like "<:Name:123>" or "<a:Name:123>" to use the ID of the emoji that
- * exists for the current bot in the current guild (or any guild the bot is in),
- * matching by emoji name. This lets the same stored strings work across prod/dev
- * where IDs differ but names are the same.
+ * exists for the current bot, matching by emoji name. This lets the same
+ * stored strings work across prod/dev where IDs differ but names are the same.
  */
-export function createEmojiResolver(client: Client, guild: Guild | null): (text: string) => string {
+export function createEmojiResolver(client: Client): (text: string) => string {
   // Simple per-resolver cache by name to resolved string to avoid repeated lookups
   const nameToMarkupCache = new Map<string, string>();
 
@@ -24,9 +23,8 @@ export function createEmojiResolver(client: Client, guild: Guild | null): (text:
       return fromApp;
     }
 
-    // Fallbacks (in case some emojis are still guild-based): prefer current guild, then any client emoji
-    const fromGuild = guild?.emojis.cache.find((e) => e.name === name) || null;
-    const fromClient = (fromGuild ?? client.emojis.cache.find((e) => e.name === name)) || null;
+    // Fallback: any client emoji
+    const fromClient = client.emojis.cache.find((e) => e.name === name) || null;
 
     if (!fromClient) {
       nameToMarkupCache.set(name, "");

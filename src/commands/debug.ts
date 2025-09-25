@@ -8,6 +8,7 @@ import { Command } from "../types/command";
 import { handleError } from "../utils/errorHandler";
 import { processRosterScreenshot, RosterDebugResult } from "../services/rosterService";
 import { config } from '../config';
+import { createEmojiResolver } from "../utils/emojiResolver";
 
 const authorizedUsers = config.DEV_USER_IDS?.split(',') || [];
 
@@ -28,6 +29,7 @@ async function handleRosterDebug(interaction: ChatInputCommandInteraction): Prom
   }
 
   await interaction.editReply(`Processing ${images.length} image(s)...`);
+  const resolveEmojis = createEmojiResolver(interaction.client);
 
   for (const image of images) {
     try {
@@ -48,7 +50,7 @@ async function handleRosterDebug(interaction: ChatInputCommandInteraction): Prom
         files.push(new AttachmentBuilder(result.debugImageBuffer, { name: `debug_${image.name}` }));
       }
       
-      await interaction.followUp({ content, files, ephemeral: true });
+      await interaction.followUp({ content: resolveEmojis(content), files, ephemeral: true });
 
     } catch (error) {
       const { userMessage } = handleError(error, {

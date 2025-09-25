@@ -338,7 +338,7 @@ export async function generateResponse(
   // Fallbacks: if not provided, resolution will no-op and keep original markup
   const maybeClient: Client | undefined = (global as any).__discordClient;
   const maybeGuild: Guild | null = (global as any).__discordGuild || null;
-  const resolveEmoji = maybeClient ? createEmojiResolver(maybeClient, maybeGuild) : (t: string) => t;
+  const resolveEmoji = maybeClient ? createEmojiResolver(maybeClient) : (t: string) => t;
 
   const descriptionLines: string[] = [];
   const parsedSearchCriteria = {

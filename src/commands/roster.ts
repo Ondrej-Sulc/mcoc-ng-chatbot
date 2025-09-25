@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { Command } from "../types/command";
 import { handleError, safeReply } from "../utils/errorHandler";
-import { processRosterScreenshot, getRoster, deleteRoster, RosterUpdateResult } from "../services/rosterService";
+import { processRosterScreenshot, getRoster, deleteRoster, RosterUpdateResult, RosterWithChampion } from "../services/rosterService";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -94,7 +94,20 @@ async function handleView(interaction: ChatInputCommandInteraction): Promise<voi
     }
 
     const roster = await getRoster(player.id, stars, rank);
-    await safeReply(interaction, roster);
+
+    if (typeof roster === 'string') {
+        await safeReply(interaction, roster);
+        return;
+    }
+
+    let response = "";
+    roster.forEach((entry: RosterWithChampion) => {
+        const awakened = entry.isAwakened ? '★' : '☆';
+        const emoji = entry.champion.discordEmoji || '';
+        response += `${emoji} ${entry.champion.name} ${entry.stars}* R${entry.rank} ${awakened}\n`;
+    });
+
+    await safeReply(interaction, response);
   } catch (error) {
     const { userMessage } = handleError(error, {
       location: "command:roster:view",
