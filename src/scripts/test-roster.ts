@@ -6,7 +6,7 @@ import * as path from 'path';
 const prisma = new PrismaClient();
 
 // URL from the user
-const imageUrl = 'https://media.discordapp.net/attachments/1194385255814148107/1420290906342293504/Screenshot_2025-09-24-08-07-10-549_com.kabam.marvelbattle.jpg?ex=68d4dc7b&is=68d38afb&hm=fafe4f218d882be2af2f019df09f085f34950c0968a55d126df80a10b4916eb8&=&format=webp&width=1408&height=634';
+const imageUrl = 'https://media.discordapp.net/attachments/1194385255814148107/1420291270886166559/Screenshot_2025-09-24-08-07-53-974_com.kabam.marvelbattle.jpg?ex=68d82892&is=68d6d712&hm=7fd8f67a6e2c2b2ae1dec2cf0217f54a830886f5bc2ec75a9cca3d7e97d5ef80&=&format=webp&width=1408&height=634';
 const stars = 6;
 const rank = 5;
 
@@ -36,7 +36,12 @@ async function testRoster() {
     }
     console.log('Processing finished.');
 
-    console.log('Result:', result.message);
+    if ('message' in result) {
+      console.log('Result:', result.message);
+    } else {
+      console.log('Result:', `${result.count} champions processed.`);
+      console.log('Champions:', result.champions.flat().map(c => c.champion.name));
+    }
 
     if ('debugImageBuffer' in result && result.debugImageBuffer) {
       const debugDir = path.join(__dirname, '..', '..', 'debug');

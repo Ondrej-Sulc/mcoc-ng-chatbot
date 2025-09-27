@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { PrismaClient, Champion, Roster } from '@prisma/client';
+import { PrismaClient, Champion, Roster, Prisma } from '@prisma/client';
 import { v1 } from '@google-cloud/vision';
 import Fuse from 'fuse.js';
 // @ts-ignore
@@ -65,7 +65,7 @@ export interface ChampionData {
 }
 
 export interface RosterUpdateResult {
-  message: string;
+  champions: RosterWithChampion[][];
   count: number;
 }
 
@@ -137,16 +137,13 @@ export async function processRosterScreenshot(
 
 
   if (debugMode) {
-    // In debug mode, return the string representation of the grid
-    if (debugMode) console.log('[DEBUG] Debug mode enabled, skipping database save.');
-    return {
-      message: `--- DEBUG MODE --- 
-Final parsed roster: 
-${await gridToString(solvedGrid)}`,
-      imageBuffer: imageBuffer,
-      debugImageBuffer: debugImageBuffer,
-    };
-  }
+        // In debug mode, return the string representation of the list
+        if (debugMode) console.log('[DEBUG] Debug mode enabled, skipping database save.');
+        return {
+          message: `--- DEBUG MODE --- \nFinal parsed roster: \n${await gridToString(solvedGrid)}`,
+          imageBuffer: imageBuffer,
+          debugImageBuffer: debugImageBuffer,
+        };  }
 
   if (!playerId) {
     throw new Error("playerId is required when not in debug mode.");
@@ -154,36 +151,42 @@ ${await gridToString(solvedGrid)}`,
 
   // 7. Save roster to database
   console.log(`Saving roster for player ${playerId}...`);
-  const count = await saveRoster(solvedGrid, playerId, stars, rank);
+  const savedChampions = await saveRoster(solvedGrid, playerId, stars, rank);
+  const count = savedChampions.flat().length;
   console.log(`${count} champions saved.`);
 
   return {
-    message: `${count} champions saved.`,
-    count,
+    champions: savedChampions,
+    count: count,
   }
 }
 
-async function saveRoster(grid: ChampionGridCell[][], playerId: string, stars: number, rank: number): Promise<number> {
-  let count = 0;
+async function saveRoster(grid: ChampionGridCell[][], playerId: string, stars: number, rank: number): Promise<RosterWithChampion[][]> {
+  const savedChampions: RosterWithChampion[][] = [];
   const allChampions = await prisma.champion.findMany();
   const championMap = new Map(allChampions.map(c => [c.name, c]));
 
   for (const row of grid) {
+    const newRow: RosterWithChampion[] = [];
     for (const cell of row) {
       if (cell.championName) {
         const champion = championMap.get(cell.championName);
         if (champion) {
-          await prisma.roster.upsert({
+          const rosterEntry = await prisma.roster.upsert({
             where: { playerId_championId_stars: { playerId, championId: champion.id, stars } },
             update: { rank, isAwakened: cell.isAwakened || false },
             create: { playerId, championId: champion.id, stars, rank, isAwakened: cell.isAwakened || false },
+            include: { champion: true },
           });
-          count++;
+          newRow.push(rosterEntry);
         }
       }
     }
+    if (newRow.length > 0) {
+        savedChampions.push(newRow);
+    }
   }
-  return count;
+  return savedChampions;
 }
 
 async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer): Promise<ChampionGridCell[][]> {
@@ -476,7 +479,7 @@ async function drawDebugBoundsOnImage(imageBuffer: Buffer, grid: ChampionGridCel
 }
 
 async function gridToString(grid: ChampionGridCell[][]): Promise<string> {
-  let gridString = "";
+  let listString = "";
   const championNames = grid.flat().map(cell => cell.championName).filter(name => !!name) as string[];
   
   const champions = await prisma.champion.findMany({
@@ -493,12 +496,11 @@ async function gridToString(grid: ChampionGridCell[][]): Promise<string> {
         const awakened = cell.isAwakened ? '★' : '☆';
         const rating = cell.powerRating ? ` (${cell.powerRating})` : '';
         const emoji = emojiMap.get(cell.championName) || '';
-        gridString += `${awakened} ${emoji} ${cell.championName}${rating} `;
+        listString += `- ${awakened} ${emoji} ${cell.championName}${rating}\n`;
       }
     }
-    gridString += '\n';
   }
-  return gridString;
+  return listString;
 }
 
 function processOcrDetections(detections: any[]): OcrResult[] {
@@ -950,9 +952,9 @@ export async function getRoster(playerId: string, stars: number | null, rank: nu
     return rosterEntries;
 }
 
-export async function deleteRoster(playerId: string): Promise<string> {
+export async function deleteRoster(where: Prisma.RosterWhereInput): Promise<string> {
     const { count } = await prisma.roster.deleteMany({
-        where: { playerId },
+        where,
     });
-    return `Successfully deleted ${count} champions from the roster.`;
+    return `Successfully deleted ${count} champions from the roster`;
 }

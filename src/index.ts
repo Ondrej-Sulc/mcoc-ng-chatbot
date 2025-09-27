@@ -15,6 +15,25 @@ import http from "http";
 import { handleError, safeReply } from "./utils/errorHandler";
 import { loadApplicationEmojis } from "./services/applicationEmojiService";
 import { initializeAqReminders } from "./services/aqReminderService.js";
+import { registerButtonHandler } from "./utils/buttonHandlerRegistry";
+import { deleteRoster } from "./services/rosterService";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+registerButtonHandler('roster_delete_all_confirm', async (interaction) => {
+    const playerId = interaction.customId.split(':')[1];
+    if (!playerId) {
+        await interaction.reply({ content: 'Error: Player ID not found.', ephemeral: true });
+        return;
+    }
+    const result = await deleteRoster({ playerId });
+    await interaction.update({ content: `${result}.`, components: [] });
+});
+
+registerButtonHandler('roster_delete_all_cancel', async (interaction) => {
+    await interaction.update({ content: 'Roster deletion cancelled.', components: [] });
+});
 
 declare module "discord.js" {
   interface Client {

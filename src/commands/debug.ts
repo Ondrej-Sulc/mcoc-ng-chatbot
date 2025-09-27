@@ -3,6 +3,11 @@ import {
   ChatInputCommandInteraction,
   Attachment,
   AttachmentBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
+  MessageFlags,
 } from "discord.js";
 import { Command } from "../types/command";
 import { handleError } from "../utils/errorHandler";
@@ -40,17 +45,31 @@ async function handleRosterDebug(interaction: ChatInputCommandInteraction): Prom
       const result = await processRosterScreenshot(image.url, stars, rank, true) as RosterDebugResult;
 
       const files: AttachmentBuilder[] = [];
-      let content = `### Result for ${image.name}:\n`;
+      const container = new ContainerBuilder();
 
-      content += result.message;
-      // if (result.imageBuffer) {
-      //   files.push(new AttachmentBuilder(result.imageBuffer, { name: `base_${image.name}` }));
-      // }
+      const title = new TextDisplayBuilder().setContent(`### Result for ${image.name}:`);
+      container.addTextDisplayComponents(title);
+
       if (result.debugImageBuffer) {
-        files.push(new AttachmentBuilder(result.debugImageBuffer, { name: `debug_${image.name}` }));
+        const attachmentName = `debug_${image.name}`;
+        files.push(new AttachmentBuilder(result.debugImageBuffer, { name: attachmentName }));
+        const gallery = new MediaGalleryBuilder().addItems(
+          new MediaGalleryItemBuilder()
+            .setURL(`attachment://${attachmentName}`)
+            .setDescription("Debug Image")
+        );
+        container.addMediaGalleryComponents(gallery);
       }
+
+      const content = new TextDisplayBuilder().setContent(resolveEmojis(result.message));
+      container.addTextDisplayComponents(content);
       
-      await interaction.followUp({ content: resolveEmojis(content), files, ephemeral: true });
+      await interaction.followUp({ 
+        components: [container],
+        files, 
+        ephemeral: true,
+        flags: [MessageFlags.IsComponentsV2]
+      });
 
     } catch (error) {
       const { userMessage } = handleError(error, {
