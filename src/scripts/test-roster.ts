@@ -23,7 +23,7 @@ async function testRoster() {
   try {
     let result: RosterUpdateResult | RosterDebugResult;
     if (debugMode) {
-      result = await processRosterScreenshot(imageUrl, stars, rank, true);
+      result = await processRosterScreenshot(imageUrl, stars, rank, false, true);
     } else {
       // Ensure the test player exists
       const player = await prisma.player.upsert({
@@ -32,7 +32,7 @@ async function testRoster() {
         create: testPlayerData,
       });
       console.log(`Test player '${player.ingameName}' ensured with ID: ${player.id}`);
-      result = await processRosterScreenshot(imageUrl, stars, rank, false, player.id);
+      result = await processRosterScreenshot(imageUrl, stars, rank, false, false, player.id);
     }
     console.log('Processing finished.');
 

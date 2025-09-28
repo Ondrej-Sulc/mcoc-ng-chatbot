@@ -193,6 +193,7 @@ model Roster {
   stars        Int
   rank         Int
   isAwakened   Boolean
+  isAscended   Boolean  @default(false)
   powerRating  Int?
 
   player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)

@@ -114,6 +114,32 @@ _This list will be populated to track the migration status of each command._
   - `/aw_plan`: to be migrated as `/aw plan`
   - `/aw_details`: to be migrated as `/aw details`
 
+### Roster Command Overhaul
+
+The legacy `$roster` text command has been completely migrated and overhauled into a powerful and flexible `/roster` slash command with multiple subcommands.
+
+-   **`/roster update`**:
+    -   **Ascended Status**: Now supports an `is_ascended` flag to correctly log ascended champions.
+    -   **Parallel Processing**: Processes multiple screenshots concurrently, significantly speeding up large roster updates.
+    -   **Modern UI**: Displays results in a clean, modern UI using Discord's V2 components, including a gallery of the processed images.
+    -   **Improved Error Handling**: Collects all errors from image processing and presents them in a single, clean summary.
+
+-   **`/roster view`**:
+    -   **Pagination**: Large rosters are now displayed in a paginated embed, navigable with interactive buttons. Pages are cached for 15 minutes for quick access.
+    -   **Filtering**: Supports filtering the roster by `stars`, `rank`, and the new `is_ascended` status.
+
+-   **`/roster summary` (New)**:
+    -   Provides a detailed breakdown of the roster, showing champion counts per star level, with further details on rank and class distribution.
+
+-   **`/roster export` (New)**:
+    -   Generates and sends a complete CSV file of the player's roster, including the `isAscended` status.
+
+-   **`/roster delete`**:
+    -   Migrated from the legacy bot, this command now supports filtering by `champion`, `stars`, `rank`, and `is_ascended` status for precise deletions.
+
+-   **Database Resilience**:
+    -   Work is in progress to implement a retry mechanism for database operations, making the bot more resilient to transient connection issues.
+
 ---
 
 ## Getting Started (Local Development)

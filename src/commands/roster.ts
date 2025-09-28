@@ -35,7 +35,9 @@ function paginateRoster(roster: RosterWithChampion[]): RosterWithChampion[][] {
     const limit = 4000; // Discord embed description limit is 4096
 
     roster.forEach(entry => {
-        const line = `${entry.champion.discordEmoji || ''} ${entry.champion.name} ${entry.stars}* R${entry.rank} ${entry.isAwakened ? '★' : '☆'}\n`;
+        const awakened = entry.isAwakened ? '★' : '☆';
+        const ascended = entry.isAscended ? '+' : '';
+        const line = `${entry.champion.discordEmoji || ''} ${entry.champion.name} ${entry.stars}* R${entry.rank}${ascended} ${awakened}\n`;
         if (currentLength + line.length > limit) {
             pages.push(currentPage);
             currentPage = [];
@@ -74,8 +76,9 @@ async function sendRosterPage(interaction: ChatInputCommandInteraction | ButtonI
     let response = "";
     currentPageData.forEach((entry: RosterWithChampion) => {
         const awakened = entry.isAwakened ? '★' : '☆';
+        const ascended = entry.isAscended ? '+' : '';
         const emoji = entry.champion.discordEmoji || '';
-        response += `${emoji} ${entry.champion.name} ${entry.stars}* R${entry.rank} ${awakened}\n`;
+        response += `${emoji} ${entry.champion.name} ${entry.stars}* R${entry.rank}${ascended} ${awakened}\n`;
     });
 
     const embed = new EmbedBuilder()
@@ -125,6 +128,7 @@ async function handleUpdate(interaction: ChatInputCommandInteraction): Promise<v
   await interaction.deferReply();
   const stars = interaction.options.getInteger("stars", true);
   const rank = interaction.options.getInteger("rank", true);
+  const isAscended = interaction.options.getBoolean("is_ascended") ?? false;
   const playerOption = interaction.options.getUser("player");
 
   const targetUser = playerOption || interaction.user;
@@ -153,17 +157,17 @@ async function handleUpdate(interaction: ChatInputCommandInteraction): Promise<v
     }
 
     let allAddedChampions: RosterWithChampion[][] = [];
+    const errorMessages: string[] = [];
 
     const promises = images.map(image => 
-        processRosterScreenshot(image.url, stars, rank, false, player.id)
+        processRosterScreenshot(image.url, stars, rank, isAscended, false, player.id)
             .catch(error => {
                 const { userMessage } = handleError(error, {
                     location: "command:roster:update:image",
                     userId: interaction.user.id,
                     extra: { imageName: image.name },
                 });
-                interaction.followUp({ content: `Error processing ${image.name}: ${userMessage}`, ephemeral: true });
-                return null; // Return null for failed promises
+                return { error: `Error processing ${image.name}: ${userMessage}` };
             })
     );
 
@@ -171,7 +175,11 @@ async function handleUpdate(interaction: ChatInputCommandInteraction): Promise<v
 
     results.forEach(result => {
         if (result) {
-            allAddedChampions.push(...(result as RosterUpdateResult).champions);
+            if ('error' in result && typeof result.error === 'string') {
+                errorMessages.push(result.error);
+            } else {
+                allAddedChampions.push(...(result as RosterUpdateResult).champions);
+            }
         }
     });
 
@@ -195,14 +203,20 @@ async function handleUpdate(interaction: ChatInputCommandInteraction): Promise<v
     let champList = allAddedChampions.map(row => 
         row.map(entry => {
             const awakened = entry.isAwakened ? '★' : '☆';
+            const ascended = entry.isAscended ? '+' : '';
             const emoji = entry.champion.discordEmoji || '';
-            return `${emoji}${awakened}`;
+            return `${emoji}${awakened}${ascended}`;
         }).join(' ')
     ).join('\n');
 
     if (champList) {
         const content = new TextDisplayBuilder().setContent(resolveEmojis(champList));
         container.addTextDisplayComponents(content);
+    }
+
+    if (errorMessages.length > 0) {
+        const errorContent = new TextDisplayBuilder().setContent(`**Errors:**\n${errorMessages.join('\n')}`);
+        container.addTextDisplayComponents(errorContent);
     }
 
     await interaction.editReply({ 
@@ -223,6 +237,7 @@ async function handleView(interaction: ChatInputCommandInteraction): Promise<voi
   await interaction.deferReply();
   const stars = interaction.options.getInteger("stars");
   const rank = interaction.options.getInteger("rank");
+  const isAscended = interaction.options.getBoolean("is_ascended");
   const playerOption = interaction.options.getUser("player");
 
   const targetUser = playerOption || interaction.user;
@@ -237,7 +252,7 @@ async function handleView(interaction: ChatInputCommandInteraction): Promise<voi
       return;
     }
 
-    const roster = await getRoster(player.id, stars, rank);
+    const roster = await getRoster(player.id, stars, rank, isAscended);
 
     if (typeof roster === 'string') {
         await safeReply(interaction, roster);
@@ -275,16 +290,16 @@ async function handleExport(interaction: ChatInputCommandInteraction): Promise<v
       return;
     }
 
-    const roster = await getRoster(player.id, null, null);
+    const roster = await getRoster(player.id, null, null, null);
 
     if (typeof roster === 'string') {
         await safeReply(interaction, roster);
         return;
     }
 
-    let csv = 'Champion,Stars,Rank,IsAwakened\n';
+    let csv = 'Champion,Stars,Rank,IsAwakened,IsAscended\n';
     roster.forEach(entry => {
-        csv += `"${entry.champion.name}",${entry.stars},${entry.rank},${entry.isAwakened}\n`;
+        csv += `"${entry.champion.name}",${entry.stars},${entry.rank},${entry.isAwakened},${entry.isAscended}\n`;
     });
 
     const attachment = new AttachmentBuilder(Buffer.from(csv), { name: `${player.ingameName}-roster.csv` });
@@ -318,7 +333,7 @@ async function handleSummary(interaction: ChatInputCommandInteraction): Promise<
       return;
     }
 
-    const roster = await getRoster(player.id, null, null);
+    const roster = await getRoster(player.id, null, null, null);
 
     if (typeof roster === 'string') {
         await safeReply(interaction, roster);
@@ -369,7 +384,7 @@ async function handleSummary(interaction: ChatInputCommandInteraction): Promise<
 
             starSummary += `\n**By Class:** `;
             starSummary += Object.entries(byClass)
-                .map(([className, count]) => `${CLASS_EMOJIS[className] || className}: ${count}`)
+                .map(([className, count]) => `${CLASS_EMOJIS[className] || className}${count}`)
                 .join(' | ');
             
             const starContent = new TextDisplayBuilder().setContent(starSummary);
@@ -408,8 +423,9 @@ async function handleDelete(interaction: ChatInputCommandInteraction): Promise<v
     const championId = interaction.options.getString("champion");
     const stars = interaction.options.getInteger("stars");
     const rank = interaction.options.getInteger("rank");
+    const isAscended = interaction.options.getBoolean("is_ascended");
 
-    if (!championId && !stars && !rank) {
+    if (!championId && !stars && !rank && isAscended === null) {
         const row = new ActionRowBuilder<ButtonBuilder>()
             .addComponents(
                 new ButtonBuilder()
@@ -439,6 +455,9 @@ async function handleDelete(interaction: ChatInputCommandInteraction): Promise<v
         if (rank) {
             where.rank = rank;
         }
+        if (isAscended !== null) {
+            where.isAscended = isAscended;
+        }
         const result = await deleteRoster(where);
         await safeReply(interaction, `${result} for ${player.ingameName}.`);
     }
@@ -462,6 +481,7 @@ export const command: Command = {
         .addIntegerOption((option) => option.setName("stars").setDescription("The star level of the champions in the screenshot.").setRequired(true).setMinValue(1).setMaxValue(7))
         .addIntegerOption((option) => option.setName("rank").setDescription("The rank of the champions in the screenshot.").setRequired(true).setMinValue(1).setMaxValue(5))
         .addAttachmentOption((option) => option.setName("image1").setDescription("A screenshot of your champion roster.").setRequired(true))
+        .addBooleanOption((option) => option.setName("is_ascended").setDescription("Whether the champions are ascended.").setRequired(false))
         .addAttachmentOption((option) => option.setName("image2").setDescription("Another screenshot.").setRequired(false))
         .addAttachmentOption((option) => option.setName("image3").setDescription("Another screenshot.").setRequired(false))
         .addAttachmentOption((option) => option.setName("image4").setDescription("Another screenshot.").setRequired(false))
@@ -487,6 +507,12 @@ export const command: Command = {
             .setRequired(false)
             .setMinValue(1)
             .setMaxValue(5)
+        )
+        .addBooleanOption((option) =>
+          option
+            .setName("is_ascended")
+            .setDescription("Filter by ascended status.")
+            .setRequired(false)
         )
         .addUserOption((option) =>
           option
@@ -526,6 +552,12 @@ export const command: Command = {
             .setRequired(false)
             .setMinValue(1)
             .setMaxValue(5)
+        )
+        .addBooleanOption((option) =>
+          option
+            .setName("is_ascended")
+            .setDescription("Filter by ascended status.")
+            .setRequired(false)
         )
     )
     .addSubcommand((subcommand) =>

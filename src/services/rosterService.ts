@@ -81,6 +81,7 @@ export async function processRosterScreenshot(
   imageUrl: string,
   stars: number,
   rank: number,
+  isAscended: boolean = false,
   debugMode: boolean = false,
   playerId?: string
 ): Promise<RosterUpdateResult | RosterDebugResult> {
@@ -151,7 +152,7 @@ export async function processRosterScreenshot(
 
   // 7. Save roster to database
   console.log(`Saving roster for player ${playerId}...`);
-  const savedChampions = await saveRoster(solvedGrid, playerId, stars, rank);
+  const savedChampions = await saveRoster(solvedGrid, playerId, stars, rank, isAscended);
   const count = savedChampions.flat().length;
   console.log(`${count} champions saved.`);
 
@@ -161,7 +162,7 @@ export async function processRosterScreenshot(
   }
 }
 
-async function saveRoster(grid: ChampionGridCell[][], playerId: string, stars: number, rank: number): Promise<RosterWithChampion[][]> {
+async function saveRoster(grid: ChampionGridCell[][], playerId: string, stars: number, rank: number, isAscended: boolean): Promise<RosterWithChampion[][]> {
   const savedChampions: RosterWithChampion[][] = [];
   const allChampions = await prisma.champion.findMany();
   const championMap = new Map(allChampions.map(c => [c.name, c]));
@@ -174,8 +175,8 @@ async function saveRoster(grid: ChampionGridCell[][], playerId: string, stars: n
         if (champion) {
           const rosterEntry = await prisma.roster.upsert({
             where: { playerId_championId_stars: { playerId, championId: champion.id, stars } },
-            update: { rank, isAwakened: cell.isAwakened || false },
-            create: { playerId, championId: champion.id, stars, rank, isAwakened: cell.isAwakened || false },
+            update: { rank, isAwakened: cell.isAwakened || false, isAscended },
+            create: { playerId, championId: champion.id, stars, rank, isAwakened: cell.isAwakened || false, isAscended },
             include: { champion: true },
           });
           newRow.push(rosterEntry);
@@ -930,13 +931,16 @@ async function downloadImage(url: string): Promise<Buffer> {
   return Buffer.from(arrayBuffer);
 }
 
-export async function getRoster(playerId: string, stars: number | null, rank: number | null): Promise<RosterWithChampion[] | string> {
+export async function getRoster(playerId: string, stars: number | null, rank: number | null, isAscended: boolean | null): Promise<RosterWithChampion[] | string> {
     const where: any = { playerId };
     if (stars) {
         where.stars = stars;
     }
     if (rank) {
         where.rank = rank;
+    }
+    if (isAscended !== null) {
+        where.isAscended = isAscended;
     }
 
     const rosterEntries = await prisma.roster.findMany({
