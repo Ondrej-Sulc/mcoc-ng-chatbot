@@ -9,11 +9,23 @@ export interface Config {
   OPENROUTER_DEFAULT_MODEL: string;
   GOOGLE_CREDENTIALS_JSON: string;
   MCOC_SHEET_ID: string;
-  SCHEDULE_SHEET_ID: string;
   TIMEZONE: string;
   AQ_SLACKER_PING_DELAY_HOURS: number;
   AQ_FINAL_PING_HOURS_BEFORE_END: number;
-  DEV_USER_IDS?: string;
+  DEV_USER_IDS: string[];
+
+  // Alliance War Settings
+  AW_BATTLEGROUP_CHANNEL_MAPPINGS: Record<string, string>;
+  AW_DATA_RANGE: string;
+  AW_DESC_COL_IDX: number;
+  AW_NODE_COL_IDX: number;
+  AW_PLAYER_COL_IDX: number;
+  AW_DEFENDER_COL_IDX: number;
+  AW_ATTACKER_COL_IDX: number;
+  AW_PREFIGHT_RANGE: string;
+  AW_PREFIGHT_PLAYER_COL_IDX: number;
+  AW_PREFIGHT_DESC_COL_IDX: number;
+  AW_NODES_RANGE: string;
 }
 
 function getEnv(key: string, defaultValue?: string): string {
@@ -43,7 +55,6 @@ const createConfig = (): Config => {
     OPEN_ROUTER_API_KEY: process.env.OPEN_ROUTER_API_KEY,
     GOOGLE_CREDENTIALS_JSON: process.env.GOOGLE_CREDENTIALS_JSON,
     MCOC_SHEET_ID: process.env.MCOC_SHEET_ID,
-    SCHEDULE_SHEET_ID: process.env.SCHEDULE_SHEET_ID,
   };
 
   Object.entries(required).forEach(([key, value]) => {
@@ -60,11 +71,23 @@ const createConfig = (): Config => {
     OPENROUTER_DEFAULT_MODEL: getEnv("OPENROUTER_DEFAULT_MODEL", "google/gemini-2.5-flash"),
     GOOGLE_CREDENTIALS_JSON: getEnv("GOOGLE_CREDENTIALS_JSON"),
     MCOC_SHEET_ID: getEnv("MCOC_SHEET_ID"),
-    SCHEDULE_SHEET_ID: getEnv("SCHEDULE_SHEET_ID"),
     TIMEZONE: getEnv("TIMEZONE", "Europe/Prague"),
     AQ_SLACKER_PING_DELAY_HOURS: parseInt(getEnv("AQ_SLACKER_PING_DELAY_HOURS", "8"), 10),
     AQ_FINAL_PING_HOURS_BEFORE_END: parseInt(getEnv("AQ_FINAL_PING_HOURS_BEFORE_END", "3"), 10),
-    DEV_USER_IDS: process.env.DEV_USER_IDS,
+    DEV_USER_IDS: getEnv("DEV_USER_IDS", '').split(',').filter(Boolean),
+
+    // Alliance War Settings
+    AW_BATTLEGROUP_CHANNEL_MAPPINGS: JSON.parse(getEnv("AW_BATTLEGROUP_CHANNEL_MAPPINGS", '{}')),
+    AW_DATA_RANGE: getEnv("AW_DATA_RANGE", 'FB3:FF52'),
+    AW_DESC_COL_IDX: parseInt(getEnv("AW_DESC_COL_IDX", '0'), 10),
+    AW_NODE_COL_IDX: parseInt(getEnv("AW_NODE_COL_IDX", '1'), 10),
+    AW_PLAYER_COL_IDX: parseInt(getEnv("AW_PLAYER_COL_IDX", '2'), 10),
+    AW_DEFENDER_COL_IDX: parseInt(getEnv("AW_DEFENDER_COL_IDX", '3'), 10),
+    AW_ATTACKER_COL_IDX: parseInt(getEnv("AW_ATTACKER_COL_IDX", '4'), 10),
+    AW_PREFIGHT_RANGE: getEnv("AW_PREFIGHT_RANGE", 'GD3:GF52'),
+    AW_PREFIGHT_PLAYER_COL_IDX: parseInt(getEnv("AW_PREFIGHT_PLAYER_COL_IDX", '0'), 10),
+    AW_PREFIGHT_DESC_COL_IDX: parseInt(getEnv("AW_PREFIGHT_DESC_COL_IDX", '2'), 10),
+    AW_NODES_RANGE: getEnv("AW_NODES_RANGE", 'AWNodes'),
   };
 };
 

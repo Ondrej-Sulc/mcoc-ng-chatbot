@@ -15,7 +15,7 @@ import { processRosterScreenshot, RosterDebugResult } from "../services/rosterSe
 import { config } from '../config';
 import { createEmojiResolver } from "../utils/emojiResolver";
 
-const authorizedUsers = config.DEV_USER_IDS?.split(',') || [];
+const authorizedUsers = config.DEV_USER_IDS || [];
 
 async function handleRosterDebug(interaction: ChatInputCommandInteraction): Promise<void> {
   await interaction.deferReply({ ephemeral: true });

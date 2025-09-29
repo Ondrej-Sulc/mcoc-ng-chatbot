@@ -111,8 +111,8 @@ _This list will be populated to track the migration status of each command._
   - `/roster_delete`: Migrated to `/roster delete`
   - `/roster_convert`: Obsolete
 - **`war.py`**:
-  - `/aw_plan`: to be migrated as `/aw plan`
-  - `/aw_details`: to be migrated as `/aw details`
+  - `/aw_plan`: Migrated
+  - `/aw_details`: Migrated
 
 ### Roster Command Overhaul
 

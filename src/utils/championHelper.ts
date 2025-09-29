@@ -25,3 +25,8 @@ export function getChampionImageUrl(
   const key = `${type.charAt(0)}_${size}` as keyof ChampionImages;
   return parsedImages[key];
 }
+
+export function normalizeChampionName(name: string): string {
+  if (!name) return '';
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}

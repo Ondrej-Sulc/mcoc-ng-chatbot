@@ -14,6 +14,7 @@ import { startScheduler } from "./services/schedulerService";
 import http from "http";
 import { handleError, safeReply } from "./utils/errorHandler";
 import { loadApplicationEmojis } from "./services/applicationEmojiService";
+import { loadChampions } from "./services/championService";
 import { initializeAqReminders } from "./services/aqReminderService.js";
 import { registerButtonHandler } from "./utils/buttonHandlerRegistry";
 import { deleteRoster } from "./services/rosterService";
@@ -86,6 +87,12 @@ client.once(Events.ClientReady, async (readyClient) => {
     console.log("🎨 Application emojis loaded.");
   } catch (e) {
     console.warn("⚠️ Failed to load application emojis:", e);
+  }
+  // Load champion data into cache
+  try {
+    await loadChampions();
+  } catch (e) {
+    console.warn("⚠️ Failed to load champions:", e);
   }
   // Start scheduler after bot is ready
   await startScheduler(client);
