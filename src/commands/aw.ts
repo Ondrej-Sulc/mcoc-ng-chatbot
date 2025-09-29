@@ -72,8 +72,8 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
   const image = interaction.options.getAttachment('image');
 
   const sheetTabName = `AW BG${battlegroup}`;
-  const channelId = Object.keys(config.AW_BATTLEGROUP_CHANNEL_MAPPINGS).find(
-    key => config.AW_BATTLEGROUP_CHANNEL_MAPPINGS[key] === sheetTabName
+  const channelId = Object.keys(config.allianceWar.battlegroupChannelMappings).find(
+    key => config.allianceWar.battlegroupChannelMappings[key] === sheetTabName
   );
 
   if (!channelId) {
@@ -93,8 +93,8 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
     const allThreads = new Collection<string, ThreadChannel>().concat(activeThreads.threads, archivedThreads.threads);
     const threadMap = new Map(allThreads.map(t => [t.name.toLowerCase(), t]));
 
-    const assignmentsRange = `'${sheetTabName}'!${config.AW_DATA_RANGE}`;
-    const prefightsRange = `'${sheetTabName}'!${config.AW_PREFIGHT_RANGE}`;
+    const assignmentsRange = `'${sheetTabName}'!${config.allianceWar.dataRange}`;
+    const prefightsRange = `'${sheetTabName}'!${config.allianceWar.prefight.range}`;
     const [assignmentsData, prefightsData] = await Promise.all([
         sheetsService.readSheet(config.MCOC_SHEET_ID, assignmentsRange),
         sheetsService.readSheet(config.MCOC_SHEET_ID, prefightsRange),
@@ -104,17 +104,17 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
 
     if (assignmentsData) {
         for (const row of assignmentsData) {
-            const playerName = (row[config.AW_PLAYER_COL_IDX] || '').trim().toLowerCase();
+            const playerName = (row[config.allianceWar.playerColumnIndex] || '').trim().toLowerCase();
             if (!playerName) continue;
 
             if (!playerDataMap.has(playerName)) {
                 playerDataMap.set(playerName, { assignments: [], prefights: [] });
             }
 
-            let description = (row[config.AW_DESC_COL_IDX] || '').trim();
+            let description = (row[config.allianceWar.descriptionColumnIndex] || '').trim();
             if (description) {
-                const attackerName = (row[config.AW_ATTACKER_COL_IDX] || '').trim();
-                const defenderName = (row[config.AW_DEFENDER_COL_IDX] || '').trim();
+                const attackerName = (row[config.allianceWar.attackerColumnIndex] || '').trim();
+                const defenderName = (row[config.allianceWar.defenderColumnIndex] || '').trim();
 
                 if (attackerName) {
                     const attacker = getChampionByName(attackerName);
@@ -135,7 +135,7 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
                     }
                 }
                 playerDataMap.get(playerName)!.assignments.push({
-                    node: (row[config.AW_NODE_COL_IDX] || '').trim(),
+                    node: (row[config.allianceWar.nodeColumnIndex] || '').trim(),
                     description: description,
                 });
             }
@@ -144,10 +144,10 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
 
     if (prefightsData) {
         for (const row of prefightsData) {
-            const playerName = (row[config.AW_PREFIGHT_PLAYER_COL_IDX] || '').trim().toLowerCase();
+            const playerName = (row[config.allianceWar.prefight.playerColumnIndex] || '').trim().toLowerCase();
             if (!playerName || !playerDataMap.has(playerName)) continue;
 
-            const description = (row[config.AW_PREFIGHT_DESC_COL_IDX] || '').trim();
+            const description = (row[config.allianceWar.prefight.descriptionColumnIndex] || '').trim();
             if (description) {
                 playerDataMap.get(playerName)!.prefights.push(description);
             }
@@ -237,16 +237,16 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const sheetTabName = config.AW_BATTLEGROUP_CHANNEL_MAPPINGS[parentChannelId];
+  const sheetTabName = config.allianceWar.battlegroupChannelMappings[parentChannelId];
   if (!sheetTabName) {
     await interaction.editReply('This thread is not in a recognized battlegroup channel.');
     return;
   }
 
   try {
-    const assignmentsRange = `'${sheetTabName}'!${config.AW_DATA_RANGE}`;
-    const prefightsRange = `'${sheetTabName}'!${config.AW_PREFIGHT_RANGE}`;
-    const nodesRange = `'${sheetTabName}'!${config.AW_NODES_RANGE}`;
+    const assignmentsRange = `'${sheetTabName}'!${config.allianceWar.dataRange}`;
+    const prefightsRange = `'${sheetTabName}'!${config.allianceWar.prefight.range}`;
+    const nodesRange = `'${sheetTabName}'!${config.allianceWar.nodesRange}`;
 
     const [assignmentsData, prefightsData, nodesData] = await Promise.all([
       sheetsService.readSheet(config.MCOC_SHEET_ID, assignmentsRange),
@@ -257,12 +257,12 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
     const playerAssignments: { node: string; description: string }[] = [];
     if (assignmentsData) {
       for (const row of assignmentsData) {
-        const sheetPlayerName = (row[config.AW_PLAYER_COL_IDX] || '').trim().toLowerCase();
+        const sheetPlayerName = (row[config.allianceWar.playerColumnIndex] || '').trim().toLowerCase();
         if (sheetPlayerName === playerName) {
-          let description = (row[config.AW_DESC_COL_IDX] || '').trim();
+          let description = (row[config.allianceWar.descriptionColumnIndex] || '').trim();
           if (description) {
-            const attackerName = (row[config.AW_ATTACKER_COL_IDX] || '').trim();
-            const defenderName = (row[config.AW_DEFENDER_COL_IDX] || '').trim();
+            const attackerName = (row[config.allianceWar.attackerColumnIndex] || '').trim();
+            const defenderName = (row[config.allianceWar.defenderColumnIndex] || '').trim();
 
             if (attackerName) {
                 const attacker = getChampionByName(attackerName);
@@ -284,7 +284,7 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
             }
 
             playerAssignments.push({
-              node: (row[config.AW_NODE_COL_IDX] || '').trim(),
+              node: (row[config.allianceWar.nodeColumnIndex] || '').trim(),
               description: description,
             });
           }
@@ -295,9 +295,9 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
     const playerPrefights: string[] = [];
     if (prefightsData) {
       for (const row of prefightsData) {
-        const sheetPlayerName = (row[config.AW_PREFIGHT_PLAYER_COL_IDX] || '').trim().toLowerCase();
+        const sheetPlayerName = (row[config.allianceWar.prefight.playerColumnIndex] || '').trim().toLowerCase();
         if (sheetPlayerName === playerName) {
-          const description = (row[config.AW_PREFIGHT_DESC_COL_IDX] || '').trim();
+          const description = (row[config.allianceWar.prefight.descriptionColumnIndex] || '').trim();
           if (description) {
             playerPrefights.push(description);
           }

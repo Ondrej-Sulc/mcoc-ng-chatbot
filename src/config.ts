@@ -15,17 +15,21 @@ export interface Config {
   DEV_USER_IDS: string[];
 
   // Alliance War Settings
-  AW_BATTLEGROUP_CHANNEL_MAPPINGS: Record<string, string>;
-  AW_DATA_RANGE: string;
-  AW_DESC_COL_IDX: number;
-  AW_NODE_COL_IDX: number;
-  AW_PLAYER_COL_IDX: number;
-  AW_DEFENDER_COL_IDX: number;
-  AW_ATTACKER_COL_IDX: number;
-  AW_PREFIGHT_RANGE: string;
-  AW_PREFIGHT_PLAYER_COL_IDX: number;
-  AW_PREFIGHT_DESC_COL_IDX: number;
-  AW_NODES_RANGE: string;
+  allianceWar: {
+    battlegroupChannelMappings: Record<string, string>;
+    dataRange: string;
+    descriptionColumnIndex: number;
+    nodeColumnIndex: number;
+    playerColumnIndex: number;
+    defenderColumnIndex: number;
+    attackerColumnIndex: number;
+    prefight: {
+      range: string;
+      playerColumnIndex: number;
+      descriptionColumnIndex: number;
+    },
+    nodesRange: string;
+  }
 }
 
 function getEnv(key: string, defaultValue?: string): string {
@@ -77,17 +81,25 @@ const createConfig = (): Config => {
     DEV_USER_IDS: getEnv("DEV_USER_IDS", '').split(',').filter(Boolean),
 
     // Alliance War Settings
-    AW_BATTLEGROUP_CHANNEL_MAPPINGS: JSON.parse(getEnv("AW_BATTLEGROUP_CHANNEL_MAPPINGS", '{}')),
-    AW_DATA_RANGE: getEnv("AW_DATA_RANGE", 'FB3:FF52'),
-    AW_DESC_COL_IDX: parseInt(getEnv("AW_DESC_COL_IDX", '0'), 10),
-    AW_NODE_COL_IDX: parseInt(getEnv("AW_NODE_COL_IDX", '1'), 10),
-    AW_PLAYER_COL_IDX: parseInt(getEnv("AW_PLAYER_COL_IDX", '2'), 10),
-    AW_DEFENDER_COL_IDX: parseInt(getEnv("AW_DEFENDER_COL_IDX", '3'), 10),
-    AW_ATTACKER_COL_IDX: parseInt(getEnv("AW_ATTACKER_COL_IDX", '4'), 10),
-    AW_PREFIGHT_RANGE: getEnv("AW_PREFIGHT_RANGE", 'GD3:GF52'),
-    AW_PREFIGHT_PLAYER_COL_IDX: parseInt(getEnv("AW_PREFIGHT_PLAYER_COL_IDX", '0'), 10),
-    AW_PREFIGHT_DESC_COL_IDX: parseInt(getEnv("AW_PREFIGHT_DESC_COL_IDX", '2'), 10),
-    AW_NODES_RANGE: getEnv("AW_NODES_RANGE", 'AWNodes'),
+    allianceWar: {
+      battlegroupChannelMappings: {
+        "1176169292241309776": "AW BG1",
+        "1176169440107307008": "AW BG2",
+        "1227167947458482206": "AW BG3"
+      },
+      dataRange: 'FB3:FF52',
+      descriptionColumnIndex: 0,
+      nodeColumnIndex: 1,
+      playerColumnIndex: 2,
+      defenderColumnIndex: 3,
+      attackerColumnIndex: 4,
+      prefight: {
+        range: 'GD3:GF52',
+        playerColumnIndex: 0,
+        descriptionColumnIndex: 2,
+      },
+      nodesRange: 'AWNodes',
+    }
   };
 };
 
