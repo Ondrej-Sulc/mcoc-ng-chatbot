@@ -37,6 +37,11 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 RUN npm install --only=production
 
+# Copy the prisma schema and generated client from the 'builder' stage
+COPY --from=builder /usr/src/app/prisma ./prisma
+COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /usr/src/app/node_modules/@prisma/client ./node_modules/@prisma/client
+
 # Copy the built code from the 'builder' stage
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/assets ./assets
