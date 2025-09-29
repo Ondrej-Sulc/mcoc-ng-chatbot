@@ -25,6 +25,8 @@ class SheetsService {
         config.GOOGLE_CREDENTIALS_JSON,
         "base64"
       ).toString("utf8");
+      // Add this line for debugging
+      console.log("Attempting to parse credentials string starting with:", decodedCredentialsString.substring(0, 20));
       // Parse the decoded JSON string
       credentials = JSON.parse(decodedCredentialsString);
     } catch (error) {
