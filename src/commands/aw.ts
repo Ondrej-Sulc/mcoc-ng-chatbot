@@ -349,15 +349,20 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
         .setColor('#0099ff');
 
     if (filteredAssignments.length > 0) {
-        let assignmentText = '';
         for (const assignment of filteredAssignments) {
-            assignmentText += `\n**Node ${assignment.node}**\n- ${assignment.description}\n`;
+            let assignmentText = `- ${assignment.description}\n`;
             const nodeDetails = nodeLookup[assignment.node];
             if (nodeDetails) {
                 assignmentText += nodeDetails;
             }
+
+            // Ensure the field value does not exceed the 1024 character limit
+            if (assignmentText.length > 1024) {
+                assignmentText = assignmentText.substring(0, 1021) + "...";
+            }
+
+            embed.addFields({ name: `Node ${assignment.node}`, value: assignmentText });
         }
-        embed.addFields({ name: 'Main Assignments', value: assignmentText });
     }
 
     if (playerPrefights.length > 0) {

@@ -10,8 +10,8 @@ export const commands = new Collection<string, Command>();
 async function findCommandFiles(dir: string): Promise<string[]> {
   const entries = readdirSync(dir);
   const files: string[] = [];
-  const isDevelopment = process.env.NODE_ENV === "development";
-  const fileExtension = isDevelopment ? ".ts" : ".js";
+  const isTsMode = process.env.TS_MODE_ENABLED === 'true';
+  const fileExtension = isTsMode ? ".ts" : ".js";
 
   for (const entry of entries) {
     const fullPath = join(dir, entry);
