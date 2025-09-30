@@ -14,28 +14,7 @@ import { getChampionImageUrl } from '../utils/championHelper';
 
 const prisma = new PrismaClient();
 
-if (!config.GOOGLE_CREDENTIALS_JSON) {
-  throw new Error('GOOGLE_CREDENTIALS_JSON is not defined in the .env file.');
-}
-let credentials;
-try {
-  // Decode the Base64 string back to JSON string
-  const decodedCredentialsString = Buffer.from(
-    config.GOOGLE_CREDENTIALS_JSON,
-    'base64'
-  ).toString('utf8');
-  // Parse the decoded JSON string
-  credentials = JSON.parse(decodedCredentialsString);
-} catch (error) {
-  console.error(
-    `Error loading/parsing Google credentials from environment variable:`,
-    error
-  );
-  throw new Error(
-    `Failed to load Google credentials. Check Base64 encoding in GitHub Secrets.`
-  );
-}
-const visionClient = new v1.ImageAnnotatorClient({ credentials });
+const visionClient = new v1.ImageAnnotatorClient({ credentials: config.GOOGLE_CREDENTIALS });
 
 // --- Interfaces for data structures ---
 type Vertex = { x: number; y: number };

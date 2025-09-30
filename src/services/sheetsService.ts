@@ -13,35 +13,10 @@ class SheetsService {
    * @throws Will throw an error if GOOGLE_CREDENTIALS_JSON is not defined or invalid.
    */
   constructor() {
-    if (!config.GOOGLE_CREDENTIALS_JSON) {
-      throw new Error(
-        "GOOGLE_CREDENTIALS_JSON is not defined in the .env file."
-      );
-    }
-    let credentials;
-    try {
-      // Decode the Base64 string back to JSON string
-      const decodedCredentialsString = Buffer.from(
-        config.GOOGLE_CREDENTIALS_JSON,
-        "base64"
-      ).toString("utf8");
-      // Add this line for debugging
-      console.log("Attempting to parse credentials string starting with:", decodedCredentialsString.substring(0, 20));
-      // Parse the decoded JSON string
-      credentials = JSON.parse(decodedCredentialsString);
-    } catch (error) {
-      console.error(
-        `Error loading/parsing Google credentials from environment variable:`,
-        error
-      );
-      throw new Error(
-        `Failed to load Google credentials. Check Base64 encoding in GitHub Secrets.`
-      );
-    }
     const scopes = ["https://www.googleapis.com/auth/spreadsheets"];
     const auth = new JWT({
-      email: credentials.client_email,
-      key: credentials.private_key,
+      email: config.GOOGLE_CREDENTIALS.client_email,
+      key: config.GOOGLE_CREDENTIALS.private_key,
       scopes,
     });
     this.sheets = google.sheets({ version: "v4", auth });

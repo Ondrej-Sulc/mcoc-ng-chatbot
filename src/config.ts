@@ -1,5 +1,10 @@
 import "dotenv/config";
 
+interface GoogleCredentials {
+  client_email: string;
+  private_key: string;
+}
+
 /**
  * Represents the application's configuration.
  */
@@ -7,7 +12,7 @@ export interface Config {
   BOT_TOKEN: string;
   OPEN_ROUTER_API_KEY: string;
   OPENROUTER_DEFAULT_MODEL: string;
-  GOOGLE_CREDENTIALS_JSON: string;
+  GOOGLE_CREDENTIALS: GoogleCredentials;
   MCOC_SHEET_ID: string;
   TIMEZONE: string;
   AQ_SLACKER_PING_DELAY_HOURS: number;
@@ -65,6 +70,24 @@ const createConfig = (): Config => {
     if (!value) throw new Error(`❌ ${key} is missing`);
   });
 
+  let credentials;
+  try {
+    const credentialsJson = getEnv("GOOGLE_CREDENTIALS_JSON");
+    const decodedCredentialsString = Buffer.from(
+      credentialsJson,
+      "base64"
+    ).toString("utf8");
+    credentials = JSON.parse(decodedCredentialsString);
+  } catch (error) {
+    console.error(
+      `Error loading/parsing Google credentials from environment variable:`,
+      error
+    );
+    throw new Error(
+      `Failed to load Google credentials. Check the GOOGLE_CREDENTIALS_JSON environment variable.`
+    );
+  }
+
   return {
     BOT_TOKEN: getEnv(
       process.env.NODE_ENV === "production"
@@ -73,7 +96,7 @@ const createConfig = (): Config => {
     ),
     OPEN_ROUTER_API_KEY: getEnv("OPEN_ROUTER_API_KEY"),
     OPENROUTER_DEFAULT_MODEL: getEnv("OPENROUTER_DEFAULT_MODEL", "google/gemini-2.5-flash"),
-    GOOGLE_CREDENTIALS_JSON: getEnv("GOOGLE_CREDENTIALS_JSON"),
+    GOOGLE_CREDENTIALS: credentials,
     MCOC_SHEET_ID: getEnv("MCOC_SHEET_ID"),
     TIMEZONE: getEnv("TIMEZONE", "Europe/Prague"),
     AQ_SLACKER_PING_DELAY_HOURS: parseInt(getEnv("AQ_SLACKER_PING_DELAY_HOURS", "8"), 10),
