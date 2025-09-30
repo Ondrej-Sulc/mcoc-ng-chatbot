@@ -8,7 +8,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const awCommand: Command = {
+export const command: Command = {
   data: new SlashCommandBuilder()
     .setName('aw')
     .setDescription('Commands for Alliance War planning and details.')
@@ -371,5 +371,3 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
     await interaction.editReply('An error occurred while fetching your AW details.');
   }
 }
-
-export default awCommand;

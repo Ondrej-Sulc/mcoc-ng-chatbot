@@ -1,5 +1,4 @@
 import sharp from "sharp";
-import fetch from "node-fetch";
 import * as opentype from "opentype.js";
 import { promises as fs } from "fs";
 import path from "path";
@@ -378,6 +377,7 @@ async function fetchArrayBufferWithTimeout(
   url: string,
   timeoutMs: number
 ): Promise<ArrayBuffer> {
+  const { default: fetch } = await import("node-fetch");
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
