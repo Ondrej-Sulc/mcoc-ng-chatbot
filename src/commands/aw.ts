@@ -1,50 +1,138 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ChannelType, Collection, ThreadChannel, MessageFlags } from 'discord.js';
-import { Command } from '../types/command';
-import { config } from '../config';
-import { sheetsService } from '../services/sheetsService';
-import { getChampionByName } from '../services/championService';
-import { getApplicationEmojiMarkupByName } from '../services/applicationEmojiService';
-import { PrismaClient } from '@prisma/client';
+import {
+  SlashCommandBuilder,
+  ChatInputCommandInteraction,
+  EmbedBuilder,
+  ChannelType,
+  Collection,
+  ThreadChannel,
+  MessageFlags,
+  ContainerBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
+  TextDisplayBuilder,
+} from "discord.js";
+import { Command } from "../types/command";
+import { config } from "../config";
+import { sheetsService } from "../services/sheetsService";
+import { getChampionByName } from "../services/championService";
+import { getApplicationEmojiMarkupByName } from "../services/applicationEmojiService";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// --- HELPER FUNCTIONS ---
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+const getEmoji = (championName: string): string => {
+  if (!championName) return "";
+  const champion = getChampionByName(championName);
+  if (!champion || !champion.discordEmoji) return "";
+  if (champion.discordEmoji.startsWith("<") && champion.discordEmoji.endsWith(">")) {
+    return champion.discordEmoji;
+  }
+  return getApplicationEmojiMarkupByName(champion.discordEmoji) || "";
+};
+
+const formatAssignment = (assignment: MergedAssignment): string => {
+  const { attackerName, defenderName, attackTactic, defenseTactic } = assignment;
+  const attackerEmoji = getEmoji(attackerName);
+  const defenderEmoji = getEmoji(defenderName);
+
+  let assignmentString = `${attackerEmoji} **${attackerName}** vs ${defenderEmoji} **${defenderName}**`;
+  if (attackTactic) assignmentString += ` | ${attackTactic}`;
+  if (defenseTactic) assignmentString += ` | ${defenseTactic}`;
+  
+  return assignmentString;
+};
+
+interface MergedAssignment {
+    playerName: string;
+    node: string;
+    attackerName: string;
+    defenderName: string;
+    prefightPlayer: string;
+    prefightChampion: string;
+    attackTactic: string;
+    defenseTactic: string;
+}
+
+async function getMergedData(sheetTabName: string): Promise<MergedAssignment[]> {
+    const assignmentsRange = `'${sheetTabName}'!${config.allianceWar.dataRange}`;
+    const tacticsAndPrefightsRange = `'${sheetTabName}'!${config.allianceWar.PreFightTacticDataRange}`;
+
+    const [assignmentsData, tacticsAndPrefightsData] = await sheetsService.readSheets(
+        config.MCOC_SHEET_ID,
+        [assignmentsRange, tacticsAndPrefightsRange]
+    );
+
+    if (!assignmentsData) return [];
+
+    const mergedData: MergedAssignment[] = [];
+
+    for (let i = 0; i < assignmentsData.length; i++) {
+        const assignmentRow = assignmentsData[i];
+        const tacticsAndPrefightsRow = tacticsAndPrefightsData ? tacticsAndPrefightsData[i] : [];
+
+        const playerName = (assignmentRow[config.allianceWar.playerCol] || "").trim().toLowerCase();
+        const attackerName = (assignmentRow[config.allianceWar.attackerCol] || "").trim();
+        const defenderName = (assignmentRow[config.allianceWar.defenderCol] || "").trim();
+
+        if (playerName && attackerName && defenderName) {
+            mergedData.push({
+                playerName,
+                attackerName,
+                defenderName,
+                node: (assignmentRow[config.allianceWar.nodeCol] || "").trim(),
+                prefightPlayer: (tacticsAndPrefightsRow[config.allianceWar.PreFightPlayerCol] || "").trim().toLowerCase(),
+                prefightChampion: (tacticsAndPrefightsRow[config.allianceWar.PreFightChampionCol] || "").trim(),
+                attackTactic: (tacticsAndPrefightsRow[config.allianceWar.TacticAttackCol] || "").trim(),
+                defenseTactic: (tacticsAndPrefightsRow[config.allianceWar.TacticDefenseCol] || "").trim(),
+            });
+        }
+    }
+    return mergedData;
+}
+
+// --- COMMANDS ---
+
 export const command: Command = {
   data: new SlashCommandBuilder()
-    .setName('aw')
-    .setDescription('Commands for Alliance War planning and details.')
-    .addSubcommand(subcommand =>
+    .setName("aw")
+    .setDescription("Commands for Alliance War planning and details.")
+    .addSubcommand((subcommand) =>
       subcommand
-        .setName('plan')
-        .setDescription('Sends AW plan details from sheet to player threads.')
-        .addIntegerOption(option =>
+        .setName("plan")
+        .setDescription("Sends AW plan details from sheet to player threads.")
+        .addIntegerOption((option) =>
           option
-            .setName('battlegroup')
-            .setDescription('The battlegroup to send the plan for.')
+            .setName("battlegroup")
+            .setDescription("The battlegroup to send the plan for.")
             .setRequired(true)
             .setMinValue(1)
             .setMaxValue(3)
         )
-        .addUserOption(option =>
+        .addUserOption((option) =>
           option
-            .setName('player')
-            .setDescription('A specific player to send the plan to.')
+            .setName("player")
+            .setDescription("A specific player to send the plan to.")
             .setRequired(false)
         )
-        .addAttachmentOption(option =>
+        .addAttachmentOption((option) =>
           option
-            .setName('image')
-            .setDescription('An image to send along with the plan.')
+            .setName("image")
+            .setDescription("An image to send along with the plan.")
             .setRequired(false)
         )
     )
-    .addSubcommand(subcommand =>
+    .addSubcommand((subcommand) =>
       subcommand
-        .setName('details')
-        .setDescription('Get detailed information about your AW assignments.')
-        .addStringOption(option =>
+        .setName("details")
+        .setDescription("Get detailed information about your AW assignments.")
+        .addStringOption((option) =>
           option
-            .setName('node')
-            .setDescription('A specific node to get details for.')
+            .setName("node")
+            .setDescription("A specific node to get details for.")
             .setRequired(false)
         )
     ),
@@ -54,10 +142,10 @@ export const command: Command = {
     const subcommand = interaction.options.getSubcommand();
 
     switch (subcommand) {
-      case 'plan':
+      case "plan":
         await handlePlan(interaction);
         break;
-      case 'details':
+      case "details":
         await handleDetails(interaction);
         break;
     }
@@ -67,86 +155,84 @@ export const command: Command = {
 async function handlePlan(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-  const battlegroup = interaction.options.getInteger('battlegroup', true);
-  const targetUser = interaction.options.getUser('player');
-  const image = interaction.options.getAttachment('image');
+  const battlegroup = interaction.options.getInteger("battlegroup", true);
+  const targetUser = interaction.options.getUser("player");
+  const image = interaction.options.getAttachment("image");
 
-  const sheetTabName = `AW BG${battlegroup}`;
-  const channelId = Object.keys(config.allianceWar.battlegroupChannelMappings).find(
-    key => config.allianceWar.battlegroupChannelMappings[key] === sheetTabName
+  const bgSheetName = `AW BG${battlegroup}`;
+  const channelId = Object.keys(
+    config.allianceWar.battlegroupChannelMappings
+  ).find(
+    (key) => config.allianceWar.battlegroupChannelMappings[key].sheet === bgSheetName
   );
 
   if (!channelId) {
-    await interaction.editReply(`Could not find a configured channel for ${sheetTabName}.`);
+    await interaction.editReply(
+      `Could not find a configured channel for ${bgSheetName}.`
+    );
     return;
   }
+  
+  const bgConfig = config.allianceWar.battlegroupChannelMappings[channelId];
 
   const channel = await interaction.client.channels.fetch(channelId);
   if (!channel || channel.type !== ChannelType.GuildText) {
-    await interaction.editReply(`The configured channel for ${sheetTabName} is not a valid text channel.`);
+    await interaction.editReply(
+      `The configured channel for ${bgSheetName} is not a valid text channel.`
+    );
     return;
   }
 
   try {
     const activeThreads = await channel.threads.fetch();
     const archivedThreads = await channel.threads.fetchArchived();
-    const allThreads = new Collection<string, ThreadChannel>().concat(activeThreads.threads, archivedThreads.threads);
-    const threadMap = new Map(allThreads.map(t => [t.name.toLowerCase(), t]));
+    const allThreads = new Collection<string, ThreadChannel>().concat(
+      activeThreads.threads,
+      archivedThreads.threads
+    );
+    const threadMap = new Map(allThreads.map((t) => [t.name.toLowerCase(), t]));
 
-    const assignmentsRange = `'${sheetTabName}'!${config.allianceWar.dataRange}`;
-    const prefightsRange = `'${sheetTabName}'!${config.allianceWar.prefight.range}`;
-    const [assignmentsData, prefightsData] = await sheetsService.readSheets(config.MCOC_SHEET_ID, [assignmentsRange, prefightsRange]);
+    const mergedData = await getMergedData(bgConfig.sheet);
 
-    const playerDataMap = new Map<string, { assignments: { node: string; description: string }[], prefights: string[] }>();
+    const playerDataMap = new Map<string, {
+        assignments: { node: string; formatted: string }[];
+        attackers: string[];
+        prefights: { champion: string; targetPlayer: string, targetNode: string, targetDefender: string }[];
+      }
+    >();
 
-    if (assignmentsData) {
-        for (const row of assignmentsData) {
-            const playerName = (row[config.allianceWar.playerColumnIndex] || '').trim().toLowerCase();
-            if (!playerName) continue;
+    for (const assignment of mergedData) {
+        const { playerName, attackerName, prefightPlayer, prefightChampion, node, defenderName } = assignment;
 
-            if (!playerDataMap.has(playerName)) {
-                playerDataMap.set(playerName, { assignments: [], prefights: [] });
-            }
-
-            let description = (row[config.allianceWar.descriptionColumnIndex] || '').trim();
-            if (description) {
-                const attackerName = (row[config.allianceWar.attackerColumnIndex] || '').trim();
-                const defenderName = (row[config.allianceWar.defenderColumnIndex] || '').trim();
-
-                if (attackerName) {
-                    const attacker = getChampionByName(attackerName);
-                    if (attacker && attacker.discordEmoji) {
-                        const emoji = getApplicationEmojiMarkupByName(attacker.discordEmoji);
-                        if (emoji) {
-                            description = description.replace(new RegExp(`\b${attackerName}\b`, 'gi'), `${emoji} ${attackerName}`);
-                        }
-                    }
-                }
-                if (defenderName) {
-                    const defender = getChampionByName(defenderName);
-                    if (defender && defender.discordEmoji) {
-                        const emoji = getApplicationEmojiMarkupByName(defender.discordEmoji);
-                        if (emoji) {
-                            description = description.replace(new RegExp(`\b${defenderName}\b`, 'gi'), `${emoji} ${defenderName}`);
-                        }
-                    }
-                }
-                playerDataMap.get(playerName)!.assignments.push({
-                    node: (row[config.allianceWar.nodeColumnIndex] || '').trim(),
-                    description: description,
-                });
-            }
+        // Ensure player entries exist
+        if (!playerDataMap.has(playerName)) {
+            playerDataMap.set(playerName, { assignments: [], attackers: [], prefights: [] });
         }
-    }
+        if (prefightPlayer && !playerDataMap.has(prefightPlayer)) {
+            playerDataMap.set(prefightPlayer, { assignments: [], attackers: [], prefights: [] });
+        }
 
-    if (prefightsData) {
-        for (const row of prefightsData) {
-            const playerName = (row[config.allianceWar.prefight.playerColumnIndex] || '').trim().toLowerCase();
-            if (!playerName || !playerDataMap.has(playerName)) continue;
+        // Add assignment to the player
+        playerDataMap.get(playerName)!.assignments.push({
+            node: node,
+            formatted: formatAssignment(assignment),
+        });
+        playerDataMap.get(playerName)!.attackers.push(attackerName);
 
-            const description = (row[config.allianceWar.prefight.descriptionColumnIndex] || '').trim();
-            if (description) {
-                playerDataMap.get(playerName)!.prefights.push(description);
+        // Handle prefight logic
+        if (prefightPlayer && prefightChampion) {
+            // Add prefight task to the performer
+            playerDataMap.get(prefightPlayer)!.prefights.push({
+                champion: prefightChampion,
+                targetPlayer: playerName,
+                targetNode: node,
+                targetDefender: defenderName,
+            });
+
+            // Append note to the target's assignment
+            const targetAssignment = playerDataMap.get(playerName)!.assignments.find(a => a.node === node);
+            if (targetAssignment) {
+                targetAssignment.formatted += ` (Prefight: ${getEmoji(prefightChampion)} ${prefightChampion})`;
             }
         }
     }
@@ -156,64 +242,91 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
     const noData: string[] = [];
 
     const sendPlan = async (playerName: string) => {
-        const thread = threadMap.get(playerName);
-        const data = playerDataMap.get(playerName);
+      const thread = threadMap.get(playerName);
+      const data = playerDataMap.get(playerName);
 
-        if (!data || (data.assignments.length === 0 && data.prefights.length === 0)) {
-            noData.push(playerName);
-            return;
-        }
+      if (!data || (data.assignments.length === 0 && data.prefights.length === 0)) {
+        noData.push(playerName);
+        return;
+      }
 
-        if (!thread) {
-            notFound.push(playerName);
-            return;
-        }
+      if (!thread) {
+        notFound.push(playerName);
+        return;
+      }
 
-        const embed = new EmbedBuilder()
-            .setTitle(`AW Plan for ${playerName}`)
-            .setColor('#0099ff');
-        
-        if (data.assignments.length > 0) {
-            embed.addFields({ name: 'Assignments', value: data.assignments.map(a => `**Node ${a.node}**: ${a.description}`).join('\n') });
-        }
-        if (data.prefights.length > 0) {
-            embed.addFields({ name: 'Pre-Fights', value: data.prefights.map(p => `- ${p}`).join('\n') });
-        }
-        if (image) {
-            embed.setImage(image.url);
-        }
+      const container = new ContainerBuilder().setAccentColor(bgConfig.color);
 
-        try {
-            await thread.send({ embeds: [embed] });
-            sentTo.push(playerName);
-        } catch (e) {
-            notFound.push(`${playerName} (send error)`);
-        }
+      if (image) {
+        const gallery = new MediaGalleryBuilder().addItems(
+            new MediaGalleryItemBuilder().setURL(image.url)
+        );
+        container.addMediaGalleryComponents(gallery);
+      }
+
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`**AW Plan for ${capitalize(playerName)}**`));
+
+      const uniqueAttackers = [...new Set(data.attackers)];
+      if (uniqueAttackers.length > 0) {
+        const attackersString =
+          "**Your Team:**\n" +
+          uniqueAttackers
+            .map((name) => `${getEmoji(name)} **${name}**`)
+            .join(" ");
+        container.addTextDisplayComponents(new TextDisplayBuilder().setContent(attackersString));
+      }
+
+      if (data.assignments.length > 0) {
+        const assignmentsValue = "**Assignments**\n" + data.assignments
+          .map((a) => `- Node ${a.node}: ${a.formatted}`)
+          .join("\n");
+        container.addTextDisplayComponents(new TextDisplayBuilder().setContent(assignmentsValue));
+      }
+      
+      if (data.prefights.length > 0) {
+        const prefightsValue = "**Pre-Fights**\n" + data.prefights
+          .map((p) => `- ${getEmoji(p.champion)} **${p.champion}** for ${capitalize(p.targetPlayer)}'s ${getEmoji(p.targetDefender)} **${p.targetDefender}** on node ${p.targetNode}`)
+          .join("\n");
+        container.addTextDisplayComponents(new TextDisplayBuilder().setContent(prefightsValue));
+      }
+
+      try {
+        await thread.send({ components: [container], flags: [MessageFlags.IsComponentsV2] });
+        sentTo.push(playerName);
+      } catch (e) {
+        notFound.push(`${playerName} (send error)`);
+      }
     };
 
     if (targetUser) {
-        const player = await prisma.player.findUnique({ where: { discordId: targetUser.id } });
-        if (!player || !player.ingameName) {
-            await interaction.editReply(`Player ${targetUser.username} is not registered or has no in-game name set.`);
-            return;
-        }
-        const playerName = player.ingameName.toLowerCase();
-        await sendPlan(playerName);
+      const player = await prisma.player.findUnique({ where: { discordId: targetUser.id } });
+      if (!player || !player.ingameName) {
+        await interaction.editReply(
+          `Player ${targetUser.username} is not registered or has no in-game name set.`
+        );
+        return;
+      }
+      const playerName = player.ingameName.toLowerCase();
+      await sendPlan(playerName);
     } else {
-        const planPromises = Array.from(playerDataMap.keys()).map(playerName => sendPlan(playerName));
-        await Promise.all(planPromises);
+      const planPromises = Array.from(playerDataMap.keys()).map((playerName) =>
+        sendPlan(playerName)
+      );
+      await Promise.all(planPromises);
     }
 
-    const summary = `**AW Plan for ${sheetTabName}**\n` +
-        `✅ Sent to: ${sentTo.length > 0 ? sentTo.join(', ') : 'None'}\n` +
-        `⚠️ No thread found for: ${notFound.length > 0 ? notFound.join(', ') : 'None'}\n` +
-        `ℹ️ No data for: ${noData.length > 0 ? noData.join(', ') : 'None'}`;
+    const summary =
+      `**AW Plan for ${bgConfig.sheet}**\n` +
+      `✅ Sent to: ${sentTo.map(capitalize).join(", ") || "None"}\n` +
+      `⚠️ No thread found for: ${notFound.map(capitalize).join(", ") || "None"}\n` +
+      `ℹ️ No data for: ${noData.map(capitalize).join(", ") || "None"}`;
 
     await interaction.editReply(summary);
-
   } catch (error) {
-      console.error('Error in /aw plan:', error);
-      await interaction.editReply('An error occurred while executing the AW plan command.');
+    console.error("Error in /aw plan:", error);
+    await interaction.editReply(
+      "An error occurred while executing the AW plan command."
+    );
   }
 }
 
@@ -221,7 +334,9 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   if (!interaction.channel || !interaction.channel.isThread()) {
-    await interaction.editReply('This command can only be used in a player\'s war thread.');
+    await interaction.editReply(
+      "This command can only be used in a player's war thread."
+    );
     return;
   }
 
@@ -229,142 +344,119 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
   const parentChannelId = interaction.channel.parentId;
 
   if (!parentChannelId) {
-    await interaction.editReply('This thread is not in a valid channel.');
+    await interaction.editReply("This thread is not in a valid channel.");
     return;
   }
 
-  const sheetTabName = config.allianceWar.battlegroupChannelMappings[parentChannelId];
-  if (!sheetTabName) {
-    await interaction.editReply('This thread is not in a recognized battlegroup channel.');
+  const bgConfig = config.allianceWar.battlegroupChannelMappings[parentChannelId];
+  if (!bgConfig) {
+    await interaction.editReply(
+      "This thread is not in a recognized battlegroup channel."
+    );
     return;
   }
 
   try {
-    const assignmentsRange = `'${sheetTabName}'!${config.allianceWar.dataRange}`;
-    const prefightsRange = `'${sheetTabName}'!${config.allianceWar.prefight.range}`;
-    const nodesRange = `'${sheetTabName}'!${config.allianceWar.nodesRange}`;
+    const nodesRange = `'${bgConfig.sheet}'!${config.allianceWar.nodesRange}`;
+    const [nodesData] = await sheetsService.readSheets(config.MCOC_SHEET_ID, [nodesRange]);
+    const mergedData = await getMergedData(bgConfig.sheet);
 
-    const [assignmentsData, prefightsData, nodesData] = await sheetsService.readSheets(config.MCOC_SHEET_ID, [assignmentsRange, prefightsRange, nodesRange]);
-
-    const playerAssignments: { node: string; description: string }[] = [];
-    if (assignmentsData) {
-      for (const row of assignmentsData) {
-        const sheetPlayerName = (row[config.allianceWar.playerColumnIndex] || '').trim().toLowerCase();
-        if (sheetPlayerName === playerName) {
-          let description = (row[config.allianceWar.descriptionColumnIndex] || '').trim();
-          if (description) {
-            const attackerName = (row[config.allianceWar.attackerColumnIndex] || '').trim();
-            const defenderName = (row[config.allianceWar.defenderColumnIndex] || '').trim();
-
-            if (attackerName) {
-                const attacker = getChampionByName(attackerName);
-                if (attacker && attacker.discordEmoji) {
-                    const emoji = getApplicationEmojiMarkupByName(attacker.discordEmoji);
-                    if (emoji) {
-                        description = description.replace(new RegExp(`\b${attackerName}\b`, 'gi'), `${emoji} ${attackerName}`);
-                    }
-                }
-            }
-            if (defenderName) {
-                const defender = getChampionByName(defenderName);
-                if (defender && defender.discordEmoji) {
-                    const emoji = getApplicationEmojiMarkupByName(defender.discordEmoji);
-                    if (emoji) {
-                        description = description.replace(new RegExp(`\b${defenderName}\b`, 'gi'), `${emoji} ${defenderName}`);
-                    }
-                }
-            }
-
-            playerAssignments.push({
-              node: (row[config.allianceWar.nodeColumnIndex] || '').trim(),
-              description: description,
-            });
-          }
-        }
-      }
-    }
-
+    const playerAssignments: { node: string; value: string }[] = [];
     const playerPrefights: string[] = [];
-    if (prefightsData) {
-      for (const row of prefightsData) {
-        const sheetPlayerName = (row[config.allianceWar.prefight.playerColumnIndex] || '').trim().toLowerCase();
-        if (sheetPlayerName === playerName) {
-          const description = (row[config.allianceWar.prefight.descriptionColumnIndex] || '').trim();
-          if (description) {
-            playerPrefights.push(description);
-          }
+
+    for (const assignment of mergedData) {
+        const { node, prefightPlayer, prefightChampion, defenderName } = assignment;
+
+        let formattedAssignment = formatAssignment(assignment);
+
+        // Append note if a prefight is for this player's assignment
+        if (prefightPlayer && prefightChampion && assignment.playerName === playerName) {
+            const prefightNote = ` (Prefight: ${getEmoji(prefightChampion)} ${prefightChampion})`;
+            formattedAssignment += prefightNote;
         }
-      }
+
+        // Add assignment if it belongs to the player
+        if (assignment.playerName === playerName) {
+            playerAssignments.push({
+                node: node,
+                value: formattedAssignment,
+            });
+        }
+
+        // Add prefight to-do list if the player is the performer
+        if (prefightPlayer === playerName && prefightChampion) {
+            playerPrefights.push(`- ${getEmoji(prefightChampion)} **${prefightChampion}** for ${capitalize(assignment.playerName)}'s ${getEmoji(defenderName)} **${defenderName}** on node ${node}`);
+        }
     }
 
     const nodeLookup: Record<string, string> = {};
     if (nodesData) {
-        for (const row of nodesData) {
-            const nodeNumber = (row[0] || '').trim();
-            if (!nodeNumber) continue;
-            const nodeNames = (row[1] || '').split('\n');
-            const nodeDescriptions = (row[2] || '').split('\n');
-            let detailsContent = '\n**Node Details:**\n';
-            let detailsAdded = false;
-            for (let i = 0; i < nodeNames.length; i++) {
-                const name = (nodeNames[i] || '').trim();
-                const desc = (nodeDescriptions[i] || '').trim();
-                if (name && desc) {
-                    detailsContent += `- **${name}**: ${desc}\n`;
-                    detailsAdded = true;
-                }
-            }
-            if (detailsAdded) {
-                nodeLookup[nodeNumber] = detailsContent;
-            }
+      for (const row of nodesData) {
+        const nodeNumber = (row[0] || "").trim();
+        if (!nodeNumber) continue;
+        const nodeNames = (row[1] || "").split("\n");
+        const nodeDescriptions = (row[2] || "").split("\n");
+        let detailsContent = "\n**Node Details:**\n";
+        let detailsAdded = false;
+        for (let i = 0; i < nodeNames.length; i++) {
+          const name = (nodeNames[i] || "").trim();
+          const desc = (nodeDescriptions[i] || "").trim();
+          if (name && desc) {
+            detailsContent += `- **${name}**: ${desc}\n`;
+            detailsAdded = true;
+          }
         }
+        if (detailsAdded) {
+          nodeLookup[nodeNumber] = detailsContent;
+        }
+      }
     }
 
     let filteredAssignments = playerAssignments;
-    const targetNode = interaction.options.getString('node');
-    if (targetNode) {
-        const assignedNodes = new Set(playerAssignments.map(a => a.node));
-        if (!assignedNodes.has(targetNode)) {
-            await interaction.editReply(`Node '${targetNode}' is not assigned to you.`);
-            return;
-        }
-        filteredAssignments = playerAssignments.filter(a => a.node === targetNode);
+    const targetNodeOption = interaction.options.getString("node");
+    if (targetNodeOption) {
+      filteredAssignments = playerAssignments.filter(
+        (a) => a.node === targetNodeOption
+      );
     }
 
     if (filteredAssignments.length === 0 && playerPrefights.length === 0) {
-        await interaction.editReply(targetNode ? `No assignment for node '${targetNode}'.` : `No assignments or pre-fights found for you in ${sheetTabName}.`);
-        return;
+      await interaction.editReply(
+        targetNodeOption
+          ? `No assignment for node '${targetNodeOption}'.`
+          : `No assignments or pre-fights found for you in ${bgConfig.sheet}.`
+      );
+      return;
     }
 
-    const embed = new EmbedBuilder()
-        .setTitle(`AW Details for ${interaction.channel.name}`)
-        .setColor('#0099ff');
+    const container = new ContainerBuilder().setAccentColor(bgConfig.color);
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`**AW Details for ${capitalize(interaction.channel.name)}**`));
 
     if (filteredAssignments.length > 0) {
         for (const assignment of filteredAssignments) {
-            let assignmentText = `- ${assignment.description}\n`;
+            let assignmentText = `- ${assignment.value}\n`;
             const nodeDetails = nodeLookup[assignment.node];
             if (nodeDetails) {
                 assignmentText += nodeDetails;
             }
 
-            // Ensure the field value does not exceed the 1024 character limit
-            if (assignmentText.length > 1024) {
-                assignmentText = assignmentText.substring(0, 1021) + "...";
+            if (assignmentText.length > 4000) { // Container text limit
+                assignmentText = assignmentText.substring(0, 3997) + "...";
             }
-
-            embed.addFields({ name: `Node ${assignment.node}`, value: assignmentText });
+            container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`**Node ${assignment.node}**\n${assignmentText}`));
         }
     }
 
     if (playerPrefights.length > 0) {
-        embed.addFields({ name: 'Pre-Fights', value: playerPrefights.map(p => `- ${p}`).join('\n') });
+        const prefightText = "**Pre-Fights**\n" + playerPrefights.join("\n");
+        container.addTextDisplayComponents(new TextDisplayBuilder().setContent(prefightText));
     }
 
-    await interaction.editReply({ embeds: [embed] });
-
+    await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
   } catch (error) {
-    console.error('Error in /aw details:', error);
-    await interaction.editReply('An error occurred while fetching your AW details.');
+    console.error("Error in /aw details:", error);
+    await interaction.editReply(
+      "An error occurred while fetching your AW details."
+    );
   }
 }

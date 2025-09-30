@@ -21,18 +21,19 @@ export interface Config {
 
   // Alliance War Settings
   allianceWar: {
-    battlegroupChannelMappings: Record<string, string>;
+    battlegroupChannelMappings: Record<string, { sheet: string; color: number; }>;
     dataRange: string;
-    descriptionColumnIndex: number;
-    nodeColumnIndex: number;
-    playerColumnIndex: number;
-    defenderColumnIndex: number;
-    attackerColumnIndex: number;
-    prefight: {
-      range: string;
-      playerColumnIndex: number;
-      descriptionColumnIndex: number;
-    },
+    descriptionCol: number;
+    nodeCol: number;
+    playerCol: number;
+    defenderCol: number;
+    attackerCol: number;
+    PreFightTacticDataRange: string,
+    PreFightPlayerCol: number,
+    PreFightChampionCol: number,
+    PreFightDescriptionCol: number,
+    TacticAttackCol: number,
+    TacticDefenseCol: number,
     nodesRange: string;
   }
 }
@@ -106,21 +107,22 @@ const createConfig = (): Config => {
     // Alliance War Settings
     allianceWar: {
       battlegroupChannelMappings: {
-        "1176169292241309776": "AW BG1",
-        "1176169440107307008": "AW BG2",
-        "1227167947458482206": "AW BG3"
+        "1176169292241309776": { sheet: "AW BG1", color: 0xC62828 }, // Red
+        "1176169440107307008": { sheet: "AW BG2", color: 0x388E3C }, // Green
+        "1227167947458482206": { sheet: "AW BG3", color: 0x1565C0 }  // Blue
       },
       dataRange: 'FB3:FF52',
-      descriptionColumnIndex: 0,
-      nodeColumnIndex: 1,
-      playerColumnIndex: 2,
-      defenderColumnIndex: 3,
-      attackerColumnIndex: 4,
-      prefight: {
-        range: 'GD3:GF52',
-        playerColumnIndex: 0,
-        descriptionColumnIndex: 2,
-      },
+      descriptionCol: 0,
+      nodeCol: 1,
+      playerCol: 2,
+      defenderCol: 3,
+      attackerCol: 4,
+      PreFightTacticDataRange: 'GD3:GH52',
+      PreFightPlayerCol: 0,
+      PreFightChampionCol: 1,
+      PreFightDescriptionCol: 2,
+      TacticAttackCol: 3,
+      TacticDefenseCol: 4,
       nodesRange: 'AWNodes',
     }
   };
