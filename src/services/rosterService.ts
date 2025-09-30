@@ -9,6 +9,7 @@ import * as path from 'path';
 import { tmpdir } from 'os';
 
 import { config } from '../config';
+import { sheetsService } from './sheetsService';
 
 import { getChampionImageUrl } from '../utils/championHelper';
 
@@ -166,7 +167,76 @@ async function saveRoster(grid: ChampionGridCell[][], playerId: string, stars: n
         savedChampions.push(newRow);
     }
   }
+
+  // Update the sheet after the database has been updated
+  await updateRosterInSheet(playerId, stars, rank, isAscended, savedChampions);
+
   return savedChampions;
+}
+
+async function updateRosterInSheet(playerId: string, stars: number, rank: number, isAscended: boolean, updatedChampions: RosterWithChampion[][]) {
+    if (stars !== 6 && stars !== 7) {
+        console.log(`Skipping sheet update for ${stars}* champions.`);
+        return;
+    }
+
+    const player = await prisma.player.findUnique({ where: { id: playerId } });
+    if (!player) {
+        console.error(`Player with ID ${playerId} not found.`);
+        return;
+    }
+
+    const sheetName = 'Roster';
+    const headerRange = `${sheetName}!B2:BI2`;
+    const championNamesRange = `${sheetName}!A5:A`;
+
+    const [playerNames, championNames] = await sheetsService.readSheets(config.MCOC_SHEET_ID, [headerRange, championNamesRange]);
+
+    if (!playerNames || !championNames) {
+        console.error('Failed to read player or champion names from the sheet.');
+        return;
+    }
+
+    const playerIndex = playerNames[0].findIndex(name => name === player.ingameName);
+
+    if (playerIndex === -1) {
+        console.log(`Player ${player.ingameName} not found in the sheet.`);
+        return;
+    }
+
+    const columnIndex = playerIndex + (stars === 6 ? 1 : 2);
+    const columnLetter = String.fromCharCode(65 + (columnIndex % 26));
+    const columnPrefix = columnIndex >= 26 ? String.fromCharCode(65 + Math.floor(columnIndex / 26) - 1) : '';
+    const targetColumn = `${columnPrefix}${columnLetter}`;
+
+    const targetRange = `${sheetName}!${targetColumn}5:${targetColumn}`;
+
+    const existingRosterData = await sheetsService.readSheet(config.MCOC_SHEET_ID, targetRange);
+    const newRosterData = existingRosterData ? [...existingRosterData] : [];
+
+    const flatUpdatedChampions = updatedChampions.flat();
+
+    for (let i = 0; i < championNames.length; i++) {
+        const sheetChampionName = championNames[i][0];
+        const updatedChampion = flatUpdatedChampions.find(c => c.champion.name === sheetChampionName);
+
+        if (updatedChampion) {
+            if (i >= newRosterData.length) {
+                // Pad the array if needed
+                for (let j = newRosterData.length; j <= i; j++) {
+                    newRosterData.push([]);
+                }
+            }
+            let sheetRank = rank;
+            if (isAscended && stars === 6) {
+                sheetRank += 1;
+            }
+            newRosterData[i] = [`${sheetRank}${updatedChampion.isAwakened ? '*' : ''}`];
+        }
+    }
+
+    await sheetsService.writeSheet(config.MCOC_SHEET_ID, targetRange, newRosterData);
+    console.log(`Successfully updated ${player.ingameName}'s ${stars}* roster in the sheet.`);
 }
 
 async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer): Promise<ChampionGridCell[][]> {
@@ -933,6 +1003,83 @@ export async function getRoster(playerId: string, stars: number | null, rank: nu
     }
 
     return rosterEntries;
+}
+
+export async function importRosterFromSheet(playerId: string) {
+    const player = await prisma.player.findUnique({ where: { id: playerId } });
+    if (!player) {
+        console.error(`Player with ID ${playerId} not found.`);
+        return;
+    }
+
+    const sheetName = 'Roster';
+    const headerRange = `${sheetName}!B2:BI2`;
+    const championNamesRange = `${sheetName}!A5:A`;
+
+    const [playerNames, championNames] = await sheetsService.readSheets(config.MCOC_SHEET_ID, [headerRange, championNamesRange]);
+
+    if (!playerNames || !championNames) {
+        console.error('Failed to read player or champion names from the sheet.');
+        return;
+    }
+
+    const playerIndex = playerNames[0].findIndex(name => name === player.ingameName);
+
+    if (playerIndex === -1) {
+        console.log(`Player ${player.ingameName} not found in the sheet, skipping roster import.`);
+        return;
+    }
+
+    const rosterDataToCreate: Prisma.RosterCreateManyInput[] = [];
+    const allChampions = await prisma.champion.findMany();
+    const championMap = new Map(allChampions.map(c => [c.name, c]));
+
+    for (const stars of [6, 7]) {
+        const columnIndex = playerIndex + (stars === 6 ? 1 : 2);
+        const columnLetter = String.fromCharCode(65 + (columnIndex % 26));
+        const columnPrefix = columnIndex >= 26 ? String.fromCharCode(65 + Math.floor(columnIndex / 26) - 1) : '';
+        const targetColumn = `${columnPrefix}${columnLetter}`;
+        const targetRange = `${sheetName}!${targetColumn}5:${targetColumn}`;
+
+        const rosterColumn = await sheetsService.readSheet(config.MCOC_SHEET_ID, targetRange);
+
+        if (rosterColumn) {
+            for (let i = 0; i < rosterColumn.length; i++) {
+                const sheetValue = rosterColumn[i][0];
+                if (sheetValue && championNames[i] && championNames[i][0]) {
+                    const champion = championMap.get(championNames[i][0]);
+                    if (champion) {
+                        const sheetRank = parseInt(sheetValue.replace('*', ''));
+                        const isAwakened = sheetValue.includes('*');
+                        let dbRank = sheetRank;
+                        let isAscended = false;
+
+                        if (stars === 6 && sheetRank === 6) {
+                            dbRank = 5;
+                            isAscended = true;
+                        }
+
+                        rosterDataToCreate.push({
+                            playerId,
+                            championId: champion.id,
+                            stars,
+                            rank: dbRank,
+                            isAwakened,
+                            isAscended,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    if (rosterDataToCreate.length > 0) {
+        await prisma.roster.createMany({
+            data: rosterDataToCreate,
+            skipDuplicates: true,
+        });
+        console.log(`Successfully imported ${rosterDataToCreate.length} champions for ${player.ingameName}.`);
+    }
 }
 
 export async function deleteRoster(where: Prisma.RosterWhereInput): Promise<string> {
