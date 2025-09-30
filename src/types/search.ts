@@ -6,6 +6,7 @@ import {
   AbilityCategory,
   Attack,
   Hit,
+  Roster,
 } from "@prisma/client";
 
 export interface SearchCoreParams {
@@ -30,4 +31,8 @@ export type ChampionWithRelations = Champion & {
   attacks: (Attack & {
     hits: Hit[];
   })[];
+};
+
+export type RosterEntryWithChampionRelations = Roster & {
+    champion: ChampionWithRelations;
 };
