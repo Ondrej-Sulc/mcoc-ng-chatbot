@@ -153,10 +153,11 @@ async function saveRoster(grid: ChampionGridCell[][], playerId: string, stars: n
       if (cell.championName) {
         const champion = championMap.get(cell.championName);
         if (champion) {
+          const powerRatingInt = cell.powerRating ? parseInt(cell.powerRating.replace(/[,.]/g, ''), 10) : undefined;
           const rosterEntry = await prisma.roster.upsert({
             where: { playerId_championId_stars: { playerId, championId: champion.id, stars } },
-            update: { rank, isAwakened: cell.isAwakened || false, isAscended },
-            create: { playerId, championId: champion.id, stars, rank, isAwakened: cell.isAwakened || false, isAscended },
+            update: { rank, isAwakened: cell.isAwakened || false, isAscended, powerRating: powerRatingInt },
+            create: { playerId, championId: champion.id, stars, rank, isAwakened: cell.isAwakened || false, isAscended, powerRating: powerRatingInt },
             include: { champion: true },
           });
           newRow.push(rosterEntry);
