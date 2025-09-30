@@ -40,6 +40,29 @@ class SheetsService {
   }
 
   /**
+   * Reads data from multiple ranges in a Google Sheet in a single API call.
+   * @param spreadsheetId The ID of the spreadsheet.
+   * @param ranges An array of A1 notation strings of the ranges to retrieve.
+   * @returns An array of 2D arrays of the data, corresponding to the order of the ranges, or null for ranges with no data.
+   */
+  public async readSheets(
+    spreadsheetId: string,
+    ranges: string[]
+  ): Promise<(any[][] | null)[]> {
+    const response = await this.sheets.spreadsheets.values.batchGet({
+      spreadsheetId,
+      ranges,
+    });
+    
+    const valueRanges = response.data.valueRanges;
+    if (!valueRanges) {
+      return ranges.map(() => null);
+    }
+
+    return valueRanges.map(valueRange => valueRange.values || null);
+  }
+
+  /**
    * Writes data to a specified range in a Google Sheet.
    * This will overwrite any existing data in the range.
    * @param spreadsheetId The ID of the spreadsheet.

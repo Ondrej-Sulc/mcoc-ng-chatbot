@@ -242,11 +242,10 @@ function handleInfo(champion: ChampionWithAllRelations): CommandResult {
     !fullAbilities ||
     (!fullAbilities.signature && !fullAbilities.abilities_breakdown)
   ) {
-    return {
-      content: `Detailed abilities are not available for ${champion.name}.`,
-      ephemeral: true,
-    };
-  }
+          return {
+            content: `Detailed abilities are not available for ${champion.name}.`,
+            flags: MessageFlags.Ephemeral,
+          };  }
 
   const containers: ContainerBuilder[] = [];
   let currentContainer = new ContainerBuilder().setAccentColor(
@@ -362,7 +361,7 @@ export async function core(
     if (!champion) {
       return {
         content: `Champion "${championName}" not found.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       };
     }
 
@@ -414,7 +413,7 @@ export async function core(
         );
         break;
       default:
-        return { content: "Invalid subcommand.", ephemeral: true };
+        return { content: "Invalid subcommand.", flags: MessageFlags.Ephemeral };
     }
 
     if (result.components && result.components.length > 0) {
@@ -428,7 +427,7 @@ export async function core(
       location: `command:champion:${subcommand}`,
       userId: userId,
     });
-    return { content: userMessage, ephemeral: false };
+    return { content: userMessage };
   }
 }
 

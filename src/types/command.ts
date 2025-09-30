@@ -19,7 +19,7 @@ export interface CommandResult {
   embeds?: any;
   files?: AttachmentBuilder[];
   isComponentsV2?: boolean;
-  ephemeral?: boolean;
+  flags?: number;
 }
 
 export interface Command {

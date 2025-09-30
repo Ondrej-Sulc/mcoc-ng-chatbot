@@ -18,7 +18,7 @@ import { createEmojiResolver } from "../utils/emojiResolver";
 const authorizedUsers = config.DEV_USER_IDS || [];
 
 async function handleRosterDebug(interaction: ChatInputCommandInteraction): Promise<void> {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const images: Attachment[] = [];
   for (let i = 1; i <= 10; i++) {
@@ -67,8 +67,7 @@ async function handleRosterDebug(interaction: ChatInputCommandInteraction): Prom
       await interaction.followUp({ 
         components: [container],
         files, 
-        ephemeral: true,
-        flags: [MessageFlags.IsComponentsV2]
+        flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
       });
 
     } catch (error) {
@@ -77,7 +76,7 @@ async function handleRosterDebug(interaction: ChatInputCommandInteraction): Prom
         userId: interaction.user.id,
         extra: { imageName: image.name }
       });
-      await interaction.followUp({ content: `### Error processing ${image.name}:\n${userMessage}`, ephemeral: true });
+      await interaction.followUp({ content: `### Error processing ${image.name}:\n${userMessage}`, flags: MessageFlags.Ephemeral });
     }
   }
 }
@@ -104,7 +103,7 @@ export const command: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (authorizedUsers.length === 0 || !authorizedUsers.includes(interaction.user.id)) {
-        await interaction.reply({ content: 'You are not authorized to use this command.', ephemeral: true });
+        await interaction.reply({ content: 'You are not authorized to use this command.', flags: MessageFlags.Ephemeral });
         return;
     }
 

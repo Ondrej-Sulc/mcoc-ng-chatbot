@@ -38,7 +38,7 @@ export async function core(
       });
 
       if (!effect) {
-        return { content: `Effect "${name}" not found.`, ephemeral: true };
+        return { content: `Effect "${name}" not found.`, flags: MessageFlags.Ephemeral };
       }
 
       const embed = new EmbedBuilder()
@@ -127,7 +127,7 @@ export async function core(
       });
 
       if (!category) {
-        return { content: `Category "${name}" not found.`, ephemeral: true };
+        return { content: `Category "${name}" not found.`, flags: MessageFlags.Ephemeral };
       }
 
       const embed = new EmbedBuilder()
@@ -166,13 +166,13 @@ export async function core(
 
       return { embeds: [embed] };
     }
-    return { content: "Invalid subcommand.", ephemeral: true };
+    return { content: "Invalid subcommand.", flags: MessageFlags.Ephemeral };
   } catch (error) {
     const { userMessage } = handleError(error, {
       location: `command:glossary:${subcommand}`,
       userId: userId,
     });
-    return { content: userMessage, ephemeral: true };
+    return { content: userMessage, flags: MessageFlags.Ephemeral };
   }
 }
 

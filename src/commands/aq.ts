@@ -205,9 +205,7 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
 
     if (!("send" in channel)) {
       return {
-        content: "Please choose a text-based channel.",
-        ephemeral: true,
-      };
+                flags: MessageFlags.Ephemeral,      };
     }
 
     const channelId = channel.id;
@@ -215,13 +213,13 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
     if (existing && existing.status === "active") {
       return {
         content: "An AQ tracker is already active in that channel.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       };
     }
 
     const role = guild.roles.cache.get(roleId);
     if (!role) {
-      return { content: "Selected role not found.", ephemeral: true };
+      return { content: "Selected role not found.", flags: MessageFlags.Ephemeral };
     }
 
     await guild.members.fetch();
@@ -280,7 +278,7 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
 
     await setState(channelId, state);
 
-    return { content: "AQ Tracker started successfully.", ephemeral: true };
+    return { content: "AQ Tracker started successfully.", flags: MessageFlags.Ephemeral };
   } else if (params.subcommand === "end") {
     const { channel, user } = params;
     const channelId = channel.id;
@@ -288,7 +286,7 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
     if (!state || state.status !== "active") {
       return {
         content: "No active AQ tracker in that channel.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       };
     }
     state.status = "ended_manual";
@@ -311,9 +309,9 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
       }
     } catch {}
     await setState(channelId, undefined);
-    return { content: "AQ tracker ended.", ephemeral: true };
+    return { content: "AQ tracker ended.", flags: MessageFlags.Ephemeral };
   }
-  return { content: "Invalid subcommand.", ephemeral: true };
+  return { content: "Invalid subcommand.", flags: MessageFlags.Ephemeral };
 }
 
 export const command: Command = {
@@ -352,7 +350,7 @@ export const command: Command = {
         .addBooleanOption((o) =>
           o
             .setName("create_thread")
-            .setDescription("Create a thread for updates (defaults to yes)")
+            .setDescription("Create a thread for updates (defaults to false)")
         )
     )
     .addSubcommand((sub) =>

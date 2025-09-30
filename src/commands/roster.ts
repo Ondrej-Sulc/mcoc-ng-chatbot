@@ -406,7 +406,7 @@ async function handleSummary(interaction: ChatInputCommandInteraction): Promise<
 }
 
 async function handleDelete(interaction: ChatInputCommandInteraction): Promise<void> {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   const playerOption = interaction.options.getUser("player");
   const targetUser = playerOption || interaction.user;
 

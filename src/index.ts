@@ -25,7 +25,7 @@ const prisma = new PrismaClient();
 registerButtonHandler('roster_delete_all_confirm', async (interaction) => {
     const playerId = interaction.customId.split(':')[1];
     if (!playerId) {
-        await interaction.reply({ content: 'Error: Player ID not found.', ephemeral: true });
+        await interaction.reply({ content: 'Error: Player ID not found.', flags: MessageFlags.Ephemeral });
         return;
     }
     const result = await deleteRoster({ playerId });

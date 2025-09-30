@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ChannelType, Collection, ThreadChannel } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, ChannelType, Collection, ThreadChannel, MessageFlags } from 'discord.js';
 import { Command } from '../types/command';
 import { config } from '../config';
 import { sheetsService } from '../services/sheetsService';
@@ -65,7 +65,7 @@ export const command: Command = {
 };
 
 async function handlePlan(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const battlegroup = interaction.options.getInteger('battlegroup', true);
   const targetUser = interaction.options.getUser('player');
@@ -95,10 +95,7 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
 
     const assignmentsRange = `'${sheetTabName}'!${config.allianceWar.dataRange}`;
     const prefightsRange = `'${sheetTabName}'!${config.allianceWar.prefight.range}`;
-    const [assignmentsData, prefightsData] = await Promise.all([
-        sheetsService.readSheet(config.MCOC_SHEET_ID, assignmentsRange),
-        sheetsService.readSheet(config.MCOC_SHEET_ID, prefightsRange),
-    ]);
+    const [assignmentsData, prefightsData] = await sheetsService.readSheets(config.MCOC_SHEET_ID, [assignmentsRange, prefightsRange]);
 
     const playerDataMap = new Map<string, { assignments: { node: string; description: string }[], prefights: string[] }>();
 
@@ -195,7 +192,7 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
     };
 
     if (targetUser) {
-        const player = await prisma.player.findUnique({ where: { id: targetUser.id } });
+        const player = await prisma.player.findUnique({ where: { discordId: targetUser.id } });
         if (!player || !player.ingameName) {
             await interaction.editReply(`Player ${targetUser.username} is not registered or has no in-game name set.`);
             return;
@@ -203,9 +200,8 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
         const playerName = player.ingameName.toLowerCase();
         await sendPlan(playerName);
     } else {
-        for (const playerName of playerDataMap.keys()) {
-            await sendPlan(playerName);
-        }
+        const planPromises = Array.from(playerDataMap.keys()).map(playerName => sendPlan(playerName));
+        await Promise.all(planPromises);
     }
 
     const summary = `**AW Plan for ${sheetTabName}**\n` +
@@ -222,7 +218,7 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleDetails(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   if (!interaction.channel || !interaction.channel.isThread()) {
     await interaction.editReply('This command can only be used in a player\'s war thread.');
@@ -248,11 +244,7 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
     const prefightsRange = `'${sheetTabName}'!${config.allianceWar.prefight.range}`;
     const nodesRange = `'${sheetTabName}'!${config.allianceWar.nodesRange}`;
 
-    const [assignmentsData, prefightsData, nodesData] = await Promise.all([
-      sheetsService.readSheet(config.MCOC_SHEET_ID, assignmentsRange),
-      sheetsService.readSheet(config.MCOC_SHEET_ID, prefightsRange),
-      sheetsService.readSheet(config.MCOC_SHEET_ID, nodesRange),
-    ]);
+    const [assignmentsData, prefightsData, nodesData] = await sheetsService.readSheets(config.MCOC_SHEET_ID, [assignmentsRange, prefightsRange, nodesRange]);
 
     const playerAssignments: { node: string; description: string }[] = [];
     if (assignmentsData) {

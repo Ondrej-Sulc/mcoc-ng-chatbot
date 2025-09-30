@@ -324,7 +324,7 @@ async function autocomplete(interaction: AutocompleteInteraction) {
 
 async function handleUpdate(interaction: ChatInputCommandInteraction) {
   const debug = interaction.options.getBoolean("debug") ?? false;
-  await interaction.deferReply({ ephemeral: debug });
+  await interaction.deferReply({ flags: debug ? MessageFlags.Ephemeral : undefined });
 
   const image = interaction.options.getAttachment("image") as Attachment;
   const targetUserId = interaction.options.getString("player") ?? undefined;
@@ -434,7 +434,7 @@ export async function core(params: {
           if (i.user.id !== userId) {
             await i.reply({
               content: "You cannot respond to this confirmation.",
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             });
             return;
           }
