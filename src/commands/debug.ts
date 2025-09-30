@@ -42,7 +42,7 @@ async function handleRosterDebug(interaction: ChatInputCommandInteraction): Prom
       // Pass dummy values.
       const stars = 0;
       const rank = 0;
-      const result = await processRosterScreenshot(image.url, stars, rank, true) as RosterDebugResult;
+      const result = await processRosterScreenshot(image.url, stars, rank, false, true) as RosterDebugResult;
 
       const files: AttachmentBuilder[] = [];
       const container = new ContainerBuilder();
