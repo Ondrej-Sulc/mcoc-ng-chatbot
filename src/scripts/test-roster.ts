@@ -6,7 +6,7 @@ import * as path from 'path';
 const prisma = new PrismaClient();
 
 // URL from the user
-const imageUrl = 'https://media.discordapp.net/attachments/1194385255814148107/1420291270886166559/Screenshot_2025-09-24-08-07-53-974_com.kabam.marvelbattle.jpg?ex=68d82892&is=68d6d712&hm=7fd8f67a6e2c2b2ae1dec2cf0217f54a830886f5bc2ec75a9cca3d7e97d5ef80&=&format=webp&width=1408&height=634';
+const imageUrl = 'https://cdn.discordapp.com/ephemeral-attachments/1422501362201006123/1422812162069364768/IMG_2249.png?ex=68de0896&is=68dcb716&hm=e6723290139c075c7745652f6f4852c38baef96ffe18845542c8044c5b8a0e49&';
 const stars = 6;
 const rank = 5;
 

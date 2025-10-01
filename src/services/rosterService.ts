@@ -93,7 +93,7 @@ export async function processRosterScreenshot(
   if (debugMode) {
     console.log(`[DEBUG] Processed ${ocrResults.length} OCR results.`);
     // Log a sample of OCR results
-    console.log('[DEBUG] OCR results sample:', ocrResults.slice(0, 50).map(r => r.text));
+    console.log('[DEBUG] OCR results sample:', ocrResults.slice(0, 100).map(r => r.text));
   }
 
   // 5. Estimate grid and parse champions
@@ -621,8 +621,11 @@ function mergeOcrResults(ocrResults: OcrResult[], horizontalThreshold = 40): Ocr
     const hasEnoughVerticalOverlap = verticalOverlap > (nextBox[3].y - nextBox[0].y) * VERTICAL_OVERLAP_THRESHOLD_RATIO;
 
     const ratingPattern = /^(\d{1,2}[.,]\d{3}|\d{3}).*$/;
+    const yearPattern = /^\d{4}$/;
 
-    if (isHorizontallyClose && hasEnoughVerticalOverlap && !ratingPattern.test(current.text) && !ratingPattern.test(next.text)) {
+    const isNextTextRatingLike = ratingPattern.test(next.text) && !yearPattern.test(next.text);
+
+    if (isHorizontallyClose && hasEnoughVerticalOverlap && !ratingPattern.test(current.text) && !isNextTextRatingLike) {
       // Merge text and bounds
       let separator = ' ';
       if (next.text === '-' || current.text.endsWith('-')) {
