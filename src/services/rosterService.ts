@@ -684,6 +684,8 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
   const championTexts: OcrResult[] = [];
   const ratingTexts: OcrResult[] = [];
 
+  const championNamePattern = /^[A-Z0-9- '.()]+$/;
+
   for (const result of mergedOcrResults) {
     if (ratingPattern.test(result.text)) {
       ratingTexts.push(result);
@@ -691,7 +693,8 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
       result.text.length > 1 &&
       result.text.toUpperCase() === result.text &&
       !starPattern.test(result.text) && // Exclude strings of only asterisks
-      !/^[0-9]+$/.test(result.text) // Exclude strings of only numbers
+      !/^[0-9]+$/.test(result.text) && // Exclude strings of only numbers
+      championNamePattern.test(result.text)
     ) {
       championTexts.push(result);
     }
