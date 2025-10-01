@@ -198,7 +198,7 @@ async function updateRosterInSheet(playerId: string, stars: number, rank: number
         return;
     }
 
-    const playerIndex = playerNames[0].findIndex(name => name === player.ingameName);
+    const playerIndex = playerNames[0].findIndex(name => name.toLowerCase() === player.ingameName.toLowerCase());
 
     if (playerIndex === -1) {
         console.log(`Player ${player.ingameName} not found in the sheet.`);
@@ -219,7 +219,7 @@ async function updateRosterInSheet(playerId: string, stars: number, rank: number
 
     for (let i = 0; i < championNames.length; i++) {
         const sheetChampionName = championNames[i][0];
-        const updatedChampion = flatUpdatedChampions.find(c => c.champion.name === sheetChampionName);
+        const updatedChampion = flatUpdatedChampions.find(c => c.champion.name.toLowerCase() === sheetChampionName.toLowerCase());
 
         if (updatedChampion) {
             if (i >= newRosterData.length) {
@@ -1030,7 +1030,7 @@ export async function importRosterFromSheet(playerId: string) {
         return;
     }
 
-    const playerIndex = playerNames[0].findIndex(name => name === player.ingameName);
+    const playerIndex = playerNames[0].findIndex(name => name.toLowerCase() === player.ingameName.toLowerCase());
 
     if (playerIndex === -1) {
         console.log(`Player ${player.ingameName} not found in the sheet, skipping roster import.`);
@@ -1039,7 +1039,7 @@ export async function importRosterFromSheet(playerId: string) {
 
     const rosterDataToCreate: Prisma.RosterCreateManyInput[] = [];
     const allChampions = await prisma.champion.findMany();
-    const championMap = new Map(allChampions.map(c => [c.name, c]));
+    const championMap = new Map(allChampions.map(c => [c.name.toLowerCase(), c]));
 
     for (const stars of [6, 7]) {
         const columnIndex = playerIndex + (stars === 6 ? 1 : 2);
@@ -1054,7 +1054,7 @@ export async function importRosterFromSheet(playerId: string) {
             for (let i = 0; i < rosterColumn.length; i++) {
                 const sheetValue = rosterColumn[i][0];
                 if (sheetValue && championNames[i] && championNames[i][0]) {
-                    const champion = championMap.get(championNames[i][0]);
+                    const champion = championMap.get(championNames[i][0].toLowerCase());
                     if (champion) {
                         const sheetRank = parseInt(sheetValue.replace('*', ''));
                         const isAwakened = sheetValue.includes('*');

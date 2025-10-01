@@ -71,15 +71,15 @@ _This list will be populated to track the migration status of each command._
 - **`account.py`**:
   - `/link_account`: Migrated to `/profile register`
   - `/delete_account_link`: To be reviewed
-  - `/register_thread`: To be reviewed
-  - `/unregister_thread`: To be reviewed
+  - `/register_thread`: Not planned for migration (server-specific)
+  - `/unregister_thread`: Not planned for migration (server-specific)
 - **`admin.py`**:
   - `/update_bot`: Not to be migrated (not necessary anymore)
   - `/sync_commands`: Not to be migrated (not necessary anymore)
   - `/update`: Not to be migrated (not necessary anymore)
 - **`aq.py`**:
   - `/aq` (group command): Migrated
-    - `/aq start`: Migrated 
+    - `/aq start`: Migrated
     - `/aq end`: Migrated
     - `/aq test_ping`: Just migrated for testing then removed
 - **`champion_info.py`**:
@@ -87,9 +87,9 @@ _This list will be populated to track the migration status of each command._
   - `/glossary`: Migrated to `/glossary effect`
   - `/glossary_category`: Migrated to `/glossary category`
   - `/attacks`: Migrated to `/champion attacks`
-  - `/search`: Migrated
-  - `/my_roster_search`: To be reviewed (requires roster implementation)
-  - `/roster_search`: To be reviewed (requires roster implementation)
+  - `/search`: Migrated to `/search all`
+  - `/my_roster_search`: Migrated to `/search roster`
+  - `/roster_search`: Migrated to `/search roster`
   - `/duel`: To be reviewed (requires external data source)
   - `/immunities`: Migrated to `/champion immunities`
   - `/abilities`: Migrated to `/champion abilities`
@@ -139,6 +139,20 @@ The legacy `$roster` text command has been completely migrated and overhauled in
 
 -   **Database Resilience**:
     -   Work is in progress to implement a retry mechanism for database operations, making the bot more resilient to transient connection issues.
+
+### Search Command Overhaul
+
+The legacy search commands have been consolidated into a single, powerful `/search` command with subcommands, leveraging the PostgreSQL database for complex queries.
+
+-   **`/search all`**:
+    -   Replaces the original `/search` command.
+    -   Allows searching all champions in the game based on a combination of criteria, including `abilities`, `immunities`, `tags`, `class`, and even `ability-category`.
+    -   Supports complex queries with `and`/`or` logic.
+
+-   **`/search roster`**:
+    -   Replaces the `/my_roster_search` and `/roster_search` commands.
+    -   Performs the same advanced searches as `/search all`, but filters the results against a specified player's roster (defaults to the user running the command).
+    -   Results are paginated and displayed in an easy-to-read embed.
 
 ---
 
