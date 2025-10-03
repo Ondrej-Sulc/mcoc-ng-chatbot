@@ -240,6 +240,24 @@ async function updateRosterInSheet(playerId: string, stars: number, rank: number
     console.log(`Successfully updated ${player.ingameName}'s ${stars}* roster in the sheet.`);
 }
 
+async function getAverageColor(imageBuffer: Buffer): Promise<{ r: number; g: number; b: number }> {
+  const stats = await sharp(imageBuffer).stats();
+  // stats.channels is an array of { min, max, sum, squares, mean, stdev } for each channel
+  return {
+    r: stats.channels[0].mean,
+    g: stats.channels[1].mean,
+    b: stats.channels[2].mean,
+  };
+}
+
+function getColorDistance(color1: { r: number; g: number; b: number }, color2: { r: number; g: number; b: number }): number {
+  return Math.sqrt(
+    Math.pow(color1.r - color2.r, 2) +
+    Math.pow(color1.g - color2.g, 2) +
+    Math.pow(color1.b - color2.b, 2)
+  );
+}
+
 async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer): Promise<ChampionGridCell[][]> {
   // --- Constants for tuning the image-based short name solving ---
   // The ratio of the cell height to crop from the bottom to isolate the portrait.
@@ -327,6 +345,7 @@ async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer):
             .toBuffer();
 
           const championHash = await getImageHash(innerChampionImageBuffer);
+          const championAvgColor = await getAverageColor(innerChampionImageBuffer);
 
           let bestMatch: Champion | null = null;
           let bestMatchScore = Infinity;
@@ -354,10 +373,20 @@ async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer):
               .toBuffer();
 
             const officialImageHash = await getImageHash(innerOfficialImageBuffer);
-            const score = compareHashes(championHash, officialImageHash);
+            const officialImageAvgColor = await getAverageColor(innerOfficialImageBuffer);
 
-            if (score < bestMatchScore) {
-              bestMatchScore = score;
+            const hashDistance = compareHashes(championHash, officialImageHash);
+            const colorDistance = getColorDistance(championAvgColor, officialImageAvgColor);
+
+            // Normalize scores (0-1 range)
+            const normalizedHashScore = hashDistance / 256; // Max hash distance is 256 for 16x16
+            const normalizedColorScore = colorDistance / 441.67; // Max color distance is sqrt(3 * 255^2)
+
+            // Combine scores (lower is better). Give more weight to hash score.
+            const combinedScore = (0.7 * normalizedHashScore) + (0.3 * normalizedColorScore);
+
+            if (combinedScore < bestMatchScore) {
+              bestMatchScore = combinedScore;
               bestMatch = possibleChampion;
               bestMatchOfficialImageBuffer = officialImageBuffer;
             }
@@ -620,6 +649,8 @@ function mergeOcrResults(ocrResults: OcrResult[], horizontalThreshold = 40): Ocr
     const isHorizontallyClose = horizontalDistance >= HORIZONTAL_OVERLAP_TOLERANCE && horizontalDistance < horizontalThreshold;
     const hasEnoughVerticalOverlap = verticalOverlap > (nextBox[3].y - nextBox[0].y) * VERTICAL_OVERLAP_THRESHOLD_RATIO;
 
+
+
     const ratingPattern = /^(\d{1,2}[.,]\d{3}|\d{3}).*$/;
     const yearPattern = /^\d{4}$/;
 
@@ -671,11 +702,10 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
 
 
   const mergedOcrResultsForBoundary = mergeOcrResults(ocrResults);
-  // Find the top boundary based on the "INFORMATION" text
   const infoText = mergedOcrResultsForBoundary.find(r => r.text.includes('INFORMATION'));
   let topBoundary = 0;
   if (infoText) {
-    topBoundary = infoText.bounds[3].y; // Use the bottom y-coordinate
+    topBoundary = infoText.bounds[3].y;
     if (debugMode) console.log(`[DEBUG] Found top boundary at y=${topBoundary}`);
   }
 
@@ -683,23 +713,23 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
   const mergedOcrResults = mergeOcrResults(ocrResultsBelowBoundary);
 
   const ratingPattern = /^(\d{1,2}[.,]\d{3}|\d{3}).*$/;
-  const starPattern = /^[\*X]+$/; // Matches one or more asterisks or X's
-  const championTexts: OcrResult[] = [];
-  const ratingTexts: OcrResult[] = [];
-
+  const starPattern = /^[\*X]+$/;
   const championNamePattern = /^[A-Z0-9- '.()]+$/;
+
+  const ratingTexts: OcrResult[] = [];
+  const potentialNameParts: OcrResult[] = [];
 
   for (const result of mergedOcrResults) {
     if (ratingPattern.test(result.text)) {
       ratingTexts.push(result);
     } else if (
-      result.text.length > 1 &&
+      result.text.length > 0 &&
       result.text.toUpperCase() === result.text &&
-      !starPattern.test(result.text) && // Exclude strings of only asterisks
-      !/^[0-9]+$/.test(result.text) && // Exclude strings of only numbers
+      !starPattern.test(result.text) &&
+      !/^[0-9]+$/.test(result.text) &&
       championNamePattern.test(result.text)
     ) {
-      championTexts.push(result);
+      potentialNameParts.push(result);
     }
   }
 
@@ -708,41 +738,71 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
     return { grid: [], topBoundary: 0 };
   }
 
-  // Pair champions with ratings
   const championData: { name: string; rating: string; nameBounds: Vertex[]; ratingBounds: Vertex[] }[] = [];
-  for (const champText of championTexts) {
-    let closestRating: OcrResult | null = null;
-    let minDistance = Infinity;
 
-    const champLeftX = champText.bounds[0].x;
-    const champBottomY = champText.bounds[3].y;
+  const primaryParts = [...potentialNameParts];
+
+  for (const primaryPart of primaryParts) {
+    let closestRating: OcrResult | null = null;
+    let minRatingDistance = Infinity;
+
+    const primaryPartCenterX = (primaryPart.bounds[0].x + primaryPart.bounds[1].x) / 2;
+    const primaryPartBottomY = primaryPart.bounds[3].y;
 
     for (const ratingText of ratingTexts) {
-      const ratingLeftX = ratingText.bounds[0].x;
+      const ratingCenterX = (ratingText.bounds[0].x + ratingText.bounds[1].x) / 2;
       const ratingTopY = ratingText.bounds[0].y;
 
-      const horizontalDist = Math.abs(champLeftX - ratingLeftX);
-      const verticalDist = ratingTopY - champBottomY;
+      const horizontalDist = Math.abs(primaryPartCenterX - ratingCenterX);
+      const verticalDist = ratingTopY - primaryPartBottomY;
 
-      // Rating should be below the champion and horizontally aligned to the left
       if (verticalDist > 0 && verticalDist < VERTICAL_PAIRING_TOLERANCE && horizontalDist < HORIZONTAL_PAIRING_TOLERANCE) {
         const distance = Math.sqrt(horizontalDist * horizontalDist + verticalDist * verticalDist);
-        if (distance < minDistance) {
-          minDistance = distance;
+        if (distance < minRatingDistance) {
+          minRatingDistance = distance;
           closestRating = ratingText;
         }
       }
     }
 
     if (closestRating) {
+      let secondaryPart: OcrResult | null = null;
+      let minSecondaryDist = Infinity;
+
+      for (const possibleSecondary of potentialNameParts) {
+        if (possibleSecondary === primaryPart) continue;
+
+        const isBelowPrimary = possibleSecondary.bounds[0].y > primaryPart.bounds[3].y;
+        const isAboveRating = possibleSecondary.bounds[3].y < closestRating.bounds[0].y;
+        const isAligned = Math.abs(possibleSecondary.bounds[0].x - primaryPart.bounds[0].x) < HORIZONTAL_PAIRING_TOLERANCE;
+
+        if (isBelowPrimary && isAboveRating && isAligned) {
+          const dist = possibleSecondary.bounds[0].y - primaryPart.bounds[3].y;
+          if (dist < minSecondaryDist) {
+            minSecondaryDist = dist;
+            secondaryPart = possibleSecondary;
+          }
+        }
+      }
+
+      let finalName = primaryPart.text;
+      let finalBounds = primaryPart.bounds;
+      if (secondaryPart) {
+        finalName += ` ${secondaryPart.text}`;
+        finalBounds[2] = secondaryPart.bounds[2];
+        finalBounds[3] = secondaryPart.bounds[3];
+        potentialNameParts.splice(potentialNameParts.indexOf(secondaryPart), 1);
+      }
+
       championData.push({
-        name: champText.text,
+        name: finalName,
         rating: closestRating.text,
-        nameBounds: champText.bounds,
+        nameBounds: finalBounds,
         ratingBounds: closestRating.bounds,
       });
-      // Remove the used rating to avoid pairing it with another champion
+
       ratingTexts.splice(ratingTexts.indexOf(closestRating), 1);
+      potentialNameParts.splice(potentialNameParts.indexOf(primaryPart), 1);
     }
   }
 
@@ -779,7 +839,6 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
     };
 
     const grid: ChampionGridCell[][] = [[singleCell]];
-    // Place the champion in the cell for awakened check and short name solve
     grid[0][0] = singleCell;
 
     return { grid, topBoundary };
@@ -850,7 +909,6 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
     }
   }
 
-  // Filter out rows that are above the top boundary
   if (topBoundary > 0) {
     grid = grid.filter(row => {
       const firstCell = row[0];
@@ -860,7 +918,6 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
     });
   }
 
-  // Place champions in grid
   if (debugMode) console.log(`[DEBUG] Placing ${championData.length} identified champions into the grid...`);
   for (const champ of championData) {
     const centerX = (champ.nameBounds[0].x + champ.nameBounds[1].x) / 2;
@@ -912,7 +969,6 @@ async function estimateGrid(ocrResults: OcrResult[], imageBuffer: Buffer, debugM
     }
   }
 
-  // Trim empty cells from the end of the last row
   if (grid.length > 0) {
     const lastRow = grid[grid.length - 1];
     let lastChampionIndex = -1;
