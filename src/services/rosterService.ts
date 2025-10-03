@@ -383,7 +383,7 @@ async function solveShortNames(grid: ChampionGridCell[][], imageBuffer: Buffer):
             const normalizedColorScore = colorDistance / 441.67; // Max color distance is sqrt(3 * 255^2)
 
             // Combine scores (lower is better). Give more weight to hash score.
-            const combinedScore = (0.7 * normalizedHashScore) + (0.3 * normalizedColorScore);
+            const combinedScore = (0.8 * normalizedHashScore) + (0.2 * normalizedColorScore);
 
             if (combinedScore < bestMatchScore) {
               bestMatchScore = combinedScore;
