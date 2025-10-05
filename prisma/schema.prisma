@@ -102,7 +102,7 @@ model ChampionAbilityLink {
   abilityId Int
   ability   Ability @relation(fields: [abilityId], references: [id], onDelete: Cascade)
 
-  @@unique([championId, abilityId, type])
+  @@unique([championId, abilityId, type, source])
   @@index([championId])
   @@index([abilityId])
 }

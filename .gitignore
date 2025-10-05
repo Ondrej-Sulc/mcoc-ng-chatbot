@@ -140,6 +140,7 @@ dist
 
 legacy/
 debug/
+backup/
 /src/generated/prisma
 temp_*.ts
 eng.traineddata

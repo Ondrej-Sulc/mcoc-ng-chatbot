@@ -63,15 +63,8 @@ interface RawGlossaryData {
 async function main() {
   console.log("🚀 Starting seed…");
 
-  // 1) Wipe existing data
-  // Order matters to avoid foreign key constraint errors
-  await prisma.championAbilityLink.deleteMany();
-  await prisma.hit.deleteMany();
-  await prisma.attack.deleteMany();
-  await prisma.champion.deleteMany();
-  await prisma.ability.deleteMany();
-  await prisma.abilityCategory.deleteMany();
-  await prisma.tag.deleteMany();
+  // 1) Data seeding is now non-destructive and uses upserts.
+  //    The old destructive 'deleteMany' calls have been removed.
 
   // 2) Load JSON
   const championsRaw: RawChampionData[] = JSON.parse(
@@ -222,16 +215,20 @@ async function seedAbilitiesAndCategories(
 
 /**
  * Normalize a list of source strings for ability/immunity links.
- * - Accepts unknown input and coerces to an array of non-empty, trimmed strings
+ * - Accepts unknown input (e.g. string, string[]) and coerces to an array of non-empty, trimmed strings
  * - If the result is empty, returns a single entry: null (meaning always active)
  */
 function normalizeSources(input: unknown): Array<string | null> {
-  if (!Array.isArray(input)) {
-    return [null];
-  }
-  const cleaned = input
+  const potentialSources = Array.isArray(input)
+    ? input
+    : typeof input === "string"
+    ? [input]
+    : [];
+
+  const cleaned = potentialSources
     .map((value) => (typeof value === "string" ? value.trim() : ""))
     .filter((value) => value.length > 0);
+
   return cleaned.length > 0 ? cleaned : [null];
 }
 
@@ -279,12 +276,11 @@ async function seedChampions(
   abilityMap: Map<string, number>,
   tagMap: Map<string, number>
 ) {
-  console.log(`  - Creating ${champions.length} champions...`);
+  console.log(`  - Upserting ${champions.length} champions...`);
   for (const c of champions) {
     console.log(`    • ${c["Champion Name"]}`);
 
     // 5.1) Ensure any champion-specific ability/immunity is in abilityMap
-    // This handles cases where a champion has an ability not defined in the main glossary.
     const allChampAbilityNames = new Set([
       ...Object.keys(c.Abilities),
       ...Object.keys(c.Immunities),
@@ -295,83 +291,94 @@ async function seedChampions(
         console.log(
           `      + Found new ability/immunity for champion: ${abilityName}`
         );
-        // Create it with minimal data
-        let ab = await prisma.ability.create({
-          data: { name: abilityName },
+        const ab = await prisma.ability.upsert({
+          where: { name: abilityName },
+          update: {},
+          create: { name: abilityName },
         });
         abilityMap.set(ab.name, ab.id);
       }
     }
 
-    // 5.2) Create Champion + nested Attacks + connect Tags
-    try {
-      const champ = await prisma.champion.create({
-        data: {
-          name: c["Champion Name"],
-          shortName: c["Short Name"],
-          class: c.Class.toUpperCase() as ChampionClass,
-          releaseDate: new Date(c["Release Date"]),
-          obtainable: c.Obtainable,
-          prestige: c.Prestige,
-          images: {
-            full_primary: c.primary_image_full,
-            full_secondary: c.secondary_image_full,
-            p_128: c.primary_image_128,
-            s_128: c.secondary_image_128,
-            p_64: c.primary_image_64,
-            s_64: c.secondary_image_64,
-            p_32: c.primary_image_32,
-            s_32: c.secondary_image_32,
-          },
-          discordEmoji: c["Discord Emoji"] || null,
-          fullAbilities: c.full_abilities,
-          tags: {
-            connect: c.Tags.All.map((t) => {
-              const id = tagMap.get(t);
-              if (id === undefined) {
-                throw new Error(
-                  `Tag '${t}' not found in tagMap for champion ${c["Champion Name"]}`
-                );
-              }
-              return { id };
-            }),
-          },
-          attacks: {
-            create: Object.entries(c.Attacks).map(([key, hits]) => ({
-              type: key.toUpperCase() as AttackType,
-              hits: {
-                create: hits.map((properties) => ({ properties })),
-              },
-            })),
-          },
-        },
-      });
-    } catch (error) {
-      console.error(`Failed to create champion ${c["Champion Name"]}:`, error);
-      throw error; // Re-throw to stop the process
-    }
-
-    // 5.3) Link Abilities & Immunities
-    const links: Prisma.ChampionAbilityLinkCreateManyInput[] = [];
-
-    // Ensure champ is defined and initialized before use
-    const champ = await prisma.champion.findUnique({
-      where: { name: c["Champion Name"] },
+    // 5.2) Upsert Champion and connect Tags
+    const tagsToConnect = c.Tags.All.map((t) => {
+      const id = tagMap.get(t);
+      if (id === undefined) {
+        throw new Error(
+          `Tag '${t}' not found in tagMap for champion ${c["Champion Name"]}`
+        );
+      }
+      return { id };
     });
-    if (!champ) {
-      throw new Error(`Champion '${c["Champion Name"]}' not found.`);
+
+    const baseChampionData = {
+      name: c["Champion Name"],
+      shortName: c["Short Name"],
+      class: c.Class.toUpperCase() as ChampionClass,
+      releaseDate: new Date(c["Release Date"]),
+      obtainable: c.Obtainable,
+      prestige: c.Prestige,
+      images: {
+        full_primary: c.primary_image_full,
+        full_secondary: c.secondary_image_full,
+        p_128: c.primary_image_128,
+        s_128: c.secondary_image_128,
+        p_64: c.primary_image_64,
+        s_64: c.secondary_image_64,
+        p_32: c.primary_image_32,
+        s_32: c.secondary_image_32,
+      },
+      discordEmoji: c["Discord Emoji"] || null,
+      fullAbilities: c.full_abilities,
+    };
+
+    const champ = await prisma.champion.upsert({
+      where: { name: c["Champion Name"] },
+      update: {
+        ...baseChampionData,
+        tags: {
+          set: tagsToConnect,
+        },
+      },
+      create: {
+        ...baseChampionData,
+        tags: {
+          connect: tagsToConnect,
+        },
+      },
+    });
+
+    // 5.3) Upsert Attacks and Hits
+    // First, remove old attacks to ensure data consistency
+    await prisma.attack.deleteMany({ where: { championId: champ.id } });
+    // Then, create the new attacks from the JSON
+    const attackData = Object.entries(c.Attacks).map(([key, hits]) => ({
+      championId: champ.id,
+      type: key.toUpperCase() as AttackType,
+      hits: {
+        create: hits.map((properties) => ({ properties })),
+      },
+    }));
+    for (const ad of attackData) {
+      await prisma.attack.create({ data: ad });
     }
 
+    // 5.4) Link Abilities & Immunities
+    // First, remove old links
+    await prisma.championAbilityLink.deleteMany({
+      where: { championId: champ.id },
+    });
+
+    const links: Prisma.ChampionAbilityLinkCreateManyInput[] = [];
     for (const [name, sources] of Object.entries(c.Abilities)) {
       const normalized = normalizeSources(sources);
       for (const src of normalized) {
         const abilityId = abilityMap.get(name);
         if (abilityId === undefined) {
-          // This should not happen now, but let's be safe
           console.error(
-            `Critical: Ability ID for '${name}' not found after ensuring it exists. Champion: ${c["Champion Name"]}`
+            `Critical: Ability ID for '${name}' not found. Champion: ${c["Champion Name"]}`
           );
-          continue; // Or throw an error
+          continue;
         }
         links.push({
           championId: champ.id,
@@ -387,7 +394,7 @@ async function seedChampions(
         const abilityId = abilityMap.get(name);
         if (abilityId === undefined) {
           console.error(
-            `Critical: Immunity ID for '${name}' not found after ensuring it exists. Champion: ${c["Champion Name"]}`
+            `Critical: Immunity ID for '${name}' not found. Champion: ${c["Champion Name"]}`
           );
           continue;
         }
@@ -403,7 +410,7 @@ async function seedChampions(
     if (links.length) {
       await prisma.championAbilityLink.createMany({
         data: links,
-        skipDuplicates: true, // Add this to be extra safe, though our logic should prevent duplicates
+        skipDuplicates: true,
       });
     }
   }
