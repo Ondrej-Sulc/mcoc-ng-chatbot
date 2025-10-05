@@ -4,6 +4,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import { randomBytes } from "crypto";
+import logger from "../services/loggerService";
 
 export type RepliableInteraction =
   | ChatInputCommandInteraction
@@ -56,8 +57,7 @@ export function handleError(error: unknown, context: ErrorContext = {}) {
     rawError: getErrorProperties(error), // Log the full error object for more details
   };
 
-  // Log with context, pretty-printed for readability
-  console.error(`[Error:${errorId}] ${JSON.stringify(logContext)}`);
+  logger.error(logContext, `[Error:${errorId}]`);
 
   // More professional user-facing message
   const userMessage =
@@ -88,10 +88,9 @@ export async function safeReply(
       }
     }
   } catch (err) {
-    console.error(
-      `[safeReply] Failed to reply to interaction (ID: ${
-        interaction.id
-      }, Type: ${interaction.type}): ${JSON.stringify(err)}`
+    logger.error(
+      { err, interactionId: interaction.id, interactionType: interaction.type },
+      `[safeReply] Failed to reply to interaction`
     );
   }
 }
