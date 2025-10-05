@@ -455,7 +455,7 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
         if (currentLength + assignmentText.length > MAX_LENGTH) {
             await sendContainer();
             components = [new TextDisplayBuilder().setContent(`**AW Details for ${capitalize(interaction.channel.name)} (cont.)**`)];
-            currentLength = components[0].content.length;
+            currentLength = components[0].toJSON().content.length;
         }
 
         components.push(new TextDisplayBuilder().setContent(assignmentText));
@@ -467,7 +467,7 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
         if (currentLength + prefightText.length > MAX_LENGTH) {
             await sendContainer();
             components = [new TextDisplayBuilder().setContent(`**AW Details for ${capitalize(interaction.channel.name)} (cont.)**`)];
-            currentLength = components[0].content.length;
+            currentLength = components[0].toJSON().content.length;
         }
         components.push(new TextDisplayBuilder().setContent(prefightText));
     }
