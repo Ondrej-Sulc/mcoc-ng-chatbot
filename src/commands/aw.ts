@@ -324,7 +324,7 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleDetails(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+  await interaction.deferReply();
 
   if (!interaction.channel || !interaction.channel.isThread()) {
     await interaction.editReply(
@@ -421,28 +421,58 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    const container = new ContainerBuilder().setAccentColor(bgConfig.color);
-    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`**AW Details for ${capitalize(interaction.channel.name)}**`));
+    const MAX_LENGTH = 3800;
+    let components: TextDisplayBuilder[] = [];
+    let currentLength = 0;
+    let isFirstMessage = true;
 
-    if (filteredAssignments.length > 0) {
-        for (const assignment of filteredAssignments) {
-            let assignmentText = `- ${assignment.value}\n`;
-            const nodeDetails = nodeLookup[assignment.node];
-            if (nodeDetails) {
-                assignmentText += nodeDetails;
-            }
+    const sendContainer = async () => {
+        if (components.length === 0) return;
 
-            if (assignmentText.length > 4000) { // Container text limit
-                assignmentText = assignmentText.substring(0, 3997) + "...";
-            }
-            container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`**Node ${assignment.node}**\n${assignmentText}`));
+        const container = new ContainerBuilder()
+            .setAccentColor(bgConfig.color)
+            .addTextDisplayComponents(...components);
+
+        if (isFirstMessage) {
+            await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
+            isFirstMessage = false;
+        } else {
+            await interaction.followUp({ components: [container], flags: [MessageFlags.IsComponentsV2] });
         }
+    };
+
+    const title = `**AW Details for ${capitalize(interaction.channel.name)}**`;
+    components.push(new TextDisplayBuilder().setContent(title));
+    currentLength += title.length;
+
+    for (const assignment of filteredAssignments) {
+        let assignmentText = `**Node ${assignment.node}**\n- ${assignment.value}\n`;
+        const nodeDetails = nodeLookup[assignment.node];
+        if (nodeDetails) {
+            assignmentText += nodeDetails;
+        }
+
+        if (currentLength + assignmentText.length > MAX_LENGTH) {
+            await sendContainer();
+            components = [new TextDisplayBuilder().setContent(`**AW Details for ${capitalize(interaction.channel.name)} (cont.)**`)];
+            currentLength = components[0].content.length;
+        }
+
+        components.push(new TextDisplayBuilder().setContent(assignmentText));
+        currentLength += assignmentText.length;
     }
 
     if (playerPrefights.length > 0) {
         const prefightText = "**Pre-Fights**\n" + playerPrefights.join("\n");
-        container.addTextDisplayComponents(new TextDisplayBuilder().setContent(prefightText));
+        if (currentLength + prefightText.length > MAX_LENGTH) {
+            await sendContainer();
+            components = [new TextDisplayBuilder().setContent(`**AW Details for ${capitalize(interaction.channel.name)} (cont.)**`)];
+            currentLength = components[0].content.length;
+        }
+        components.push(new TextDisplayBuilder().setContent(prefightText));
     }
 
-    await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
+    if (components.length > 0) {
+        await sendContainer();
+    }
 }
