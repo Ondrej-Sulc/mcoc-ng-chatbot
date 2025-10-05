@@ -54,11 +54,10 @@ export function handleError(error: unknown, context: ErrorContext = {}) {
     ...context,
     error: errorMsg,
     rawError: getErrorProperties(error), // Log the full error object for more details
-    stack: error instanceof Error ? error.stack : undefined,
   };
 
   // Log with context, pretty-printed for readability
-  console.error(`[Error:${errorId}] ${JSON.stringify(logContext, null, 2)}`);
+  console.error(`[Error:${errorId}] ${JSON.stringify(logContext)}`);
 
   // More professional user-facing message
   const userMessage =
