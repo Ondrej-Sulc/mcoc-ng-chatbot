@@ -1,7 +1,7 @@
 // src/commands/profile.ts
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { Command, CommandResult } from "../types/command";
-import { handleError, safeReply } from "../utils/errorHandler";
+
 import { PrismaClient } from "@prisma/client";
 import { importRosterFromSheet } from "../services/rosterService";
 
@@ -16,24 +16,16 @@ async function register(interaction: ChatInputCommandInteraction): Promise<Comma
     return { content: "This command can only be used in a server." };
   }
 
-  try {
-    const player = await prisma.player.upsert({
-      where: { discordId },
-      update: { ingameName, guildId },
-      create: { discordId, ingameName, guildId },
-    });
+  const player = await prisma.player.upsert({
+    where: { discordId },
+    update: { ingameName, guildId },
+    create: { discordId, ingameName, guildId },
+  });
 
-    // Import roster from sheet after registration
-    await importRosterFromSheet(player.id);
+  // Import roster from sheet after registration
+  await importRosterFromSheet(player.id);
 
-    return { content: `✅ Successfully registered **${player.ingameName}**.` };
-  } catch (error) {
-    const { userMessage } = handleError(error, {
-      location: "command:profile:register",
-      userId: discordId,
-    });
-    return { content: userMessage };
-  }
+  return { content: `✅ Successfully registered **${player.ingameName}**.` };
 }
 
 export const command: Command = {
@@ -65,6 +57,6 @@ export const command: Command = {
         result = { content: "Unknown subcommand." };
     }
 
-    await safeReply(interaction, result.content || "An unknown error occurred.");
+    await interaction.editReply({ content: result.content || "An unknown error occurred." });
   },
 };

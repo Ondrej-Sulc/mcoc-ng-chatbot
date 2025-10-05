@@ -18,7 +18,7 @@ import {
   Ability,
 } from "@prisma/client";
 import { Command, CommandResult } from "../types/command";
-import { handleError, safeReply } from "../utils/errorHandler";
+import { safeReply } from "../utils/errorHandler";
 import { createEmojiResolver } from "../utils/emojiResolver";
 import { generateChampionThumbnail } from "../utils/thumbnailGenerator";
 
@@ -355,7 +355,6 @@ export async function core(
 ): Promise<CommandResult> {
   const { subcommand, championName, userId } = params;
 
-  try {
     const champion = await getChampionData(championName);
 
     if (!champion) {
@@ -422,13 +421,6 @@ export async function core(
 
     result.files = [attachment];
     return result;
-  } catch (error) {
-    const { userMessage } = handleError(error, {
-      location: `command:champion:${subcommand}`,
-      userId: userId,
-    });
-    return { content: userMessage };
-  }
 }
 
 export const command: Command = {
@@ -514,50 +506,42 @@ export const command: Command = {
       return;
     }
 
-    try {
-      const resolveEmoji = createEmojiResolver(interaction.client);
-      const result = await core(
-        {
-          subcommand,
-          championName,
-          userId: interaction.user.id,
-        },
-        resolveEmoji
-      );
+    const resolveEmoji = createEmojiResolver(interaction.client);
+    const result = await core(
+      {
+        subcommand,
+        championName,
+        userId: interaction.user.id,
+      },
+      resolveEmoji
+    );
 
-      if (result.components && Array.isArray(result.components)) {
-        const firstContainer = result.components.shift();
-        if (firstContainer) {
-          await interaction.editReply({
-            content: result.content || "",
-            components: [firstContainer],
-            flags: [MessageFlags.IsComponentsV2],
-            files: result.files || [],
-          });
-        }
-
-        for (const container of result.components) {
-          await interaction.followUp({
-            components: [container],
-            ephemeral: false,
-            flags: [MessageFlags.IsComponentsV2],
-            files: result.files || [],
-          });
-        }
-      } else if (result.embeds) {
+    if (result.components && Array.isArray(result.components)) {
+      const firstContainer = result.components.shift();
+      if (firstContainer) {
         await interaction.editReply({
           content: result.content || "",
-          embeds: result.embeds,
+          components: [firstContainer],
+          flags: [MessageFlags.IsComponentsV2],
+          files: result.files || [],
         });
-      } else if (result.content) {
-        await interaction.editReply({ content: result.content });
       }
-    } catch (error) {
-      const { userMessage, errorId } = handleError(error, {
-        location: `command:champion:${subcommand}`,
-        userId: interaction.user.id,
+
+      for (const container of result.components) {
+        await interaction.followUp({
+          components: [container],
+          ephemeral: false,
+          flags: [MessageFlags.IsComponentsV2],
+          files: result.files || [],
+        });
+      }
+    } else if (result.embeds) {
+      await interaction.editReply({
+        content: result.content || "",
+        embeds: result.embeds,
       });
-      await safeReply(interaction, userMessage, errorId);
+    } else if (result.content) {
+      await interaction.editReply({ content: result.content });
     }
   },
 };

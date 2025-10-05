@@ -183,7 +183,6 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  try {
     const activeThreads = await channel.threads.fetch();
     const archivedThreads = await channel.threads.fetchArchived();
     const allThreads = new Collection<string, ThreadChannel>().concat(
@@ -322,12 +321,6 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
       `ℹ️ No data for: ${noData.map(capitalize).join(", ") || "None"}`;
 
     await interaction.editReply(summary);
-  } catch (error) {
-    console.error("Error in /aw plan:", error);
-    await interaction.editReply(
-      "An error occurred while executing the AW plan command."
-    );
-  }
 }
 
 async function handleDetails(interaction: ChatInputCommandInteraction) {
@@ -356,7 +349,6 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  try {
     const nodesRange = `'${bgConfig.sheet}'!${config.allianceWar.nodesRange}`;
     const [nodesData] = await sheetsService.readSheets(config.MCOC_SHEET_ID, [nodesRange]);
     const mergedData = await getMergedData(bgConfig.sheet);
@@ -453,10 +445,4 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
     }
 
     await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
-  } catch (error) {
-    console.error("Error in /aw details:", error);
-    await interaction.editReply(
-      "An error occurred while fetching your AW details."
-    );
-  }
 }

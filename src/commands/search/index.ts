@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { Command, CommandResult } from "../../types/command";
 import { PrismaClient, ChampionClass } from "@prisma/client";
-import { handleError, safeReply } from "../../utils/errorHandler";
+
 import { registerButtonHandler } from "../../utils/buttonHandlerRegistry";
 import crypto from "crypto";
 import { RosterEntryWithChampionRelations } from "../../types/search";
@@ -37,27 +37,19 @@ async function rosterCore(
     searchId: string,
     userId: string
 ): Promise<CommandResult> {
-    try {
-        (global as any).__discordClient = interactionClientRef;
-        (global as any).__discordGuild = interactionGuildRef;
+    (global as any).__discordClient = interactionClientRef;
+    (global as any).__discordGuild = interactionGuildRef;
 
-        const { embed, row } = await generateRosterResponse(
-            champions,
-            searchCriteria,
-            totalChampions,
-            currentPage,
-            totalPages,
-            searchId
-        );
+    const { embed, row } = await generateRosterResponse(
+        champions,
+        searchCriteria,
+        totalChampions,
+        currentPage,
+        totalPages,
+        searchId
+    );
 
-        return { embeds: [embed], components: row ? [row] : [] };
-    } catch (error) {
-        const { userMessage } = handleError(error, {
-            location: "command:search:rosterCore",
-            userId: userId,
-        });
-        return { content: userMessage };
-    }
+    return { embeds: [embed], components: row ? [row] : [] };
 }
 
 async function core(
@@ -69,28 +61,20 @@ async function core(
   searchId: string,
   userId: string
 ): Promise<CommandResult> {
-  try {
-    // Provide client/guild to emoji resolver via a shared global for this call
-    (global as any).__discordClient = interactionClientRef;
-    (global as any).__discordGuild = interactionGuildRef;
+  // Provide client/guild to emoji resolver via a shared global for this call
+  (global as any).__discordClient = interactionClientRef;
+  (global as any).__discordGuild = interactionGuildRef;
 
-    const { embed, row } = await generateResponse(
-      champions,
-      searchCriteria,
-      totalChampions,
-      currentPage,
-      totalPages,
-      searchId
-    );
+  const { embed, row } = await generateResponse(
+    champions,
+    searchCriteria,
+    totalChampions,
+    currentPage,
+    totalPages,
+    searchId
+  );
 
-    return { embeds: [embed], components: row ? [row] : [] };
-  } catch (error) {
-    const { userMessage } = handleError(error, {
-      location: "command:search:core",
-      userId: userId,
-    });
-    return { content: userMessage };
-  }
+  return { embeds: [embed], components: row ? [row] : [] };
 }
 
 export const command: Command = {
@@ -359,64 +343,56 @@ async function handleRosterSearch(interaction: ChatInputCommandInteraction) {
         return;
     }
 
-    try {
-        const where = await buildSearchWhereClause(searchCriteria);
-        const rosterEntries = await prisma.roster.findMany({
-            where: {
-                playerId: player.id,
-                champion: where,
-            },
-            include: {
-                champion: {
-                    include: {
-                        tags: true,
-                        abilities: { include: { ability: { include: { categories: true } } } },
-                        attacks: { include: { hits: true } },
-                    },
+    const where = await buildSearchWhereClause(searchCriteria);
+    const rosterEntries = await prisma.roster.findMany({
+        where: {
+            playerId: player.id,
+            champion: where,
+        },
+        include: {
+            champion: {
+                include: {
+                    tags: true,
+                    abilities: { include: { ability: { include: { categories: true } } } },
+                    attacks: { include: { hits: true } },
                 },
             },
-            orderBy: { champion: { name: "asc" } },
-        });
+        },
+        orderBy: { champion: { name: "asc" } },
+    });
 
-        if (rosterEntries.length === 0) {
-            await interaction.editReply({ content: "No champions found in the roster matching your criteria." });
-            return;
-        }
-
-        const criteriaParts: string[] = [];
-        for (const [key, value] of Object.entries(searchCriteria)) {
-            if (value) {
-                criteriaParts.push(`**${key}:** \`${value}\``);
-            }
-        }
-        const criteriaString = criteriaParts.join('\n');
-        const criteriaLength = criteriaString.length;
-
-        interactionClientRef = interaction.client;
-        interactionGuildRef = interaction.guild;
-
-        const pages = paginateRosterChampions(rosterEntries, searchCriteria, criteriaLength);
-        rosterSearchCache.set(searchId, { criteria: searchCriteria, pages });
-        setTimeout(() => rosterSearchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
-
-        const result = await rosterCore(
-            pages[0],
-            searchCriteria,
-            rosterEntries.length,
-            1,
-            pages.length,
-            searchId,
-            interaction.user.id
-        );
-
-        await interaction.editReply(result);
-    } catch (error) {
-        const { userMessage, errorId } = handleError(error, {
-            location: "command:search:roster",
-            userId: interaction.user.id,
-        });
-        await safeReply(interaction, userMessage, errorId);
+    if (rosterEntries.length === 0) {
+        await interaction.editReply({ content: "No champions found in the roster matching your criteria." });
+        return;
     }
+
+    const criteriaParts: string[] = [];
+    for (const [key, value] of Object.entries(searchCriteria)) {
+        if (value) {
+            criteriaParts.push(`**${key}:** \`${value}\``);
+        }
+    }
+    const criteriaString = criteriaParts.join('\n');
+    const criteriaLength = criteriaString.length;
+
+    interactionClientRef = interaction.client;
+    interactionGuildRef = interaction.guild;
+
+    const pages = paginateRosterChampions(rosterEntries, searchCriteria, criteriaLength);
+    rosterSearchCache.set(searchId, { criteria: searchCriteria, pages });
+    setTimeout(() => rosterSearchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
+
+    const result = await rosterCore(
+        pages[0],
+        searchCriteria,
+        rosterEntries.length,
+        1,
+        pages.length,
+        searchId,
+        interaction.user.id
+    );
+
+    await interaction.editReply(result);
 }
 
 async function handleGlobalSearch(interaction: ChatInputCommandInteraction) {
@@ -437,64 +413,56 @@ async function handleGlobalSearch(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    try {
-      const where = await buildSearchWhereClause(searchCriteria);
-      const allChampions = await prisma.champion.findMany({
-        where,
-        include: {
-          tags: true,
-          abilities: {
-            include: {
-              ability: { include: { categories: true } },
-            },
+    const where = await buildSearchWhereClause(searchCriteria);
+    const allChampions = await prisma.champion.findMany({
+      where,
+      include: {
+        tags: true,
+        abilities: {
+          include: {
+            ability: { include: { categories: true } },
           },
-          attacks: { include: { hits: true } },
         },
-        orderBy: { name: "asc" },
+        attacks: { include: { hits: true } },
+      },
+      orderBy: { name: "asc" },
+    });
+
+    if (allChampions.length === 0) {
+      await interaction.editReply({
+        content: "No champions found matching your criteria.",
       });
-
-      if (allChampions.length === 0) {
-        await interaction.editReply({
-          content: "No champions found matching your criteria.",
-        });
-        return;
-      }
-
-      const criteriaParts: string[] = [];
-      for (const [key, value] of Object.entries(searchCriteria)) {
-          if (value) {
-              criteriaParts.push(`**${key}:** \`${value}\``);
-          }
-      }
-      const criteriaString = criteriaParts.join('\n');
-      const criteriaLength = criteriaString.length;
-
-      // Prepare refs to pass to resolver via global for this invocation scope
-      interactionClientRef = interaction.client;
-      interactionGuildRef = interaction.guild;
-
-      const pages = paginateChampions(allChampions, searchCriteria, criteriaLength);
-      searchCache.set(searchId, { criteria: searchCriteria, pages });
-      setTimeout(() => searchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
-
-      const result = await core(
-        pages[0],
-        searchCriteria,
-        allChampions.length,
-        1,
-        pages.length,
-        searchId,
-        interaction.user.id
-      );
-
-      await interaction.editReply(result);
-    } catch (error) {
-      const { userMessage, errorId } = handleError(error, {
-        location: "command:search",
-        userId: interaction.user.id,
-      });
-      await safeReply(interaction, userMessage, errorId);
+      return;
     }
+
+    const criteriaParts: string[] = [];
+    for (const [key, value] of Object.entries(searchCriteria)) {
+        if (value) {
+            criteriaParts.push(`**${key}:** \`${value}\``);
+        }
+    }
+    const criteriaString = criteriaParts.join('\n');
+    const criteriaLength = criteriaString.length;
+
+    // Prepare refs to pass to resolver via global for this invocation scope
+    interactionClientRef = interaction.client;
+    interactionGuildRef = interaction.guild;
+
+    const pages = paginateChampions(allChampions, searchCriteria, criteriaLength);
+    searchCache.set(searchId, { criteria: searchCriteria, pages });
+    setTimeout(() => searchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
+
+    const result = await core(
+      pages[0],
+      searchCriteria,
+      allChampions.length,
+      1,
+      pages.length,
+      searchId,
+      interaction.user.id
+    );
+
+    await interaction.editReply(result);
 }
 
 async function handleSearchPagination(interaction: ButtonInteraction) {

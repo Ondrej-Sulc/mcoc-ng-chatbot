@@ -10,7 +10,7 @@ import {
   MessageFlags,
 } from "discord.js";
 import { Command } from "../types/command";
-import { handleError } from "../utils/errorHandler";
+
 import { processRosterScreenshot, RosterDebugResult } from "../services/rosterService";
 import { config } from '../config';
 import { createEmojiResolver } from "../utils/emojiResolver";
@@ -37,47 +37,37 @@ async function handleRosterDebug(interaction: ChatInputCommandInteraction): Prom
   const resolveEmojis = createEmojiResolver(interaction.client);
 
   for (const image of images) {
-    try {
-      // Stars and rank are not needed for debug mode, but the function requires them.
-      // Pass dummy values.
-      const stars = 0;
-      const rank = 0;
-      const result = await processRosterScreenshot(image.url, stars, rank, false, true) as RosterDebugResult;
+    // Stars and rank are not needed for debug mode, but the function requires them.
+    // Pass dummy values.
+    const stars = 0;
+    const rank = 0;
+    const result = await processRosterScreenshot(image.url, stars, rank, false, true) as RosterDebugResult;
 
-      const files: AttachmentBuilder[] = [];
-      const container = new ContainerBuilder();
+    const files: AttachmentBuilder[] = [];
+    const container = new ContainerBuilder();
 
-      const title = new TextDisplayBuilder().setContent(`### Result for ${image.name}:`);
-      container.addTextDisplayComponents(title);
+    const title = new TextDisplayBuilder().setContent(`### Result for ${image.name}:`);
+    container.addTextDisplayComponents(title);
 
-      if (result.debugImageBuffer) {
-        const attachmentName = `debug_${image.name}`;
-        files.push(new AttachmentBuilder(result.debugImageBuffer, { name: attachmentName }));
-        const gallery = new MediaGalleryBuilder().addItems(
-          new MediaGalleryItemBuilder()
-            .setURL(`attachment://${attachmentName}`)
-            .setDescription("Debug Image")
-        );
-        container.addMediaGalleryComponents(gallery);
-      }
-
-      const content = new TextDisplayBuilder().setContent(resolveEmojis(result.message));
-      container.addTextDisplayComponents(content);
-      
-      await interaction.followUp({ 
-        components: [container],
-        files, 
-        flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
-      });
-
-    } catch (error) {
-      const { userMessage } = handleError(error, {
-        location: "command:debug:roster",
-        userId: interaction.user.id,
-        extra: { imageName: image.name }
-      });
-      await interaction.followUp({ content: `### Error processing ${image.name}:\n${userMessage}`, flags: MessageFlags.Ephemeral });
+    if (result.debugImageBuffer) {
+      const attachmentName = `debug_${image.name}`;
+      files.push(new AttachmentBuilder(result.debugImageBuffer, { name: attachmentName }));
+      const gallery = new MediaGalleryBuilder().addItems(
+        new MediaGalleryItemBuilder()
+          .setURL(`attachment://${attachmentName}`)
+          .setDescription("Debug Image")
+      );
+      container.addMediaGalleryComponents(gallery);
     }
+
+    const content = new TextDisplayBuilder().setContent(resolveEmojis(result.message));
+    container.addTextDisplayComponents(content);
+    
+    await interaction.followUp({ 
+      components: [container],
+      files, 
+      flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
+    });
   }
 }
 

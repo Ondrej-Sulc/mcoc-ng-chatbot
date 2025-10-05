@@ -12,7 +12,7 @@ import {
   FileBuilder,
 } from "discord.js";
 import { Command, CommandResult } from "../types/command";
-import { handleError, safeReply } from "../utils/errorHandler";
+import { safeReply } from "../utils/errorHandler";
 import { registerButtonHandler } from "../utils/buttonHandlerRegistry";
 import { AQState, getState, SectionKey, setState } from "../utils/aqState";
 import { generateAQHeader } from "../utils/aqHeaderGenerator";
@@ -42,9 +42,7 @@ async function handleTogglePath(
   interaction: ButtonInteraction,
   section: SectionKey
 ) {
-  try {
-    await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
-  } catch {}
+  await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
   const channelId = interaction.channelId as string;
   const userId = interaction.user.id as string;
   const state = await getState(channelId);
@@ -264,16 +262,11 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
     state.messageId = sent.id;
 
     if (createThread) {
-      try {
-        const thread = await sent.startThread({
-          name: `AQ Day ${day} Updates`,
-          autoArchiveDuration: 1440, // 24 hours
-        });
-        state.threadId = thread.id;
-      } catch (e) {
-        console.error("Failed to create thread:", e);
-        // best-effort
-      }
+      const thread = await sent.startThread({
+        name: `AQ Day ${day} Updates`,
+        autoArchiveDuration: 1440, // 24 hours
+      });
+      state.threadId = thread.id;
     }
 
     await setState(channelId, state);
@@ -291,23 +284,17 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
     }
     state.status = "ended_manual";
     await setState(channelId, state);
-    try {
-      const message = await (channel as any).messages.fetch(state.messageId);
-      await message.edit({
-        content: `AQ tracker manually ended by ${user}.`,
-        components: [],
-      });
-      if (state.threadId) {
-        try {
-          const thread = await (channel as any).threads.fetch(state.threadId);
-          if (thread) {
-            await thread.setLocked(true);
-          }
-        } catch (e) {
-          console.error("Failed to lock thread:", e);
-        }
+    const message = await (channel as any).messages.fetch(state.messageId);
+    await message.edit({
+      content: `AQ tracker manually ended by ${user}.`,
+      components: [],
+    });
+    if (state.threadId) {
+      const thread = await (channel as any).threads.fetch(state.threadId);
+      if (thread) {
+        await thread.setLocked(true);
       }
-    } catch {}
+    }
     await setState(channelId, undefined);
     return { content: "AQ tracker ended.", flags: MessageFlags.Ephemeral };
   }
@@ -379,94 +366,81 @@ export const command: Command = {
       return;
     }
 
-    try {
-      const query = String(focused.value || "").toLowerCase();
+    const query = String(focused.value || "").toLowerCase();
 
-      // Fetch roles from the guild to ensure we have fresh data
-      const rolesCollection = await guild.roles.fetch();
+    // Fetch roles from the guild to ensure we have fresh data
+    const rolesCollection = await guild.roles.fetch();
 
-      const filteredRoles = rolesCollection
-        .filter(
-          (r) =>
-            !r.managed &&
-            r.name !== "@everyone" &&
-            r.name.toLowerCase().includes(query)
-        )
-        .first(25);
+    const filteredRoles = rolesCollection
+      .filter(
+        (r) =>
+          !r.managed &&
+          r.name !== "@everyone" &&
+          r.name.toLowerCase().includes(query)
+      )
+      .first(25);
 
-      await interaction.respond(
-        filteredRoles.map((r) => ({ name: r.name, value: r.id }))
-      );
-    } catch (error) {
-      console.error("Error in role autocomplete:", error);
-      await interaction.respond([]); // Respond with empty array on error
-    }
+    await interaction.respond(
+      filteredRoles.map((r) => ({ name: r.name, value: r.id }))
+    );
   },
 
   async execute(interaction: ChatInputCommandInteraction) {
-    try {
-      const sub = interaction.options.getSubcommand();
-      if (sub === "start") {
-        await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
+    const sub = interaction.options.getSubcommand();
+    if (sub === "start") {
+      await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
-        const day = interaction.options.getInteger("day", true);
-        const roleId = interaction.options.getString("role", true);
-        const createThread =
-          interaction.options.getBoolean("create_thread") ?? false;
-        const targetChannel = (interaction.options.getChannel("channel") ||
-          interaction.channel) as GuildBasedChannel | null;
-        if (!targetChannel) {
-          await interaction.editReply("Please choose a valid channel.");
-          return;
-        }
-
-        const guild = interaction.guild;
-        if (!guild) {
-          await interaction.editReply(
-            "This command can only be used in a guild."
-          );
-          return;
-        }
-
-        const role = await guild.roles.fetch(roleId);
-        if (!role) {
-          await interaction.editReply("Role not found.");
-          return;
-        }
-
-        const result = await core({
-          subcommand: "start",
-          day,
-          roleId,
-          channel: targetChannel,
-          guild,
-          createThread,
-          channelName: targetChannel.name,
-          roleName: role.name,
-        });
-        await interaction.editReply(result);
-      } else if (sub === "end") {
-        await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
-        const targetChannel = (interaction.options.getChannel("channel") ||
-          interaction.channel) as GuildBasedChannel | null;
-        if (!targetChannel) {
-          await interaction.editReply("Channel not found.");
-          return;
-        }
-
-        const result = await core({
-          subcommand: "end",
-          channel: targetChannel,
-          user: interaction.user,
-        });
-        await interaction.editReply(result);
+      const day = interaction.options.getInteger("day", true);
+      const roleId = interaction.options.getString("role", true);
+      const createThread =
+        interaction.options.getBoolean("create_thread") ?? false;
+      const targetChannel = (interaction.options.getChannel("channel") ||
+        interaction.channel) as GuildBasedChannel | null;
+      if (!targetChannel) {
+        await interaction.editReply("Please choose a valid channel.");
+        return;
       }
-    } catch (error) {
-      const { userMessage, errorId } = handleError(error, {
-        location: "command:aq",
-        userId: interaction.user?.id,
+
+      const guild = interaction.guild;
+      if (!guild) {
+        await interaction.editReply(
+          "This command can only be used in a guild."
+        );
+        return;
+      }
+
+      const role = await guild.roles.fetch(roleId);
+      if (!role) {
+        await interaction.editReply("Role not found.");
+        return;
+      }
+
+      const result = await core({
+        subcommand: "start",
+        day,
+        roleId,
+        channel: targetChannel,
+        guild,
+        createThread,
+        channelName: targetChannel.name,
+        roleName: role.name,
       });
-      await safeReply(interaction, userMessage, errorId);
+      await interaction.editReply(result);
+    } else if (sub === "end") {
+      await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
+      const targetChannel = (interaction.options.getChannel("channel") ||
+        interaction.channel) as GuildBasedChannel | null;
+      if (!targetChannel) {
+        await interaction.editReply("Channel not found.");
+        return;
+      }
+
+      const result = await core({
+        subcommand: "end",
+        channel: targetChannel,
+        user: interaction.user,
+      });
+      await interaction.editReply(result);
     }
   },
 };

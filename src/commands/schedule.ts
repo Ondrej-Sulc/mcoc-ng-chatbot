@@ -20,7 +20,7 @@ import {
 import { registerButtonHandler } from "../utils/buttonHandlerRegistry";
 import { startScheduler } from "../services/schedulerService";
 import { commands as loadedCommands } from "../utils/commandHandler";
-import { handleError, safeReply } from "../utils/errorHandler";
+import { safeReply } from "../utils/errorHandler";
 
 /**
  * Recursively extracts subcommands and subcommand groups from a command's options.
@@ -54,20 +54,12 @@ function extractSubcommands(
 export async function handleRemoveScheduleButton(
   interaction: ButtonInteraction
 ) {
-  try {
-    const scheduleId = interaction.customId.replace("remove-schedule-", "");
-    await deleteSchedule(scheduleId);
-    await interaction.reply({
-      content: `❌ Schedule removed!`,
-      flags: [MessageFlags.Ephemeral],
-    });
-  } catch (error) {
-    const { userMessage, errorId } = handleError(error, {
-      location: "button:schedule:remove",
-      userId: interaction.user?.id,
-    });
-    await safeReply(interaction, userMessage, errorId);
-  }
+  const scheduleId = interaction.customId.replace("remove-schedule-", "");
+  await deleteSchedule(scheduleId);
+  await interaction.reply({
+    content: `❌ Schedule removed!`,
+    flags: [MessageFlags.Ephemeral],
+  });
 }
 registerButtonHandler("remove-schedule-", handleRemoveScheduleButton);
 

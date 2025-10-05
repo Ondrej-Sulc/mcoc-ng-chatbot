@@ -17,7 +17,7 @@ import {
   AttachmentBuilder,
 } from "discord.js";
 import { Command, CommandResult } from "../types/command";
-import { handleError, safeReply } from "../utils/errorHandler";
+
 import sharp from "sharp";
 import Tesseract from "tesseract.js";
 import { PrismaClient, Player } from "@prisma/client";
@@ -396,74 +396,66 @@ export async function core(params: {
   debug?: boolean;
   interaction: ChatInputCommandInteraction;
 }): Promise<CommandResult> {
-  try {
-    const { userId, imageUrl, targetUserId, debug, interaction } = params;
-    const finalUserId = targetUserId || userId;
+  const { userId, imageUrl, targetUserId, debug, interaction } = params;
+  const finalUserId = targetUserId || userId;
 
-    const authorPlayer = await prisma.player.findUnique({ where: { discordId: userId } });
-    if (!authorPlayer) {
-      return { content: `You are not registered. Please register with \n/profile register\n first.` };
-    }
-
-    const targetPlayer = await prisma.player.findUnique({ where: { discordId: finalUserId } });
-
-    if (!targetPlayer) {
-      const content = targetUserId
-        ? `Player with Discord ID ${targetUserId} is not registered. They must register with \n/profile register\n first.`
-        : `You are not registered. Please register with \n/profile register\n first.`;
-      return { content };
-    }
-
-    if (targetUserId && userId !== targetUserId) {
-      const confirmationButtons = buildPrestigeConfirmationContainer(
-        targetPlayer,
-        authorPlayer
-      );
-      const message = await interaction.editReply({
-        content: `Are you sure you want to update prestige for **${targetPlayer.ingameName}**?`,
-        components: [confirmationButtons],
-      });
-
-      const collector = message.createMessageComponentCollector({
-        componentType: ComponentType.Button,
-        time: 60000,
-      });
-
-      return new Promise((resolve) => {
-        collector.on("collect", async (i) => {
-          if (i.user.id !== userId) {
-            await i.reply({
-              content: "You cannot respond to this confirmation.",
-              flags: MessageFlags.Ephemeral,
-            });
-            return;
-          }
-
-          collector.stop();
-          if (i.customId.startsWith("prestige:confirm")) {
-            const result = await updatePrestige({ ...params, player: targetPlayer });
-            resolve(result);
-          } else {
-            resolve({ content: "Prestige update cancelled." });
-          }
-        });
-
-        collector.on("end", (collected) => {
-          if (collected.size === 0) {
-            resolve({ content: "Confirmation timed out." });
-          }
-        });
-      });
-    }
-
-    return await updatePrestige({ ...params, player: targetPlayer });
-  } catch (error) {
-    const { userMessage } = handleError(error, {
-      location: "command:prestige:core",
-      userId: params.userId,
-    });
-    return { content: userMessage };
+  const authorPlayer = await prisma.player.findUnique({ where: { discordId: userId } });
+  if (!authorPlayer) {
+    return { content: `You are not registered. Please register with \n/profile register\n first.` };
   }
+
+  const targetPlayer = await prisma.player.findUnique({ where: { discordId: finalUserId } });
+
+  if (!targetPlayer) {
+    const content = targetUserId
+      ? `Player with Discord ID ${targetUserId} is not registered. They must register with \n/profile register\n first.`
+      : `You are not registered. Please register with \n/profile register\n first.`;
+    return { content };
+  }
+
+  if (targetUserId && userId !== targetUserId) {
+    const confirmationButtons = buildPrestigeConfirmationContainer(
+      targetPlayer,
+      authorPlayer
+    );
+    const message = await interaction.editReply({
+      content: `Are you sure you want to update prestige for **${targetPlayer.ingameName}**?`,
+      components: [confirmationButtons],
+    });
+
+    const collector = message.createMessageComponentCollector({
+      componentType: ComponentType.Button,
+      time: 60000,
+    });
+
+    return new Promise((resolve) => {
+      collector.on("collect", async (i) => {
+        if (i.user.id !== userId) {
+          await i.reply({
+            content: "You cannot respond to this confirmation.",
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+
+        collector.stop();
+        if (i.customId.startsWith("prestige:confirm")) {
+          const result = await updatePrestige({ ...params, player: targetPlayer });
+          resolve(result);
+        } else {
+          resolve({ content: "Prestige update cancelled." });
+        }
+      });
+
+      collector.on("end", (collected) => {
+        if (collected.size === 0) {
+          resolve({ content: "Confirmation timed out." });
+        }
+      });
+    });
+  }
+
+  return await updatePrestige({ ...params, player: targetPlayer });
 }
 
 async function updatePrestige(params: {
@@ -632,19 +624,11 @@ export const command: Command = {
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    try {
-      const subcommand = interaction.options.getSubcommand();
-      if (subcommand === 'update') {
-        await handleUpdate(interaction);
-      } else if (subcommand === 'leaderboard') {
-        await handleLeaderboard(interaction);
-      }
-    } catch (error) {
-      const { userMessage, errorId } = handleError(error, {
-        location: "command:prestige",
-        userId: interaction.user.id,
-      });
-      await safeReply(interaction, userMessage, errorId);
+    const subcommand = interaction.options.getSubcommand();
+    if (subcommand === 'update') {
+      await handleUpdate(interaction);
+    } else if (subcommand === 'leaderboard') {
+      await handleLeaderboard(interaction);
     }
   },
   autocomplete,

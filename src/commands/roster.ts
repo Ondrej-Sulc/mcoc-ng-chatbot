@@ -17,7 +17,7 @@ import {
   EmbedBuilder,
 } from "discord.js";
 import { Command } from "../types/command";
-import { handleError, safeReply } from "../utils/errorHandler";
+
 import { processRosterScreenshot, getRoster, deleteRoster, RosterUpdateResult, RosterWithChampion } from "../services/rosterService";
 import { PrismaClient, Prisma, Player } from "@prisma/client";
 import { createEmojiResolver } from "../utils/emojiResolver";
@@ -133,104 +133,90 @@ async function handleUpdate(interaction: ChatInputCommandInteraction): Promise<v
 
   const targetUser = playerOption || interaction.user;
 
-  try {
-    const player = await prisma.player.findUnique({
-      where: { discordId: targetUser.id },
-    });
+  const player = await prisma.player.findUnique({
+    where: { discordId: targetUser.id },
+  });
 
-    if (!player) {
-      await safeReply(interaction, `Player ${targetUser.username} is not registered. Please register with /profile register first.`);
-      return;
-    }
-
-    const images: Attachment[] = [];
-    for (let i = 1; i <= 5; i++) {
-        const image = interaction.options.getAttachment(`image${i}`);
-        if (image) {
-            images.push(image);
-        }
-    }
-
-    if (images.length === 0) {
-        await interaction.editReply('You must provide at least one image.');
-        return;
-    }
-
-    let allAddedChampions: RosterWithChampion[][] = [];
-    const errorMessages: string[] = [];
-
-    const promises = images.map(image => 
-        processRosterScreenshot(image.url, stars, rank, isAscended, false, player.id)
-            .catch(error => {
-                const { userMessage } = handleError(error, {
-                    location: "command:roster:update:image",
-                    userId: interaction.user.id,
-                    extra: { imageName: image.name },
-                });
-                return { error: `Error processing ${image.name}: ${userMessage}` };
-            })
-    );
-
-    const results = await Promise.all(promises);
-
-    results.forEach(result => {
-        if (result) {
-            if ('error' in result && typeof result.error === 'string') {
-                errorMessages.push(result.error);
-            } else {
-                allAddedChampions.push(...(result as RosterUpdateResult).champions);
-            }
-        }
-    });
-
-    const container = new ContainerBuilder();
-
-    const galleryItems = images.map(image => 
-        new MediaGalleryItemBuilder()
-            .setURL(image.url)
-            .setDescription(image.name || 'source image')
-    );
-    const imageGallery = new MediaGalleryBuilder().addItems(...galleryItems);
-    container.addMediaGalleryComponents(imageGallery);
-
-    const title = new TextDisplayBuilder().setContent(`### Roster update for ${player.ingameName} complete. (${stars}* R${rank})`);
-    container.addTextDisplayComponents(title);
-
-    const summary = new TextDisplayBuilder().setContent(`Total champions added/updated: ${allAddedChampions.flat().length}`);
-    container.addTextDisplayComponents(summary);
-
-    const resolveEmojis = createEmojiResolver(interaction.client);
-    let champList = allAddedChampions.map(row => 
-        row.map(entry => {
-            const awakened = entry.isAwakened ? '★' : '☆';
-            const ascended = entry.isAscended ? '+' : '';
-            const emoji = entry.champion.discordEmoji || '';
-            return `${emoji}${awakened}${ascended}`;
-        }).join(' ')
-    ).join('\n');
-
-    if (champList) {
-        const content = new TextDisplayBuilder().setContent(resolveEmojis(champList));
-        container.addTextDisplayComponents(content);
-    }
-
-    if (errorMessages.length > 0) {
-        const errorContent = new TextDisplayBuilder().setContent(`**Errors:**\n${errorMessages.join('\n')}`);
-        container.addTextDisplayComponents(errorContent);
-    }
-
-    await interaction.editReply({ 
-      components: [container],
-      flags: [MessageFlags.IsComponentsV2]
-    });
-
-  } catch (error) {
-    const { userMessage } = handleError(error, {
-      location: "command:roster:update",
-      userId: interaction.user.id,
-    });
-    await safeReply(interaction, userMessage);
+  if (!player) {
+    await interaction.editReply({ content: `Player ${targetUser.username} is not registered. Please register with /profile register first.` });
+    return;
   }
+
+  const images: Attachment[] = [];
+  for (let i = 1; i <= 5; i++) {
+      const image = interaction.options.getAttachment(`image${i}`);
+      if (image) {
+          images.push(image);
+      }
+  }
+
+  if (images.length === 0) {
+      await interaction.editReply('You must provide at least one image.');
+      return;
+  }
+
+  let allAddedChampions: RosterWithChampion[][] = [];
+  const errorMessages: string[] = [];
+
+  const promises = images.map(image => 
+      processRosterScreenshot(image.url, stars, rank, isAscended, false, player.id)
+          .catch(error => {
+              return { error: `Error processing ${image.name}: ${error.message}` };
+          })
+  );
+
+  const results = await Promise.all(promises);
+
+  results.forEach(result => {
+      if (result) {
+          if ('error' in result && typeof result.error === 'string') {
+              errorMessages.push(result.error);
+          } else {
+              allAddedChampions.push(...(result as RosterUpdateResult).champions);
+          }
+      }
+  });
+
+  const container = new ContainerBuilder();
+
+  const galleryItems = images.map(image => 
+      new MediaGalleryItemBuilder()
+          .setURL(image.url)
+          .setDescription(image.name || 'source image')
+  );
+  const imageGallery = new MediaGalleryBuilder().addItems(...galleryItems);
+  container.addMediaGalleryComponents(imageGallery);
+
+  const title = new TextDisplayBuilder().setContent(`### Roster update for ${player.ingameName} complete. (${stars}* R${rank})`);
+  container.addTextDisplayComponents(title);
+
+  const summary = new TextDisplayBuilder().setContent(`Total champions added/updated: ${allAddedChampions.flat().length}`);
+  container.addTextDisplayComponents(summary);
+
+  const resolveEmojis = createEmojiResolver(interaction.client);
+  let champList = allAddedChampions.map(row => 
+      row.map(entry => {
+          const awakened = entry.isAwakened ? '★' : '☆';
+          const ascended = entry.isAscended ? '+' : '';
+          const emoji = entry.champion.discordEmoji || '';
+          return `${emoji}${awakened}${ascended}`;
+      }).join(' ')
+  ).join('\n');
+
+  if (champList) {
+      const content = new TextDisplayBuilder().setContent(resolveEmojis(champList));
+      container.addTextDisplayComponents(content);
+  }
+
+  if (errorMessages.length > 0) {
+      const errorContent = new TextDisplayBuilder().setContent(`**Errors:**\n${errorMessages.join('\n')}`);
+      container.addTextDisplayComponents(errorContent);
+  }
+
+  await interaction.editReply({ 
+    components: [container],
+    flags: [MessageFlags.IsComponentsV2]
+  });
 }
 
 async function handleView(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -242,37 +228,28 @@ async function handleView(interaction: ChatInputCommandInteraction): Promise<voi
 
   const targetUser = playerOption || interaction.user;
 
-  try {
-    const player = await prisma.player.findUnique({
-      where: { discordId: targetUser.id },
-    });
+  const player = await prisma.player.findUnique({
+    where: { discordId: targetUser.id },
+  });
 
-    if (!player) {
-      await safeReply(interaction, `Player ${targetUser.username} is not registered. Please register with /profile register first.`);
-      return;
-    }
-
-    const roster = await getRoster(player.id, stars, rank, isAscended);
-
-    if (typeof roster === 'string') {
-        await safeReply(interaction, roster);
-        return;
-    }
-
-    const pages = paginateRoster(roster);
-    const viewId = crypto.randomUUID();
-    rosterViewCache.set(viewId, { player, pages });
-    setTimeout(() => rosterViewCache.delete(viewId), 15 * 60 * 1000); // 15 min expiry
-
-    await sendRosterPage(interaction, viewId, 1);
-
-  } catch (error) {
-    const { userMessage } = handleError(error, {
-      location: "command:roster:view",
-      userId: interaction.user.id,
-    });
-    await safeReply(interaction, userMessage);
+  if (!player) {
+    await interaction.editReply({ content: `Player ${targetUser.username} is not registered. Please register with /profile register first.` });
+    return;
   }
+
+  const roster = await getRoster(player.id, stars, rank, isAscended);
+
+  if (typeof roster === 'string') {
+      await interaction.editReply({ content: roster });
+      return;
+  }
+
+  const pages = paginateRoster(roster);
+  const viewId = crypto.randomUUID();
+  rosterViewCache.set(viewId, { player, pages });
+  setTimeout(() => rosterViewCache.delete(viewId), 15 * 60 * 1000); // 15 min expiry
+
+  await sendRosterPage(interaction, viewId, 1);
 }
 
 async function handleExport(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -280,42 +257,33 @@ async function handleExport(interaction: ChatInputCommandInteraction): Promise<v
   const playerOption = interaction.options.getUser("player");
   const targetUser = playerOption || interaction.user;
 
-  try {
-    const player = await prisma.player.findUnique({
-      where: { discordId: targetUser.id },
-    });
+  const player = await prisma.player.findUnique({
+    where: { discordId: targetUser.id },
+  });
 
-    if (!player) {
-      await safeReply(interaction, `Player ${targetUser.username} is not registered. Please register with /profile register first.`);
-      return;
-    }
-
-    const roster = await getRoster(player.id, null, null, null);
-
-    if (typeof roster === 'string') {
-        await safeReply(interaction, roster);
-        return;
-    }
-
-    let csv = 'Champion,Stars,Rank,IsAwakened,IsAscended\n';
-    roster.forEach(entry => {
-        csv += `"${entry.champion.name}",${entry.stars},${entry.rank},${entry.isAwakened},${entry.isAscended}\n`;
-    });
-
-    const attachment = new AttachmentBuilder(Buffer.from(csv), { name: `${player.ingameName}-roster.csv` });
-
-    await interaction.editReply({
-        content: `Roster for ${player.ingameName} exported.`,
-        files: [attachment]
-    });
-
-  } catch (error) {
-    const { userMessage } = handleError(error, {
-      location: "command:roster:export",
-      userId: interaction.user.id,
-    });
-    await safeReply(interaction, userMessage);
+  if (!player) {
+    await interaction.editReply({ content: `Player ${targetUser.username} is not registered. Please register with /profile register first.` });
+    return;
   }
+
+  const roster = await getRoster(player.id, null, null, null);
+
+  if (typeof roster === 'string') {
+      await interaction.editReply({ content: roster });
+      return;
+  }
+
+  let csv = 'Champion,Stars,Rank,IsAwakened,IsAscended\n';
+  roster.forEach(entry => {
+      csv += `"${entry.champion.name}",${entry.stars},${entry.rank},${entry.isAwakened},${entry.isAscended}\n`;
+  });
+
+  const attachment = new AttachmentBuilder(Buffer.from(csv), { name: `${player.ingameName}-roster.csv` });
+
+  await interaction.editReply({
+      content: `Roster for ${player.ingameName} exported.`,
+      files: [attachment]
+  });
 }
 
 async function handleSummary(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -323,86 +291,77 @@ async function handleSummary(interaction: ChatInputCommandInteraction): Promise<
   const playerOption = interaction.options.getUser("player");
   const targetUser = playerOption || interaction.user;
 
-  try {
-    const player = await prisma.player.findUnique({
-      where: { discordId: targetUser.id },
-    });
+  const player = await prisma.player.findUnique({
+    where: { discordId: targetUser.id },
+  });
 
-    if (!player) {
-      await safeReply(interaction, `Player ${targetUser.username} is not registered. Please register with /profile register first.`);
-      return;
-    }
-
-    const roster = await getRoster(player.id, null, null, null);
-
-    if (typeof roster === 'string') {
-        await safeReply(interaction, roster);
-        return;
-    }
-
-    const CLASS_EMOJIS: Record<string, string> = {
-      MYSTIC: "<:Mystic:1253449751555215504>",
-      MUTANT: "<:Mutant:1253449731284406332>",
-      SKILL: "<:Skill:1253449798825279660>",
-      SCIENCE: "<:Science:1253449774271696967>",
-      COSMIC: "<:Cosmic:1253449702595235950>",
-      TECH: "<:Tech:1253449817808703519>",
-    };
-
-    const byStar = roster.reduce((acc, champ) => {
-        if (!acc[champ.stars]) {
-            acc[champ.stars] = [];
-        }
-        acc[champ.stars].push(champ);
-        return acc;
-    }, {} as Record<number, RosterWithChampion[]>);
-
-    const container = new ContainerBuilder();
-    const title = new TextDisplayBuilder().setContent(`### Roster Summary for ${player.ingameName}\n**Total Champions:** ${roster.length}`);
-    container.addTextDisplayComponents(title);
-
-    Object.entries(byStar)
-        .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Sort by star level descending
-        .forEach(([stars, champions]) => {
-            let starSummary = `### ${stars}-Star Champions (${champions.length} total)\n`;
-
-            const byRank = champions.reduce((acc, champ) => {
-                acc[champ.rank] = (acc[champ.rank] || 0) + 1;
-                return acc;
-            }, {} as Record<number, number>);
-
-            starSummary += `**By Rank:** `;
-            starSummary += Object.entries(byRank)
-                .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Sort by rank descending
-                .map(([rank, count]) => `R${rank}: ${count}`)
-                .join(' | ');
-
-            const byClass = champions.reduce((acc, champ) => {
-                acc[champ.champion.class] = (acc[champ.champion.class] || 0) + 1;
-                return acc;
-            }, {} as Record<string, number>);
-
-            starSummary += `\n**By Class:** `;
-            starSummary += Object.entries(byClass)
-                .map(([className, count]) => `${CLASS_EMOJIS[className] || className}${count}`)
-                .join(' | ');
-            
-            const starContent = new TextDisplayBuilder().setContent(starSummary);
-            container.addTextDisplayComponents(starContent);
-        });
-
-    await interaction.editReply({
-      components: [container],
-      flags: [MessageFlags.IsComponentsV2]
-    });
-
-  } catch (error) {
-    const { userMessage } = handleError(error, {
-      location: "command:roster:summary",
-      userId: interaction.user.id,
-    });
-    await safeReply(interaction, userMessage);
+  if (!player) {
+    await interaction.editReply({ content: `Player ${targetUser.username} is not registered. Please register with /profile register first.` });
+    return;
   }
+
+  const roster = await getRoster(player.id, null, null, null);
+
+  if (typeof roster === 'string') {
+      await interaction.editReply({ content: roster });
+      return;
+  }
+
+  const CLASS_EMOJIS: Record<string, string> = {
+    MYSTIC: "<:Mystic:1253449751555215504>",
+    MUTANT: "<:Mutant:1253449731284406332>",
+    SKILL: "<:Skill:1253449798825279660>",
+    SCIENCE: "<:Science:1253449774271696967>",
+    COSMIC: "<:Cosmic:1253449702595235950>",
+    TECH: "<:Tech:1253449817808703519>",
+  };
+
+  const byStar = roster.reduce((acc, champ) => {
+      if (!acc[champ.stars]) {
+          acc[champ.stars] = [];
+      }
+      acc[champ.stars].push(champ);
+      return acc;
+  }, {} as Record<number, RosterWithChampion[]>);
+
+  const container = new ContainerBuilder();
+  const title = new TextDisplayBuilder().setContent(`### Roster Summary for ${player.ingameName}\n**Total Champions:** ${roster.length}`);
+  container.addTextDisplayComponents(title);
+
+  Object.entries(byStar)
+      .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Sort by star level descending
+      .forEach(([stars, champions]) => {
+          let starSummary = `### ${stars}-Star Champions (${champions.length} total)\n`;
+
+          const byRank = champions.reduce((acc, champ) => {
+              acc[champ.rank] = (acc[champ.rank] || 0) + 1;
+              return acc;
+          }, {} as Record<number, number>);
+
+          starSummary += `**By Rank:** `;
+          starSummary += Object.entries(byRank)
+              .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Sort by rank descending
+              .map(([rank, count]) => `R${rank}: ${count}`)
+              .join(' | ');
+
+          const byClass = champions.reduce((acc, champ) => {
+              acc[champ.champion.class] = (acc[champ.champion.class] || 0) + 1;
+              return acc;
+          }, {} as Record<string, number>);
+
+          starSummary += `\n**By Class:** `;
+          starSummary += Object.entries(byClass)
+              .map(([className, count]) => `${CLASS_EMOJIS[className] || className}${count}`)
+              .join(' | ');
+          
+          const starContent = new TextDisplayBuilder().setContent(starSummary);
+          container.addTextDisplayComponents(starContent);
+      });
+
+  await interaction.editReply({
+    components: [container],
+    flags: [MessageFlags.IsComponentsV2]
+  });
 }
 
 async function handleDelete(interaction: ChatInputCommandInteraction): Promise<void> {
@@ -410,63 +369,55 @@ async function handleDelete(interaction: ChatInputCommandInteraction): Promise<v
   const playerOption = interaction.options.getUser("player");
   const targetUser = playerOption || interaction.user;
 
-  try {
-    const player = await prisma.player.findUnique({
-      where: { discordId: targetUser.id },
-    });
+  const player = await prisma.player.findUnique({
+    where: { discordId: targetUser.id },
+  });
 
-    if (!player) {
-      await safeReply(interaction, `Player ${targetUser.username} is not registered. Please register with /profile register first.`);
-      return;
-    }
+  if (!player) {
+    await interaction.editReply({ content: `Player ${targetUser.username} is not registered. Please register with /profile register first.` });
+    return;
+  }
 
-    const championId = interaction.options.getString("champion");
-    const stars = interaction.options.getInteger("stars");
-    const rank = interaction.options.getInteger("rank");
-    const isAscended = interaction.options.getBoolean("is_ascended");
+  const championId = interaction.options.getString("champion");
+  const stars = interaction.options.getInteger("stars");
+  const rank = interaction.options.getInteger("rank");
+  const isAscended = interaction.options.getBoolean("is_ascended");
 
-    if (!championId && !stars && !rank && isAscended === null) {
-        const row = new ActionRowBuilder<ButtonBuilder>()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`roster_delete_all_confirm:${player.id}`)
-                    .setLabel('Yes, delete all')
-                    .setStyle(ButtonStyle.Danger),
-                new ButtonBuilder()
-                    .setCustomId('roster_delete_all_cancel')
-                    .setLabel('Cancel')
-                    .setStyle(ButtonStyle.Secondary),
-            );
+  if (!championId && !stars && !rank && isAscended === null) {
+      const row = new ActionRowBuilder<ButtonBuilder>()
+          .addComponents(
+              new ButtonBuilder()
+                  .setCustomId(`roster_delete_all_confirm:${player.id}`)
+                  .setLabel('Yes, delete all')
+                  .setStyle(ButtonStyle.Danger),
+              new ButtonBuilder()
+                  .setCustomId('roster_delete_all_cancel')
+                  .setLabel('Cancel')
+                  .setStyle(ButtonStyle.Secondary),
+          );
 
-        await interaction.editReply({ 
-            content: `Are you sure you want to delete the entire roster for ${player.ingameName}? This action cannot be undone.`,
-            components: [row],
-        });
-    } else {
-        const where: Prisma.RosterWhereInput = {
-            playerId: player.id,
-        };
-        if (championId) {
-            where.championId = parseInt(championId, 10);
-        }
-        if (stars) {
-            where.stars = stars;
-        }
-        if (rank) {
-            where.rank = rank;
-        }
-        if (isAscended !== null) {
-            where.isAscended = isAscended;
-        }
-        const result = await deleteRoster(where);
-        await safeReply(interaction, `${result} for ${player.ingameName}.`);
-    }
-  } catch (error) {
-    const { userMessage } = handleError(error, {
-      location: "command:roster:delete",
-      userId: interaction.user.id,
-    });
-    await safeReply(interaction, userMessage);
+      await interaction.editReply({ 
+          content: `Are you sure you want to delete the entire roster for ${player.ingameName}? This action cannot be undone.`,
+          components: [row],
+      });
+  } else {
+      const where: Prisma.RosterWhereInput = {
+          playerId: player.id,
+      };
+      if (championId) {
+          where.championId = parseInt(championId, 10);
+      }
+      if (stars) {
+          where.stars = stars;
+      }
+      if (rank) {
+          where.rank = rank;
+      }
+      if (isAscended !== null) {
+          where.isAscended = isAscended;
+      }
+      const result = await deleteRoster(where);
+      await interaction.editReply({ content: `${result} for ${player.ingameName}.` });
   }
 }
 
