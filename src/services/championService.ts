@@ -1,4 +1,4 @@
-import { PrismaClient, Champion } from '@prisma/client';
+import { PrismaClient, Champion, Tag, Ability } from '@prisma/client';
 import { normalizeChampionName } from '../utils/championHelper';
 
 const prisma = new PrismaClient();
@@ -14,4 +14,16 @@ export async function loadChampions() {
 export function getChampionByName(name: string): Champion | undefined {
   const normalized = normalizeChampionName(name);
   return championsByName.get(normalized);
+}
+
+export function getChampionNames(): string[] {
+  return Array.from(championsByName.keys());
+}
+
+export async function getAllTags(): Promise<Tag[]> {
+  return await prisma.tag.findMany();
+}
+
+export async function getAllAbilities(): Promise<Ability[]> {
+  return await prisma.ability.findMany();
 }
