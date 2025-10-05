@@ -354,10 +354,9 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
     const mergedData = await getMergedData(bgConfig.sheet);
 
     const playerAssignments: { node: string; value: string }[] = [];
-    const playerPrefights: string[] = [];
 
     for (const assignment of mergedData) {
-        const { node, prefightPlayer, prefightChampion, defenderName } = assignment;
+        const { node, prefightPlayer, prefightChampion } = assignment;
 
         let formattedAssignment = formatAssignment(assignment);
 
@@ -373,11 +372,6 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
                 node: node,
                 value: formattedAssignment,
             });
-        }
-
-        // Add prefight to-do list if the player is the performer
-        if (prefightPlayer === playerName && prefightChampion) {
-            playerPrefights.push(`- ${getEmoji(prefightChampion)} **${prefightChampion}** for ${capitalize(assignment.playerName)}'s ${getEmoji(defenderName)} **${defenderName}** on node ${node}`);
         }
     }
 
@@ -412,11 +406,11 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
       );
     }
 
-    if (filteredAssignments.length === 0 && playerPrefights.length === 0) {
+    if (filteredAssignments.length === 0) {
       await interaction.editReply(
         targetNodeOption
           ? `No assignment for node '${targetNodeOption}'.`
-          : `No assignments or pre-fights found for you in ${bgConfig.sheet}.`
+          : `No assignments found for you in ${bgConfig.sheet}.`
       );
       return;
     }
@@ -460,16 +454,6 @@ async function handleDetails(interaction: ChatInputCommandInteraction) {
 
         components.push(new TextDisplayBuilder().setContent(assignmentText));
         currentLength += assignmentText.length;
-    }
-
-    if (playerPrefights.length > 0) {
-        const prefightText = "**Pre-Fights**\n" + playerPrefights.join("\n");
-        if (currentLength + prefightText.length > MAX_LENGTH) {
-            await sendContainer();
-            components = [new TextDisplayBuilder().setContent(`**AW Details for ${capitalize(interaction.channel.name)} (cont.)**`)];
-            currentLength = components[0].toJSON().content.length;
-        }
-        components.push(new TextDisplayBuilder().setContent(prefightText));
     }
 
     if (components.length > 0) {
