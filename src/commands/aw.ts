@@ -217,7 +217,10 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
             formatted: formatAssignment(assignment),
         });
         playerDataMap.get(playerName)!.attackers.push(attackerName);
-
+        if (prefightChampion){
+          // Also add prefight champion to the target player's attackers list
+          playerDataMap.get(playerName)!.attackers.push(prefightChampion);
+        }
         // Handle prefight logic
         if (prefightPlayer && prefightChampion) {
             // Add prefight task to the performer

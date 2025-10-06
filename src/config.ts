@@ -100,8 +100,8 @@ const createConfig = (): Config => {
     GOOGLE_CREDENTIALS: credentials,
     MCOC_SHEET_ID: getEnv("MCOC_SHEET_ID"),
     TIMEZONE: getEnv("TIMEZONE", "Europe/Prague"),
-    AQ_SLACKER_PING_DELAY_HOURS: parseInt(getEnv("AQ_SLACKER_PING_DELAY_HOURS", "8"), 10),
-    AQ_FINAL_PING_HOURS_BEFORE_END: parseInt(getEnv("AQ_FINAL_PING_HOURS_BEFORE_END", "3"), 10),
+    AQ_SLACKER_PING_DELAY_HOURS: parseInt(getEnv("AQ_SLACKER_PING_DELAY_HOURS", "11"), 10),
+    AQ_FINAL_PING_HOURS_BEFORE_END: parseInt(getEnv("AQ_FINAL_PING_HOURS_BEFORE_END", "4"), 10),
     DEV_USER_IDS: getEnv("DEV_USER_IDS", '').split(',').filter(Boolean),
 
     // Alliance War Settings

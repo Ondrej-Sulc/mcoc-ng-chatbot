@@ -9,10 +9,8 @@ import {
   User,
   ButtonInteraction,
   AttachmentBuilder,
-  FileBuilder,
 } from "discord.js";
 import { Command, CommandResult } from "../types/command";
-import { safeReply } from "../utils/errorHandler";
 import { registerButtonHandler } from "../utils/buttonHandlerRegistry";
 import { AQState, getState, SectionKey, setState } from "../utils/aqState";
 import { generateAQHeader } from "../utils/aqHeaderGenerator";
@@ -223,7 +221,7 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
     await guild.members.fetch();
 
     const now = new Date();
-    const end = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const end = new Date(now.getTime() + 24 * 60 * 60 * 1000 - 1000 * 300); // 24 hours minus 5 minutes
 
     const state: AQState = {
       channelId,
