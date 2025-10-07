@@ -5,6 +5,12 @@ A personal, modular Discord bot built with TypeScript, designed for Marvel Conte
 ## Key Features
 
 - **Dynamic Command Loading:** Commands in the `src/commands` directory are automatically registered on startup.
+- **Champion Administration:** A powerful admin command to add or update champions in the database. This command automates the entire process, including:
+    - **Image Processing:** Downloads champion images, resizes them to multiple dimensions (256, 128, 64, 32), and applies a subtle blur to smaller sizes.
+    - **Cloud Storage:** Uploads the processed images to a Google Cloud Storage bucket.
+    - **AI Tag Extraction:** Uses an AI model (via OpenRouter) to analyze a provided image and extract a champion's tags.
+    - **Application Emoji Creation:** Automatically creates a new application emoji for the champion.
+    - **Database Integration:** Upserts the champion data into the PostgreSQL database, ensuring no duplicates are created.
 - **PostgreSQL Database:** Uses a robust PostgreSQL database managed with Prisma for persistent data storage.
 - **Google Sheets Integration:** Utilizes Google Sheets for data storage and retrieval (e.g., for scheduling).
 - **Advanced Scheduling:** Schedule commands or custom messages with flexible timing (daily, weekly, custom cron, etc.) via `/schedule`.
@@ -18,7 +24,7 @@ A personal, modular Discord bot built with TypeScript, designed for Marvel Conte
 - **Language:** TypeScript (Strict Mode)
 - **Framework:** Discord.js v14
 - **Database:** PostgreSQL with Prisma ORM
-- **APIs:** Google Sheets, OpenRouter
+- **APIs:** Google Sheets, OpenRouter, Google Cloud Storage
 - **Scheduling:** `node-cron`
 - **Containerization:** Docker & Docker Compose
 
@@ -74,6 +80,8 @@ _This list will be populated to track the migration status of each command._
   - `/register_thread`: Not planned for migration (server-specific)
   - `/unregister_thread`: Not planned for migration (server-specific)
 - **`admin.py`**:
+  - `/add_champion`: Migrated to `/admin champion add`
+  - `/update_images`: Migrated to `/admin champion update-images`
   - `/update_bot`: Not to be migrated (not necessary anymore)
   - `/sync_commands`: Not to be migrated (not necessary anymore)
   - `/update`: Not to be migrated (not necessary anymore)
@@ -171,7 +179,7 @@ The legacy search commands have been consolidated into a single, powerful `/sear
 
 Create a `.env` file by copying the example:
 
-Fill in the values in the `.env` file. This includes your Discord bot token, API keys, and the connection details for your PostgreSQL database.
+Fill in the values in the `.env` file. This includes your Discord bot token, API keys, and the connection details for your PostgreSQL database. You will also need to provide a `GCS_BUCKET_NAME` for the champion image uploads.
 
 **Important:** For `GOOGLE_CREDENTIALS_JSON`, you must provide the full JSON content of your service account key, encoded in Base64. You can generate this with the following command:
 

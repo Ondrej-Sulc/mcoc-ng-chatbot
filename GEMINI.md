@@ -7,6 +7,7 @@ This document provides context for the Gemini code assistant to understand the M
 This is a TypeScript-based Discord bot for the mobile game Marvel Contest of Champions (MCOC). It provides a variety of features to server members, including:
 
 *   **Champion Information:** Users can query for information about champions, including their abilities, attacks, and immunities.
+*   **Champion Administration:** A powerful admin command to add or update champions in the database.
 *   **Prestige Tracking:** Users can update and view their prestige values.
 *   **Roster Management:** Users can manage their MCOC rosters.
 *   **Scheduling:** The bot can be used to schedule reminders and other events.
@@ -17,7 +18,7 @@ The bot is built with a modern tech stack, including:
 *   **Language:** TypeScript
 *   **Framework:** Discord.js v14
 *   **Database:** PostgreSQL with Prisma ORM
-*   **APIs:** Google Sheets, OpenRouter
+*   **APIs:** Google Sheets, OpenRouter, Google Cloud Storage
 *   **Containerization:** Docker and Docker Compose
 
 The project is well-structured, with a clear separation of concerns between commands, services, and utilities. It also includes a robust error handling system and a dynamic command loading mechanism.
@@ -41,7 +42,7 @@ Create a `.env` file by copying the example:
 cp .env.example .env
 ```
 
-Fill in the values in the `.env` file. This includes your Discord bot token, API keys, and the connection details for your PostgreSQL database.
+Fill in the values in the `.env` file. This includes your Discord bot token, API keys, the connection details for your PostgreSQL database, and the `GCS_BUCKET_NAME` for champion image uploads.
 
 ### 2. Run the Bot
 
