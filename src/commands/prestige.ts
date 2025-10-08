@@ -298,7 +298,7 @@ export async function extractPrestigeFromImage(
   };
 }
 
-async function autocomplete(interaction: AutocompleteInteraction) {
+export async function autocomplete(interaction: AutocompleteInteraction) {
   const focusedValue = interaction.options.getFocused();
   const guildId = interaction.guildId;
   if (!guildId) return;
@@ -323,8 +323,7 @@ async function autocomplete(interaction: AutocompleteInteraction) {
 }
 
 async function handleUpdate(interaction: ChatInputCommandInteraction) {
-  const debug = interaction.options.getBoolean("debug") ?? false;
-  await interaction.deferReply({ flags: debug ? MessageFlags.Ephemeral : undefined });
+  await interaction.deferReply();
 
   const image = interaction.options.getAttachment("image") as Attachment;
   const targetUserId = interaction.options.getString("player") ?? undefined;
@@ -337,7 +336,6 @@ async function handleUpdate(interaction: ChatInputCommandInteraction) {
     userId: interaction.user.id,
     imageUrl: image.url,
     targetUserId,
-    debug,
     interaction,
   });
 
@@ -609,12 +607,6 @@ export const command: Command = {
             .setDescription("The player to update prestige for.")
             .setRequired(false)
             .setAutocomplete(true)
-        )
-        .addBooleanOption(option =>
-          option
-            .setName("debug")
-            .setDescription("Return extra debug info, including the cropped image.")
-            .setRequired(false)
         )
     )
     .addSubcommand(subcommand =>

@@ -1,6 +1,9 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import { Command } from '../types/command';
 import { championAdminHelper } from '../utils/championAdminHelper';
+import { config } from '../config';
+
+const authorizedUsers = config.DEV_USER_IDS || [];
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -51,6 +54,11 @@ export const command: Command = {
     ),
   async execute(interaction) {
     if (!interaction.isChatInputCommand()) return;
+
+    if (authorizedUsers.length === 0 || !authorizedUsers.includes(interaction.user.id)) {
+        await interaction.reply({ content: 'You are not authorized to use this command.', flags: MessageFlags.Ephemeral });
+        return;
+    }
 
     const group = interaction.options.getSubcommandGroup();
     const subcommand = interaction.options.getSubcommand();
