@@ -7,6 +7,7 @@ import { openRouterService, OpenRouterMessage } from '../services/openRouterServ
 import { PrismaClient, ChampionClass } from '@prisma/client';
 import { config } from '../config';
 import logger from '../services/loggerService';
+import { sheetsService } from '../services/sheetsService';
 
 const prisma = new PrismaClient();
 
@@ -316,6 +317,80 @@ class ChampionAdminHelper {
       });
       logger.info(`Connected tags to champion ${champion.name}`);
     });
+  }
+  async syncSheet(interaction: CommandInteraction) {
+    if (!interaction.isChatInputCommand()) return;
+    logger.info(`Starting sheet sync process for ${interaction.user.tag}`);
+
+    try {
+      await interaction.editReply('Starting sheet sync process...');
+
+      logger.info('Fetching all champions from database...');
+      const champions = await prisma.champion.findMany({
+        orderBy: {
+          name: 'asc',
+        },
+        include: {
+          tags: true,
+        },
+      });
+      logger.info(`Found ${champions.length} champions.`);
+
+      await interaction.editReply('Formatting data for Google Sheet...');
+      logger.info('Formatting data for Google Sheet...');
+
+      const headerRow = [
+        'Champion Name', 'Short Name', 'Class', 'All Tags', 'AW Tags', 'Release Date', 'Obtainable',
+        'Primary 32', 'Primary 64', 'Primary 128', 'Primary 256',
+        'Secondary 32', 'Secondary 64', 'Secondary 128', 'Secondary 256',
+        'Prestige 6*', 'Prestige 7*', 'Discord Emoji'
+      ];
+
+      const rows = champions.map(champion => {
+        const formattedName = champion.name.replace(/ /g, '_').replace(/\(|\)|\'|\./g, '').toLowerCase();
+        const getImageUrl = (size: number, type: 'primary' | 'secondary') => 
+          `https://storage.googleapis.com/${config.GCS_BUCKET_NAME}/${size}/${formattedName}_${type}.png`;
+
+        const prestige = champion.prestige as { '6'?: number; '7'?: number; };
+        const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+
+        return [
+          champion.name,
+          champion.shortName,
+          capitalize(champion.class),
+          champion.tags.map(tag => tag.name).join(', '),
+          champion.tags.filter(tag => tag.category === 'Alliance Wars').map(tag => tag.name).join(', '),
+          champion.releaseDate.toISOString().split('T')[0],
+          champion.obtainable.join(', '),
+          getImageUrl(32, 'primary'),
+          getImageUrl(64, 'primary'),
+          getImageUrl(128, 'primary'),
+          getImageUrl(256, 'primary'),
+          getImageUrl(32, 'secondary'),
+          getImageUrl(64, 'secondary'),
+          getImageUrl(128, 'secondary'),
+          getImageUrl(256, 'secondary'),
+          prestige?.['6'] || '',
+          prestige?.['7'] || '',
+          champion.discordEmoji || ''
+        ];
+      });
+
+      const values = [headerRow, ...rows];
+
+      await interaction.editReply('Writing data to Google Sheet...');
+      logger.info(`Writing ${values.length} rows to spreadsheet ${config.CHAMPION_SHEET_ID}`);
+      
+      await sheetsService.clearSheet(config.CHAMPION_SHEET_ID, config.championSheet.clearRange);
+      await sheetsService.writeSheet(config.CHAMPION_SHEET_ID, config.championSheet.range, values);
+
+      logger.info('Sheet sync process complete.');
+      await interaction.editReply(`Sheet sync complete. ${champions.length} champions written to spreadsheet.`);
+
+    } catch (error) {
+      logger.error(error, 'An error occurred during sheet sync');
+      await interaction.editReply(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 }
 

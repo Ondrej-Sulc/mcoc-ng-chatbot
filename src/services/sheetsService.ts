@@ -110,6 +110,23 @@ class SheetsService {
     });
     return response.data.updates?.updatedCells || 0;
   }
+
+  /**
+   * Clears values from a spreadsheet.
+   * @param spreadsheetId The spreadsheet to update.
+   * @param range The A1 notation of the range to clear.
+   * @returns The response from the API.
+   */
+  public async clearSheet(
+    spreadsheetId: string,
+    range: string
+  ): Promise<sheets_v4.Schema$ClearValuesResponse> {
+    const response = await this.sheets.spreadsheets.values.clear({
+      spreadsheetId,
+      range,
+    });
+    return response.data;
+  }
 }
 
 export const sheetsService = new SheetsService();

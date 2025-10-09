@@ -51,6 +51,11 @@ export const command: Command = {
             .addStringOption(option => option.setName('primary_image').setDescription('URL of the new primary image.').setRequired(true))
             .addStringOption(option => option.setName('secondary_image').setDescription('URL of the new secondary image.').setRequired(true))
         )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('sync-sheet')
+            .setDescription('Syncs the champion database with Google Sheets.')
+        )
     ),
   async execute(interaction) {
     if (!interaction.isChatInputCommand()) return;
@@ -69,6 +74,8 @@ export const command: Command = {
         await championAdminHelper.addChampion(interaction);
       } else if (subcommand === 'update_images') {
         await championAdminHelper.updateChampionImages(interaction);
+      } else if (subcommand === 'sync-sheet') {
+        await championAdminHelper.syncSheet(interaction);
       }
     }
   },

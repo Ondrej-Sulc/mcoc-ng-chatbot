@@ -15,10 +15,12 @@ export interface Config {
   OPENROUTER_DEFAULT_MODEL: string;
   GOOGLE_CREDENTIALS: GoogleCredentials;
   MCOC_SHEET_ID: string;
+  CHAMPION_SHEET_ID: string;
   TIMEZONE: string;
   AQ_SLACKER_PING_DELAY_HOURS: number;
   AQ_FINAL_PING_HOURS_BEFORE_END: number;
   DEV_USER_IDS: string[];
+  GCS_BUCKET_NAME: string;
 
   // Alliance War Settings
   allianceWar: {
@@ -36,6 +38,11 @@ export interface Config {
     TacticAttackCol: number,
     TacticDefenseCol: number,
     nodesRange: string;
+  }
+
+  championSheet: {
+    range: string;
+    clearRange: string;
   }
 }
 
@@ -66,6 +73,7 @@ const createConfig = (): Config => {
     OPEN_ROUTER_API_KEY: process.env.OPEN_ROUTER_API_KEY,
     GOOGLE_CREDENTIALS_JSON: process.env.GOOGLE_CREDENTIALS_JSON,
     MCOC_SHEET_ID: process.env.MCOC_SHEET_ID,
+    CHAMPION_SHEET_ID: process.env.CHAMPION_SHEET_ID,
   };
 
   Object.entries(required).forEach(([key, value]) => {
@@ -100,6 +108,8 @@ const createConfig = (): Config => {
     OPENROUTER_DEFAULT_MODEL: getEnv("OPENROUTER_DEFAULT_MODEL", "google/gemini-2.5-flash"),
     GOOGLE_CREDENTIALS: credentials,
     MCOC_SHEET_ID: getEnv("MCOC_SHEET_ID"),
+    CHAMPION_SHEET_ID: getEnv("CHAMPION_SHEET_ID"),
+    GCS_BUCKET_NAME: getEnv("GCS_BUCKET_NAME", "champion-images"),
     TIMEZONE: getEnv("TIMEZONE", "Europe/Prague"),
     AQ_SLACKER_PING_DELAY_HOURS: parseInt(getEnv("AQ_SLACKER_PING_DELAY_HOURS", "11"), 10),
     AQ_FINAL_PING_HOURS_BEFORE_END: parseInt(getEnv("AQ_FINAL_PING_HOURS_BEFORE_END", "4"), 10),
@@ -125,6 +135,10 @@ const createConfig = (): Config => {
       TacticAttackCol: 3,
       TacticDefenseCol: 4,
       nodesRange: 'AWNodes',
+    },
+    championSheet: {
+      range: 'DB!A1',
+      clearRange: 'DB!A1:Z1000',
     }
   };
 };
