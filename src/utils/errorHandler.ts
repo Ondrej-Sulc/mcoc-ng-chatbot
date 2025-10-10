@@ -2,13 +2,15 @@ import {
   ButtonInteraction,
   ChatInputCommandInteraction,
   MessageFlags,
+  ModalSubmitInteraction,
 } from "discord.js";
 import { randomBytes } from "crypto";
 import logger from "../services/loggerService";
 
 export type RepliableInteraction =
   | ChatInputCommandInteraction
-  | ButtonInteraction;
+  | ButtonInteraction
+  | ModalSubmitInteraction;
 
 export interface ErrorContext {
   location?: string; // e.g., command name, service name

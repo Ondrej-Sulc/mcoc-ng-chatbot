@@ -3,7 +3,7 @@ import { normalizeChampionName } from '../utils/championHelper';
 
 const prisma = new PrismaClient();
 
-let championsByName = new Map<string, Champion>();
+export let championsByName = new Map<string, Champion>();
 
 export async function loadChampions() {
   const allChampions = await prisma.champion.findMany();

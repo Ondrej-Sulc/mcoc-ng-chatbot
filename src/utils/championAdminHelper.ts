@@ -1,4 +1,4 @@
-import { CommandInteraction, GuildEmoji, Routes } from 'discord.js';
+import { CommandInteraction, GuildEmoji, Routes, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalSubmitInteraction, ButtonBuilder, ButtonStyle, ButtonInteraction } from 'discord.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import sharp from 'sharp';
@@ -10,6 +10,7 @@ import logger from '../services/loggerService';
 import { sheetsService } from '../services/sheetsService';
 
 const prisma = new PrismaClient();
+const pendingChampions = new Map<string, any>();
 
 async function downloadImage(url: string): Promise<Buffer> {
   const response = await fetch(url);
@@ -21,23 +22,200 @@ async function downloadImage(url: string): Promise<Buffer> {
 }
 
 class ChampionAdminHelper {
-  async addChampion(interaction: CommandInteraction) {
-    if (!interaction.isChatInputCommand()) return;
+  async showChampionModalPart1(interaction: CommandInteraction) {
+    const modal = new ModalBuilder()
+      .setCustomId('addChampionModalPart1')
+      .setTitle('Add New Champion (Part 1/2)');
+
+    const nameInput = new TextInputBuilder()
+      .setCustomId('championName')
+      .setLabel('Full Name')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+
+    const shortNameInput = new TextInputBuilder()
+      .setCustomId('championShortName')
+      .setLabel('Short Name')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+
+    const classInput = new TextInputBuilder()
+      .setCustomId('championClass')
+      .setLabel('Class (Science, Skill, etc.)')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+
+    const primaryImageInput = new TextInputBuilder()
+      .setCustomId('championPrimaryImage')
+      .setLabel('Primary Image URL (Portrait)')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+
+    const secondaryImageInput = new TextInputBuilder()
+      .setCustomId('championSecondaryImage')
+      .setLabel('Secondary Image URL (Featured)')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(nameInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(shortNameInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(classInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(primaryImageInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(secondaryImageInput)
+    );
+
+    await interaction.showModal(modal);
+  }
+
+  async showChampionModalPart2(interaction: CommandInteraction | ButtonInteraction) {
+    const modal = new ModalBuilder()
+      .setCustomId('addChampionModalPart2')
+      .setTitle('Add New Champion (Part 2/2)');
+
+    const tagsImageInput = new TextInputBuilder()
+      .setCustomId('championTagsImage')
+      .setLabel('Tags Image URL')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+
+    const releaseDateInput = new TextInputBuilder()
+      .setCustomId('championReleaseDate')
+      .setLabel('Release Date (YYYY-MM-DD)')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+
+    const obtainableRangeInput = new TextInputBuilder()
+      .setCustomId('championObtainableRange')
+      .setLabel('Obtainable Range (e.g., "2-7")')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(false)
+      .setValue('2-7');
+
+    const prestige6Input = new TextInputBuilder()
+      .setCustomId('championPrestige6')
+      .setLabel('6-Star Prestige')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(false)
+      .setValue('0');
+
+    const prestige7Input = new TextInputBuilder()
+      .setCustomId('championPrestige7')
+      .setLabel('7-Star Prestige')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(false)
+      .setValue('0');
+
+    modal.addComponents(
+      new ActionRowBuilder<TextInputBuilder>().addComponents(tagsImageInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(releaseDateInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(obtainableRangeInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(prestige6Input),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(prestige7Input)
+    );
+
+    await interaction.showModal(modal);
+  }
+
+  async handleChampionModalPart1(interaction: ModalSubmitInteraction) {
+    if (!interaction.isModalSubmit()) return;
+
+    try {
+      await interaction.deferUpdate();
+
+      const name = interaction.fields.getTextInputValue('championName');
+      const shortName = interaction.fields.getTextInputValue('championShortName');
+      const champClass = interaction.fields.getTextInputValue('championClass').toUpperCase() as ChampionClass;
+      const primaryImageUrl = interaction.fields.getTextInputValue('championPrimaryImage');
+      const secondaryImageUrl = interaction.fields.getTextInputValue('championSecondaryImage');
+
+      const partialChampionData = {
+        name,
+        shortName,
+        champClass,
+        primaryImageUrl,
+        secondaryImageUrl,
+      };
+
+      pendingChampions.set(interaction.user.id, partialChampionData);
+
+      const row = new ActionRowBuilder<ButtonBuilder>()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId('champion-add-part2')
+            .setLabel('Continue')
+            .setStyle(ButtonStyle.Primary),
+        );
+
+      await interaction.followUp({ 
+        content: 'Part 1 of champion creation complete. Click continue to proceed to Part 2.', 
+        components: [row], 
+        ephemeral: true 
+      });
+
+    } catch (error) {
+      logger.error(error, 'Error handling champion modal submission part 1');
+      await interaction.followUp({ content: `An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`, ephemeral: true });
+    }
+  }
+
+  async handleChampionModalPart2(interaction: ModalSubmitInteraction) {
+    if (!interaction.isModalSubmit()) return;
+
+    try {
+      await interaction.reply({ content: 'Processing part 2...', ephemeral: true });
+
+      const partialChampionData = pendingChampions.get(interaction.user.id);
+      if (!partialChampionData) {
+        throw new Error('Could not find partial champion data. Please start over.');
+      }
+
+      const tagsImageUrl = interaction.fields.getTextInputValue('championTagsImage');
+      const releaseDate = interaction.fields.getTextInputValue('championReleaseDate');
+      const obtainableRange = interaction.fields.getTextInputValue('championObtainableRange') || '2-7';
+      
+      const prestige6String = interaction.fields.getTextInputValue('championPrestige6') || '0';
+      const prestige6 = parseInt(prestige6String, 10);
+      if (isNaN(prestige6)) {
+        throw new Error(`Invalid number for 6-Star Prestige: ${prestige6String}`);
+      }
+
+      const prestige7String = interaction.fields.getTextInputValue('championPrestige7') || '0';
+      const prestige7 = parseInt(prestige7String, 10);
+      if (isNaN(prestige7)) {
+        throw new Error(`Invalid number for 7-Star Prestige: ${prestige7String}`);
+      }
+
+      if (!Object.values(ChampionClass).includes(partialChampionData.champClass as ChampionClass)) {
+        throw new Error(`Invalid champion class: ${partialChampionData.champClass}. Please use one of: ${Object.values(ChampionClass).join(', ')}`);
+      }
+
+      const championData = {
+        ...partialChampionData,
+        tagsImageUrl,
+        obtainableRange,
+        prestige6,
+        prestige7,
+        releaseDate: new Date(releaseDate),
+      };
+
+      await this.addChampion(interaction, championData);
+
+      pendingChampions.delete(interaction.user.id);
+
+    } catch (error) {
+      logger.error(error, 'Error handling champion modal submission part 2');
+      await interaction.followUp({ content: `An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`, ephemeral: true });
+    }
+  }
+
+  async addChampion(interaction: CommandInteraction | ModalSubmitInteraction, championData: any) {
     logger.info(`Starting champion add process for ${interaction.user.tag}`);
 
     try {
       await interaction.editReply('Starting champion creation process...');
 
-      const name = interaction.options.getString('name', true);
-      const shortName = interaction.options.getString('short_name', true);
-      const champClass = interaction.options.getString('class', true) as ChampionClass;
-      const tagsImageUrl = interaction.options.getString('tags_image', true);
-      const primaryImageUrl = interaction.options.getString('primary_image', true);
-      const secondaryImageUrl = interaction.options.getString('secondary_image', true);
-      const releaseDate = interaction.options.getString('release_date', true);
-      const obtainableRange = interaction.options.getString('obtainable_range') || '2-7';
-      const prestige6 = interaction.options.getInteger('prestige_6') || 0;
-      const prestige7 = interaction.options.getInteger('prestige_7') || 0;
+      const { name, shortName, champClass, tagsImageUrl, primaryImageUrl, secondaryImageUrl, releaseDate, obtainableRange, prestige6, prestige7 } = championData;
 
       logger.info(`Adding champion: ${name}`);
 
@@ -208,7 +386,7 @@ class ChampionAdminHelper {
     return tags;
   }
 
-  private async _createDiscordEmoji(interaction: CommandInteraction, championShortName: string, imageUrl: string): Promise<any | undefined> {
+  private async _createDiscordEmoji(interaction: CommandInteraction | ModalSubmitInteraction, championShortName: string, imageUrl: string): Promise<any | undefined> {
     logger.info(`_createDiscordEmoji for ${championShortName}`);
     const { client } = interaction;
     const app = await client.application?.fetch();

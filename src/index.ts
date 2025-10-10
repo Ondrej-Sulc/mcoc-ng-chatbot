@@ -19,6 +19,7 @@ import { initializeAqReminders } from "./services/aqReminderService.js";
 import { registerButtonHandler } from "./utils/buttonHandlerRegistry";
 import { deleteRoster } from "./services/rosterService";
 import { PrismaClient } from "@prisma/client";
+import { championAdminHelper } from "./utils/championAdminHelper";
 
 const prisma = new PrismaClient();
 
@@ -102,6 +103,19 @@ client.once(Events.ClientReady, async (readyClient) => {
 client.on(Events.InteractionCreate, async (interaction) => {
   // Handle button interactions generically
   if (interaction.isButton()) {
+    if (interaction.customId === 'champion-add-part2') {
+      try {
+        await championAdminHelper.showChampionModalPart2(interaction);
+      } catch (error) {
+        const { userMessage, errorId } = handleError(error, {
+          location: `button:${interaction.customId}`,
+          userId: interaction.user?.id,
+        });
+        await safeReply(interaction, userMessage, errorId);
+      }
+      return;
+    }
+
     const handler = getButtonHandler(interaction.customId);
     if (handler) {
       try {
@@ -115,6 +129,31 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     } else {
       await safeReply(interaction, "Unknown button.");
+    }
+    return;
+  }
+
+  if (interaction.isModalSubmit()) {
+    if (interaction.customId === 'addChampionModalPart1') {
+      try {
+        await championAdminHelper.handleChampionModalPart1(interaction);
+      } catch (error) {
+        const { userMessage, errorId } = handleError(error, {
+          location: `modal:${interaction.customId}`,
+          userId: interaction.user?.id,
+        });
+        await safeReply(interaction, userMessage, errorId);
+      }
+    } else if (interaction.customId === 'addChampionModalPart2') {
+      try {
+        await championAdminHelper.handleChampionModalPart2(interaction);
+      } catch (error) {
+        const { userMessage, errorId } = handleError(error, {
+          location: `modal:${interaction.customId}`,
+          userId: interaction.user?.id,
+        });
+        await safeReply(interaction, userMessage, errorId);
+      }
     }
     return;
   }
