@@ -1,11 +1,11 @@
-# MCOC Next-Gen Chatbot (TypeScript)
+# NG Bot for MCOC
 
 A personal, modular Discord bot built with TypeScript, designed for Marvel Contest of Champions (MCOC) related tasks. This bot integrates with Google Sheets for data logging and OpenRouter for AI capabilities, all running on Discord.js v14.
 
 ## Key Features
 
 - **Dynamic Command Loading:** Commands in the `src/commands` directory are automatically registered on startup.
-- **Champion Administration:** A powerful admin command to add or update champions in the database. This command automates the entire process, including:
+- **Champion Administration:** A powerful admin command to add or update champions in the database. The champion creation process is handled through a user-friendly, two-part interactive modal, and the image update command features autocomplete for champion names. This command automates the entire process, including:
     - **Image Processing:** Downloads champion images, resizes them to multiple dimensions (256, 128, 64, 32), and applies a subtle blur to smaller sizes.
     - **Cloud Storage:** Uploads the processed images to a Google Cloud Storage bucket.
     - **AI Tag Extraction:** Uses an AI model (via OpenRouter) to analyze a provided image and extract a champion's tags.
@@ -46,123 +46,9 @@ Manage emojis in: Discord Developer Portal → Your Application → Emojis.
 
 ---
 
-## Migration
+## Migration from Legacy Bot
 
-This section outlines the plan and progress for migrating commands from the legacy Python bot to this new TypeScript version.
-
-**Migration Goals & Rules:**
-
-- **Slash Commands Only:** All commands will be implemented as slash commands (`/`).
-- **Effective Subcommands:** Use subcommands and subcommand groups to create a clear and intuitive command structure.
-- **Modern Components:** Utilize modern Discord UI components (Buttons, Select Menus, Modals) where applicable to improve user experience.
-- **Robust Error Handling:** Implement comprehensive error handling for all commands.
-- **Database:** Transition from JSON files to a more robust database solution.
-- **Code Quality:** Ensure all new code is well-documented, follows the existing project structure, and is written in an idiomatic TypeScript style.
-
-Database Migration & Seeding
-
-The bot now utilizes a PostgreSQL database managed by Prisma for persistent storage of structured game data.
-
-- Schema Definition: The database schema is fully defined in prisma/schema.prisma, modeling entities like Champions, Abilities, Tags, and Attacks.
-- Data Seeding: A comprehensive seeding script (prisma/seed.ts) has been created to migrate data from legacy JSON files (legacy/champions_data.json, legacy/glossary.json) into the PostgreSQL database.
-  - This script handles the full lifecycle: clearing existing data, creating relational structures (Categories, Tags), and populating Champion data along with its complex relationships (Abilities, Immunities, Attacks).
-  - It ensures data integrity and handles potential duplicates in the source JSON.
-- Data Sources Migrated: - Glossary Data: Populated into AbilityCategory and Ability tables. - Champion Data: Fully migrated. This includes core champion details, prestige costs, image URLs, tags, normalized attack data (Light, Medium, Heavy, Special attacks and their individual hits), and structured links to abilities and immunities.
-  This structured database is now the central source for all champion-related information within the bot.
-
-**Legacy Command Status:**
-
-_This list will be populated to track the migration status of each command._
-
-- **`account.py`**:
-  - `/link_account`: Migrated to `/profile register`
-  - `/delete_account_link`: To be reviewed
-  - `/register_thread`: Not planned for migration (server-specific)
-  - `/unregister_thread`: Not planned for migration (server-specific)
-- **`admin.py`**:
-  - `/add_champion`: Migrated to `/admin champion add`
-  - `/update_images`: Migrated to `/admin champion update-images`
-  - `/update_bot`: Not to be migrated (not necessary anymore)
-  - `/sync_commands`: Not to be migrated (not necessary anymore)
-  - `/update`: Not to be migrated (not necessary anymore)
-- **`aq.py`**:
-  - `/aq` (group command): Migrated
-    - `/aq start`: Migrated
-    - `/aq end`: Migrated
-    - `/aq test_ping`: Just migrated for testing then removed
-- **`champion_info.py`**:
-  - `/full_abilities`: Migrated to `/champion info`
-  - `/glossary`: Migrated to `/glossary effect`
-  - `/glossary_category`: Migrated to `/glossary category`
-  - `/attacks`: Migrated to `/champion attacks`
-  - `/search`: Migrated to `/search all`
-  - `/my_roster_search`: Migrated to `/search roster`
-  - `/roster_search`: Migrated to `/search roster`
-  - `/duel`: To be reviewed (requires external data source)
-  - `/immunities`: Migrated to `/champion immunities`
-  - `/abilities`: Migrated to `/champion abilities`
-- **`general.py`**:
-  - `/summarize`: Migrated
-  - `/hello`: Not to be migrated (redundant)
-- **`prestige.py`**:
-  - `/prestige_list`: Migrated to `/prestige leaderboard`
-  - `/prestige`: Migrated to `/prestige update`
-- **`remind.py`**:
-  - `/remind`: Not to be migrated (replaced by new scheduler)
-  - `/remind_mute`: Not to be migrated (replaced by new scheduler)
-  - `/remind_list`: Not to be migrated (replaced by new scheduler)
-  - `/remind_delete`: Not to be migrated (replaced by new scheduler)
-- **`roster.py`**:
-  - `$roster` (text command, needs migration to slash): Migrated to `/roster update` and `/roster view`
-  - `/roster_clear_cache`: Obsolete
-  - `/roster_add`: Obsolete
-  - `/roster_delete`: Migrated to `/roster delete`
-  - `/roster_convert`: Obsolete
-- **`war.py`**:
-  - `/aw_plan`: Migrated
-  - `/aw_details`: Migrated
-
-### Roster Command Overhaul
-
-The legacy `$roster` text command has been completely migrated and overhauled into a powerful and flexible `/roster` slash command with multiple subcommands.
-
--   **`/roster update`**:
-    -   **Ascended Status**: Now supports an `is_ascended` flag to correctly log ascended champions.
-    -   **Parallel Processing**: Processes multiple screenshots concurrently, significantly speeding up large roster updates.
-    -   **Modern UI**: Displays results in a clean, modern UI using Discord's V2 components, including a gallery of the processed images.
-    -   **Improved Error Handling**: Collects all errors from image processing and presents them in a single, clean summary.
-
--   **`/roster view`**:
-    -   **Pagination**: Large rosters are now displayed in a paginated embed, navigable with interactive buttons. Pages are cached for 15 minutes for quick access.
-    -   **Filtering**: Supports filtering the roster by `stars`, `rank`, and the new `is_ascended` status.
-
--   **`/roster summary` (New)**:
-    -   Provides a detailed breakdown of the roster, showing champion counts per star level, with further details on rank and class distribution.
-
--   **`/roster export` (New)**:
-    -   Generates and sends a complete CSV file of the player's roster, including the `isAscended` status.
-
--   **`/roster delete`**:
-    -   Migrated from the legacy bot, this command now supports filtering by `champion`, `stars`, `rank`, and `is_ascended` status for precise deletions.
-
--   **Database Resilience**:
-    -   Work is in progress to implement a retry mechanism for database operations, making the bot more resilient to transient connection issues.
-
-### Search Command Overhaul
-
-The legacy search commands have been consolidated into a single, powerful `/search` command with subcommands, leveraging the PostgreSQL database for complex queries.
-
--   **`/search all`**:
-    -   Replaces the original `/search` command.
-    -   Allows searching all champions in the game based on a combination of criteria, including `abilities`, `immunities`, `tags`, `class`, and even `ability-category`.
-    -   Supports complex queries with `and`/`or` logic.
-
--   **`/search roster`**:
-    -   Replaces the `/my_roster_search` and `/roster_search` commands.
-    -   Performs the same advanced searches as `/search all`, but filters the results against a specified player's roster (defaults to the user running the command).
-    -   Results are paginated and displayed in an easy-to-read embed.
-
----
+This project is a complete rewrite of a legacy Python-based MCOC bot. The migration is now complete, with all relevant commands having been transitioned to a modern, TypeScript-based slash command architecture utilizing modern Discord UI components, a robust PostgreSQL database, and improved code quality.
 
 ## Getting Started (Local Development)
 
@@ -179,16 +65,9 @@ The legacy search commands have been consolidated into a single, powerful `/sear
 
 Create a `.env` file by copying the example:
 
-Fill in the values in the `.env` file. This includes your Discord bot token, API keys, and the connection details for your PostgreSQL database. You will also need to provide a `GCS_BUCKET_NAME` for the champion image uploads.
+Fill in the values in the `.env` file. This includes your Discord bot token, API keys, and the connection details for your PostgreSQL database.
 
-**Important:** For `GOOGLE_CREDENTIALS_JSON`, you must provide the full JSON content of your service account key, encoded in Base64. You can generate this with the following command:
-
-```bash
-# For Windows (in PowerShell)
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("/path/to/your/credentials.json"))
-```
-
-Copy the resulting string into the `.env` file.
+**Important:** For `GOOGLE_CREDENTIALS_JSON`, you must provide the full JSON content of your service account key, encoded in Base64.
 
 ### 3. Run the Bot
 

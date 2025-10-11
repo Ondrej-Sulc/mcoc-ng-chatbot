@@ -70,6 +70,7 @@ The bot should now be running and connected to Discord and the database.
 *   **Error Handling:** A centralized error handling system is used to provide users with a unique error ID while logging detailed context for debugging.
 *   **Database:** Prisma is used to manage the PostgreSQL database. The schema is defined in `prisma/schema.prisma`.
 *   **Code Style:** The project follows standard TypeScript and Prettier conventions.
+*   **Logging:** For consistency and performance, all logging should be done using the `pino` logger, which is available through the `loggerService`. This provides structured, leveled logging. Avoid using `console.log` for any persistent or important logging.
 *   **Services vs. Utils:**
     *   `src/services`: For modules that connect to external APIs or manage stateful business logic.
     *   `src/utils`: For generic, stateless helper functions and internal application logic handlers.

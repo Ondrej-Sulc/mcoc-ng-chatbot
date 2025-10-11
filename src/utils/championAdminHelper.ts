@@ -8,6 +8,7 @@ import { PrismaClient, ChampionClass } from '@prisma/client';
 import { config } from '../config';
 import logger from '../services/loggerService';
 import { sheetsService } from '../services/sheetsService';
+import { getChampionImageUrl } from './championHelper';
 
 const prisma = new PrismaClient();
 const pendingChampions = new Map<string, any>();
@@ -505,14 +506,13 @@ class ChampionAdminHelper {
 
       logger.info('Fetching all champions from database...');
       const champions = await prisma.champion.findMany({
-        orderBy: {
-          name: 'asc',
-        },
         include: {
           tags: true,
         },
       });
       logger.info(`Found ${champions.length} champions.`);
+
+      champions.sort((a, b) => a.name.localeCompare(b.name));
 
       await interaction.editReply('Formatting data for Google Sheet...');
       logger.info('Formatting data for Google Sheet...');
@@ -525,10 +525,6 @@ class ChampionAdminHelper {
       ];
 
       const rows = champions.map(champion => {
-        const formattedName = champion.name.replace(/ /g, '_').replace(/\(|\)|\'|\./g, '').toLowerCase();
-        const getImageUrl = (size: number, type: 'primary' | 'secondary') => 
-          `https://storage.googleapis.com/${config.GCS_BUCKET_NAME}/${size}/${formattedName}_${type}.png`;
-
         const prestige = champion.prestige as { '6'?: number; '7'?: number; };
         const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 
@@ -540,14 +536,14 @@ class ChampionAdminHelper {
           champion.tags.filter(tag => tag.category === 'Alliance Wars').map(tag => tag.name).join(', '),
           champion.releaseDate.toISOString().split('T')[0],
           champion.obtainable.join(', '),
-          getImageUrl(32, 'primary'),
-          getImageUrl(64, 'primary'),
-          getImageUrl(128, 'primary'),
-          getImageUrl(256, 'primary'),
-          getImageUrl(32, 'secondary'),
-          getImageUrl(64, 'secondary'),
-          getImageUrl(128, 'secondary'),
-          getImageUrl(256, 'secondary'),
+          getChampionImageUrl(champion.images, '32', 'primary') || '',
+          getChampionImageUrl(champion.images, '64', 'primary') || '',
+          getChampionImageUrl(champion.images, '128', 'primary') || '',
+          getChampionImageUrl(champion.images, 'full', 'primary') || '',
+          getChampionImageUrl(champion.images, '32', 'secondary') || '',
+          getChampionImageUrl(champion.images, '64', 'secondary') || '',
+          getChampionImageUrl(champion.images, '128', 'secondary') || '',
+          getChampionImageUrl(champion.images, 'full', 'secondary') || '',
           prestige?.['6'] || '',
           prestige?.['7'] || '',
           champion.discordEmoji || ''
