@@ -1,5 +1,6 @@
 import { CommandInteraction, GuildEmoji, Routes, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalSubmitInteraction, ButtonBuilder, ButtonStyle, ButtonInteraction } from 'discord.js';
 import { promises as fs } from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import sharp from 'sharp';
 import { gcpStorageService } from '../services/gcpStorageService';
@@ -306,7 +307,7 @@ class ChampionAdminHelper {
   private async _processAndUploadImages(championName: string, primaryUrl: string | null, secondaryUrl: string | null, heroUrl: string | null) {
     logger.info(`_processAndUploadImages for ${championName}`);
     const formattedName = championName.replace(/ /g, '_').replace(/\(|\)|\'|\./g, '').toLowerCase();
-    const tempDir = path.join(__dirname, '../../temp');
+    const tempDir = path.join(os.tmpdir(), 'mcoc-ng-chatbot-images');
     await fs.mkdir(tempDir, { recursive: true });
 
     const imageUrls: any = {};
