@@ -38,6 +38,7 @@ export interface Config {
     TacticAttackCol: number,
     TacticDefenseCol: number,
     nodesRange: string;
+    teamRange: string;
   }
 
   championSheet: {
@@ -135,6 +136,7 @@ const createConfig = (): Config => {
       TacticAttackCol: 3,
       TacticDefenseCol: 4,
       nodesRange: 'AWNodes',
+      teamRange: 'BG4:BG43',
     },
     championSheet: {
       range: 'DB!A1',

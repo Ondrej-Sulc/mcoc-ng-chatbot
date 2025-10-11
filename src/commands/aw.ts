@@ -97,6 +97,30 @@ async function getMergedData(sheetTabName: string): Promise<MergedAssignment[]> 
     return mergedData;
 }
 
+async function getTeamData(sheetTabName: string): Promise<Map<string, string[]>> {
+    const teamRange = `'${sheetTabName}'!${config.allianceWar.teamRange}`;
+    const [teamData] = await sheetsService.readSheets(config.MCOC_SHEET_ID, [teamRange]);
+
+    const teamMap = new Map<string, string[]>();
+    if (!teamData) {
+        return teamMap;
+    }
+
+    for (let i = 0; i < teamData.length; i += 4) {
+        const playerName = (teamData[i]?.[0] || "").trim().toLowerCase();
+        if (playerName) {
+            const champions = [
+                (teamData[i + 1]?.[0] || "").trim(),
+                (teamData[i + 2]?.[0] || "").trim(),
+                (teamData[i + 3]?.[0] || "").trim(),
+            ].filter(c => c);
+            teamMap.set(playerName, champions);
+        }
+    }
+
+    return teamMap;
+}
+
 // --- COMMANDS ---
 
 export const command: Command = {
@@ -195,10 +219,10 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
     const threadMap = new Map(allThreads.map((t) => [t.name.toLowerCase(), t]));
 
     const mergedData = await getMergedData(bgConfig.sheet);
+    const teamData = await getTeamData(bgConfig.sheet);
 
     const playerDataMap = new Map<string, {
         assignments: { node: string; formatted: string }[];
-        attackers: string[];
         prefights: { champion: string; targetPlayer: string, targetNode: string, targetDefender: string }[];
       }
     >();
@@ -208,10 +232,10 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
 
         // Ensure player entries exist
         if (!playerDataMap.has(playerName)) {
-            playerDataMap.set(playerName, { assignments: [], attackers: [], prefights: [] });
+            playerDataMap.set(playerName, { assignments: [], prefights: [] });
         }
         if (prefightPlayer && !playerDataMap.has(prefightPlayer)) {
-            playerDataMap.set(prefightPlayer, { assignments: [], attackers: [], prefights: [] });
+            playerDataMap.set(prefightPlayer, { assignments: [], prefights: [] });
         }
 
         // Add assignment to the player
@@ -219,11 +243,6 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
             node: node,
             formatted: formatAssignment(assignment),
         });
-        playerDataMap.get(playerName)!.attackers.push(attackerName);
-        if (prefightChampion){
-          // Also add prefight champion to the target player's attackers list
-          playerDataMap.get(playerName)!.attackers.push(prefightChampion);
-        }
         // Handle prefight logic
         if (prefightPlayer && prefightChampion) {
             // Add prefight task to the performer
@@ -249,8 +268,9 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
     const sendPlan = async (playerName: string) => {
       const thread = threadMap.get(playerName);
       const data = playerDataMap.get(playerName);
+      const team = teamData.get(playerName);
 
-      if (!data || (data.assignments.length === 0 && data.prefights.length === 0)) {
+      if ((!data || (data.assignments.length === 0 && data.prefights.length === 0)) && (!team || team.length === 0)) {
         noData.push(playerName);
         return;
       }
@@ -271,24 +291,23 @@ async function handlePlan(interaction: ChatInputCommandInteraction) {
 
       container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`**AW Plan for ${capitalize(playerName)}**`));
 
-      const uniqueAttackers = [...new Set(data.attackers)];
-      if (uniqueAttackers.length > 0) {
+      if (team && team.length > 0) {
         const attackersString =
           "**Your Team:**\n" +
-          uniqueAttackers
+          team
             .map((name) => `${getEmoji(name)} **${name}**`)
             .join(" ");
         container.addTextDisplayComponents(new TextDisplayBuilder().setContent(attackersString));
       }
 
-      if (data.assignments.length > 0) {
+      if (data && data.assignments.length > 0) {
         const assignmentsValue = "**Assignments**\n" + data.assignments
           .map((a) => `- Node ${a.node}: ${a.formatted}`)
           .join("\n");
         container.addTextDisplayComponents(new TextDisplayBuilder().setContent(assignmentsValue));
       }
       
-      if (data.prefights.length > 0) {
+      if (data && data.prefights.length > 0) {
         const prefightsValue = "**Pre-Fights**\n" + data.prefights
           .map((p) => `- ${getEmoji(p.champion)} **${p.champion}** for ${capitalize(p.targetPlayer)}'s ${getEmoji(p.targetDefender)} **${p.targetDefender}** on node ${p.targetNode}`)
           .join("\n");
