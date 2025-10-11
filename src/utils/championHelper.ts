@@ -7,14 +7,19 @@ export interface ChampionImages {
   s_128: string;
   full_primary: string;
   full_secondary: string;
+  hero: string;
 }
 
 export function getChampionImageUrl(
   images: any,
   size: "32" | "64" | "128" | "full" = "full",
-  type: "primary" | "secondary" = "primary"
+  type: "primary" | "secondary" | "hero" = "primary"
 ): string {
   const parsedImages = images as ChampionImages;
+
+  if (type === "hero") {
+    return parsedImages.hero;
+  }
 
   if (size === "full") {
     return type === "primary"

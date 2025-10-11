@@ -1,5 +1,5 @@
 import { CommandInteraction, GuildEmoji, Routes, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalSubmitInteraction, ButtonBuilder, ButtonStyle, ButtonInteraction } from 'discord.js';
-import * as fs from 'fs/promises';
+import { promises as fs } from 'fs';
 import * as path from 'path';
 import sharp from 'sharp';
 import { gcpStorageService } from '../services/gcpStorageService';
@@ -80,6 +80,12 @@ class ChampionAdminHelper {
       .setStyle(TextInputStyle.Short)
       .setRequired(true);
 
+    const heroImageInput = new TextInputBuilder()
+      .setCustomId('championHeroImage')
+      .setLabel('Hero Image URL')
+      .setStyle(TextInputStyle.Short)
+      .setRequired(true);
+
     const releaseDateInput = new TextInputBuilder()
       .setCustomId('championReleaseDate')
       .setLabel('Release Date (YYYY-MM-DD)')
@@ -93,26 +99,19 @@ class ChampionAdminHelper {
       .setRequired(false)
       .setValue('2-7');
 
-    const prestige6Input = new TextInputBuilder()
-      .setCustomId('championPrestige6')
-      .setLabel('6-Star Prestige')
+    const prestigeInput = new TextInputBuilder()
+      .setCustomId('championPrestige')
+      .setLabel('6*,7* Prestige (e.g., 12345,13456)')
       .setStyle(TextInputStyle.Short)
       .setRequired(false)
-      .setValue('0');
-
-    const prestige7Input = new TextInputBuilder()
-      .setCustomId('championPrestige7')
-      .setLabel('7-Star Prestige')
-      .setStyle(TextInputStyle.Short)
-      .setRequired(false)
-      .setValue('0');
+      .setValue('0,0');
 
     modal.addComponents(
       new ActionRowBuilder<TextInputBuilder>().addComponents(tagsImageInput),
+      new ActionRowBuilder<TextInputBuilder>().addComponents(heroImageInput),
       new ActionRowBuilder<TextInputBuilder>().addComponents(releaseDateInput),
       new ActionRowBuilder<TextInputBuilder>().addComponents(obtainableRangeInput),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(prestige6Input),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(prestige7Input)
+      new ActionRowBuilder<TextInputBuilder>().addComponents(prestigeInput)
     );
 
     await interaction.showModal(modal);
@@ -172,17 +171,19 @@ class ChampionAdminHelper {
       }
 
       const tagsImageUrl = interaction.fields.getTextInputValue('championTagsImage');
+      const heroImageUrl = interaction.fields.getTextInputValue('championHeroImage');
       const releaseDate = interaction.fields.getTextInputValue('championReleaseDate');
       const obtainableRange = interaction.fields.getTextInputValue('championObtainableRange') || '2-7';
       
-      const prestige6String = interaction.fields.getTextInputValue('championPrestige6') || '0';
+      const prestigeString = interaction.fields.getTextInputValue('championPrestige') || '0,0';
+      const [prestige6String, prestige7String] = prestigeString.split(',').map(s => s.trim());
+
       const prestige6 = parseInt(prestige6String, 10);
       if (isNaN(prestige6)) {
         throw new Error(`Invalid number for 6-Star Prestige: ${prestige6String}`);
       }
 
-      const prestige7String = interaction.fields.getTextInputValue('championPrestige7') || '0';
-      const prestige7 = parseInt(prestige7String, 10);
+      const prestige7 = parseInt(prestige7String || '0', 10);
       if (isNaN(prestige7)) {
         throw new Error(`Invalid number for 7-Star Prestige: ${prestige7String}`);
       }
@@ -194,6 +195,7 @@ class ChampionAdminHelper {
       const championData = {
         ...partialChampionData,
         tagsImageUrl,
+        heroImageUrl,
         obtainableRange,
         prestige6,
         prestige7,
@@ -216,14 +218,14 @@ class ChampionAdminHelper {
     try {
       await interaction.editReply('Starting champion creation process...');
 
-      const { name, shortName, champClass, tagsImageUrl, primaryImageUrl, secondaryImageUrl, releaseDate, obtainableRange, prestige6, prestige7 } = championData;
+      const { name, shortName, champClass, tagsImageUrl, primaryImageUrl, secondaryImageUrl, heroImageUrl, releaseDate, obtainableRange, prestige6, prestige7 } = championData;
 
       logger.info(`Adding champion: ${name}`);
 
       // 1. Process and upload images
       await interaction.editReply('Processing and uploading images...');
       logger.info('Processing and uploading images...');
-      const imageUrls = await this._processAndUploadImages(name, primaryImageUrl, secondaryImageUrl);
+      const imageUrls = await this._processAndUploadImages(name, primaryImageUrl, secondaryImageUrl, heroImageUrl);
       logger.info('Image processing complete.');
 
       // 2. Process tags
@@ -260,8 +262,9 @@ class ChampionAdminHelper {
       await interaction.editReply('Starting image update process...');
 
       const name = interaction.options.getString('name', true);
-      const primaryImageUrl = interaction.options.getString('primary_image', true);
-      const secondaryImageUrl = interaction.options.getString('secondary_image', true);
+      const primaryImageUrl = interaction.options.getString('primary_image');
+      const secondaryImageUrl = interaction.options.getString('secondary_image');
+      const heroImageUrl = interaction.options.getString('hero_image');
 
       logger.info(`Updating images for champion: ${name}`);
 
@@ -275,14 +278,20 @@ class ChampionAdminHelper {
         return;
       }
 
+      const images = champion.images as any;
+      const existingPrimary = getChampionImageUrl(images, 'full', 'primary');
+      const existingSecondary = getChampionImageUrl(images, 'full', 'secondary');
+
       await interaction.editReply('Processing and uploading new images...');
       logger.info('Processing and uploading new images...');
-      const imageUrls = await this._processAndUploadImages(name, primaryImageUrl, secondaryImageUrl);
+      const imageUrls = await this._processAndUploadImages(name, primaryImageUrl || existingPrimary, secondaryImageUrl || existingSecondary, heroImageUrl);
       logger.info('Image processing complete.');
+
+      const newImages = { ...images, ...imageUrls };
 
       await prisma.champion.update({
         where: { id: champion.id },
-        data: { images: imageUrls },
+        data: { images: newImages },
       });
       logger.info('Champion images updated in database.');
 
@@ -294,7 +303,7 @@ class ChampionAdminHelper {
     }
   }
 
-  private async _processAndUploadImages(championName: string, primaryUrl: string, secondaryUrl: string) {
+  private async _processAndUploadImages(championName: string, primaryUrl: string | null, secondaryUrl: string | null, heroUrl: string | null) {
     logger.info(`_processAndUploadImages for ${championName}`);
     const formattedName = championName.replace(/ /g, '_').replace(/\(|\)|\'|\./g, '').toLowerCase();
     const tempDir = path.join(__dirname, '../../temp');
@@ -302,28 +311,40 @@ class ChampionAdminHelper {
 
     const imageUrls: any = {};
 
+    // Process hero image
+    if (heroUrl) {
+      const heroImgBuffer = await downloadImage(heroUrl);
+      const heroPath = path.join(tempDir, `${formattedName}_hero.png`);
+      await fs.writeFile(heroPath, heroImgBuffer);
+      const gcsHeroPath = `hero/${formattedName}.png`;
+      imageUrls.hero = await gcpStorageService.uploadFile(heroPath, gcsHeroPath);
+      logger.info(`Uploaded ${gcsHeroPath}`);
+    }
+
     for (const type of ['primary', 'secondary']) {
       const url = type === 'primary' ? primaryUrl : secondaryUrl;
-      const imgBuffer = await downloadImage(url);
-      const typePrefix = type.charAt(0);
+      if (url) {
+        const imgBuffer = await downloadImage(url);
+        const typePrefix = type.charAt(0);
 
-      const originalSize = 256;
-      const originalPath = path.join(tempDir, `${formattedName}_${type}_${originalSize}.png`);
-      await sharp(imgBuffer).resize(originalSize, originalSize).toFile(originalPath);
-      const gcsOriginalPath = `${originalSize}/${formattedName}_${type}.png`;
-      const key = `full_${type}`;
-      imageUrls[key] = await gcpStorageService.uploadFile(originalPath, gcsOriginalPath);
-      logger.info(`Uploaded ${gcsOriginalPath}`);
+        const originalSize = 256;
+        const originalPath = path.join(tempDir, `${formattedName}_${type}_${originalSize}.png`);
+        await sharp(imgBuffer).resize(originalSize, originalSize).toFile(originalPath);
+        const gcsOriginalPath = `${originalSize}/${formattedName}_${type}.png`;
+        const key = `full_${type}`;
+        imageUrls[key] = await gcpStorageService.uploadFile(originalPath, gcsOriginalPath);
+        logger.info(`Uploaded ${gcsOriginalPath}`);
 
-      const blurredImg = sharp(imgBuffer).blur(0.5);
+        const blurredImg = sharp(imgBuffer).blur(0.5);
 
-      for (const size of [128, 64, 32]) {
-        const resizedPath = path.join(tempDir, `${formattedName}_${type}_${size}.png`);
-        await blurredImg.clone().resize(size, size).toFile(resizedPath);
-        const gcsResizedPath = `${size}/${formattedName}_${type}.png`;
-        const key = `${typePrefix}_${size}`;
-        imageUrls[key] = await gcpStorageService.uploadFile(resizedPath, gcsResizedPath);
-        logger.info(`Uploaded ${gcsResizedPath}`);
+        for (const size of [128, 64, 32]) {
+          const resizedPath = path.join(tempDir, `${formattedName}_${type}_${size}.png`);
+          await blurredImg.clone().resize(size, size).toFile(resizedPath);
+          const gcsResizedPath = `${size}/${formattedName}_${type}.png`;
+          const key = `${typePrefix}_${size}`;
+          imageUrls[key] = await gcpStorageService.uploadFile(resizedPath, gcsResizedPath);
+          logger.info(`Uploaded ${gcsResizedPath}`);
+        }
       }
     }
 

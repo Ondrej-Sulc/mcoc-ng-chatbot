@@ -25,8 +25,9 @@ export const command: Command = {
             .setName('update_images')
             .setDescription('Updates the images for an existing champion.')
             .addStringOption(option => option.setName('name').setDescription('Name of the champion to update.').setRequired(true).setAutocomplete(true))
-            .addStringOption(option => option.setName('primary_image').setDescription('URL of the new primary image.').setRequired(true))
-            .addStringOption(option => option.setName('secondary_image').setDescription('URL of the new secondary image.').setRequired(true))
+            .addStringOption(option => option.setName('primary_image').setDescription('URL of the new primary image.').setRequired(false))
+            .addStringOption(option => option.setName('secondary_image').setDescription('URL of the new secondary image.').setRequired(false))
+            .addStringOption(option => option.setName('hero_image').setDescription('URL of the new hero image.').setRequired(false))
         )
         .addSubcommand(subcommand =>
           subcommand

@@ -72,7 +72,10 @@ async function getMergedData(sheetTabName: string): Promise<MergedAssignment[]> 
 
     for (let i = 0; i < assignmentsData.length; i++) {
         const assignmentRow = assignmentsData[i];
-        const tacticsAndPrefightsRow = tacticsAndPrefightsData ? tacticsAndPrefightsData[i] : [];
+        if (!assignmentRow) {
+            continue;
+        }
+        const tacticsAndPrefightsRow = (tacticsAndPrefightsData && tacticsAndPrefightsData[i]) || [];
 
         const playerName = (assignmentRow[config.allianceWar.playerCol] || "").trim().toLowerCase();
         const attackerName = (assignmentRow[config.allianceWar.attackerCol] || "").trim();
