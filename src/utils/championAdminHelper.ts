@@ -289,12 +289,40 @@ class ChampionAdminHelper {
       logger.info('Image processing complete.');
 
       const newImages = { ...images, ...imageUrls };
+      let newEmoji = null;
+
+      if (primaryImageUrl) {
+        logger.info('Primary image updated, starting emoji update process...');
+        const { client } = interaction;
+        const app = await client.application?.fetch();
+        if (app?.id) {
+          if (champion.discordEmoji) {
+            const emojiId = champion.discordEmoji.split(':')[2].replace('>', '');
+            try {
+              await client.rest.delete(Routes.applicationEmoji(app.id, emojiId));
+              logger.info(`Deleted old emoji with id ${emojiId}`);
+            } catch (error) {
+              logger.error(error, `Failed to delete old emoji with id ${emojiId}`);
+              // Continue even if deletion fails, maybe it was already deleted
+            }
+          }
+          newEmoji = await this._createDiscordEmoji(interaction, champion.shortName, imageUrls.p_128);
+          logger.info(`Created new emoji: ${newEmoji?.name}`);
+        } else {
+          logger.warn('Could not fetch application id for emoji update');
+        }
+      }
+
+      const updateData: any = { images: newImages };
+      if (newEmoji) {
+        updateData.discordEmoji = `<:${newEmoji.name}:${newEmoji.id}>`;
+      }
 
       await prisma.champion.update({
         where: { id: champion.id },
-        data: { images: newImages },
+        data: updateData,
       });
-      logger.info('Champion images updated in database.');
+      logger.info('Champion images and emoji updated in database.');
 
       await interaction.editReply(`Images for **${name}** updated successfully!`);
       logger.info(`Champion image update process complete for ${name}`);
