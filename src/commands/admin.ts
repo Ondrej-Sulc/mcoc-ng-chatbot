@@ -71,6 +71,12 @@ export const command: Command = {
             .addStringOption(option => option.setName('ability').setDescription('Name of the ability or immunity.').setRequired(true).setAutocomplete(true))
             .addStringOption(option => option.setName('source').setDescription('Source of the ability.').setRequired(false).setAutocomplete(true))
         )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('draft')
+            .setDescription('Drafts abilities and immunities for a champion using AI.')
+            .addStringOption(option => option.setName('champion').setDescription('Name of the champion.').setRequired(true).setAutocomplete(true))
+        )
     ),
   async execute(interaction) {
     if (!interaction.isChatInputCommand()) return;
@@ -103,6 +109,9 @@ export const command: Command = {
       } else if (subcommand === 'remove') {
         await interaction.deferReply({ ephemeral: true });
         await championAdminHelper.removeChampionAbility(interaction);
+      } else if (subcommand === 'draft') {
+        await interaction.deferReply();
+        await championAdminHelper.draftChampionAbilities(interaction);
       }
     }
   },

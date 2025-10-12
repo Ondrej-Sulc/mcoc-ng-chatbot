@@ -16,26 +16,10 @@ import { handleError, safeReply } from "./utils/errorHandler";
 import { loadApplicationEmojis } from "./services/applicationEmojiService";
 import { loadChampions } from "./services/championService";
 import { initializeAqReminders } from "./services/aqReminderService.js";
-import { registerButtonHandler } from "./utils/buttonHandlerRegistry";
-import { deleteRoster } from "./services/rosterService";
 import { PrismaClient } from "@prisma/client";
-import { championAdminHelper } from "./utils/championAdminHelper";
+import { getModalHandler } from "./utils/modalHandlerRegistry";
 
 const prisma = new PrismaClient();
-
-registerButtonHandler('roster_delete_all_confirm', async (interaction) => {
-    const playerId = interaction.customId.split(':')[1];
-    if (!playerId) {
-        await interaction.reply({ content: 'Error: Player ID not found.', flags: MessageFlags.Ephemeral });
-        return;
-    }
-    const result = await deleteRoster({ playerId });
-    await interaction.update({ content: `${result}.`, components: [] });
-});
-
-registerButtonHandler('roster_delete_all_cancel', async (interaction) => {
-    await interaction.update({ content: 'Roster deletion cancelled.', components: [] });
-});
 
 declare module "discord.js" {
   interface Client {
@@ -103,19 +87,6 @@ client.once(Events.ClientReady, async (readyClient) => {
 client.on(Events.InteractionCreate, async (interaction) => {
   // Handle button interactions generically
   if (interaction.isButton()) {
-    if (interaction.customId === 'champion-add-part2') {
-      try {
-        await championAdminHelper.showChampionModalPart2(interaction);
-      } catch (error) {
-        const { userMessage, errorId } = handleError(error, {
-          location: `button:${interaction.customId}`,
-          userId: interaction.user?.id,
-        });
-        await safeReply(interaction, userMessage, errorId);
-      }
-      return;
-    }
-
     const handler = getButtonHandler(interaction.customId);
     if (handler) {
       try {
@@ -134,9 +105,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   if (interaction.isModalSubmit()) {
-    if (interaction.customId === 'addChampionModalPart1') {
+    const handler = getModalHandler(interaction.customId);
+    if (handler) {
       try {
-        await championAdminHelper.handleChampionModalPart1(interaction);
+        await handler(interaction);
       } catch (error) {
         const { userMessage, errorId } = handleError(error, {
           location: `modal:${interaction.customId}`,
@@ -144,16 +116,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
         await safeReply(interaction, userMessage, errorId);
       }
-    } else if (interaction.customId === 'addChampionModalPart2') {
-      try {
-        await championAdminHelper.handleChampionModalPart2(interaction);
-      } catch (error) {
-        const { userMessage, errorId } = handleError(error, {
-          location: `modal:${interaction.customId}`,
-          userId: interaction.user?.id,
-        });
-        await safeReply(interaction, userMessage, errorId);
-      }
+    } else {
+      await safeReply(interaction, "Unknown modal.");
     }
     return;
   }

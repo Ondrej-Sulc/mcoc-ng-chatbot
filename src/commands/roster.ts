@@ -122,6 +122,20 @@ async function handleRosterViewPagination(interaction: ButtonInteraction) {
 
 registerButtonHandler('roster_view', handleRosterViewPagination);
 
+registerButtonHandler('roster_delete_all_confirm', async (interaction) => {
+    const playerId = interaction.customId.split(':')[1];
+    if (!playerId) {
+        await interaction.reply({ content: 'Error: Player ID not found.', flags: MessageFlags.Ephemeral });
+        return;
+    }
+    const result = await deleteRoster({ playerId });
+    await interaction.update({ content: `${result}.`, components: [] });
+});
+
+registerButtonHandler('roster_delete_all_cancel', async (interaction) => {
+    await interaction.update({ content: 'Roster deletion cancelled.', components: [] });
+});
+
 
 
 async function handleUpdate(interaction: ChatInputCommandInteraction): Promise<void> {
