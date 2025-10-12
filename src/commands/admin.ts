@@ -31,6 +31,13 @@ export const command: Command = {
         )
         .addSubcommand(subcommand =>
           subcommand
+            .setName('update_tags')
+            .setDescription('Updates the tags for an existing champion.')
+            .addStringOption(option => option.setName('name').setDescription('Name of the champion to update.').setRequired(true).setAutocomplete(true))
+            .addStringOption(option => option.setName('tags_image').setDescription('URL of the new tags image.').setRequired(true))
+        )
+        .addSubcommand(subcommand =>
+          subcommand
             .setName('sync-sheet')
             .setDescription('Syncs the champion database with Google Sheets.')
         )
@@ -52,6 +59,9 @@ export const command: Command = {
       } else if (subcommand === 'update_images') {
         await interaction.deferReply({ ephemeral: true });
         await championAdminHelper.updateChampionImages(interaction);
+      } else if (subcommand === 'update_tags') {
+        await interaction.deferReply({ ephemeral: true });
+        await championAdminHelper.updateChampionTags(interaction);
       } else if (subcommand === 'sync-sheet') {
         await interaction.deferReply({ ephemeral: true });
         await championAdminHelper.syncSheet(interaction);
@@ -61,7 +71,7 @@ export const command: Command = {
   async autocomplete(interaction) {
     const focusedValue = interaction.options.getFocused();
     const subcommand = interaction.options.getSubcommand();
-    if (subcommand === 'update_images') {
+    if (subcommand === 'update_images' || subcommand === 'update_tags') {
         const champions = Array.from(championsByName.values());
         const filtered = champions.filter(champion => champion.name.toLowerCase().includes(focusedValue.toLowerCase()));
         await interaction.respond(
