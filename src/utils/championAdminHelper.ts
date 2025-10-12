@@ -1,11 +1,11 @@
-import { CommandInteraction, GuildEmoji, Routes, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalSubmitInteraction, ButtonBuilder, ButtonStyle, ButtonInteraction } from 'discord.js';
+import { CommandInteraction, GuildEmoji, Routes, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalSubmitInteraction, ButtonBuilder, ButtonStyle, ButtonInteraction, AutocompleteInteraction } from 'discord.js';
 import { promises as fs } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import sharp from 'sharp';
 import { gcpStorageService } from '../services/gcpStorageService';
 import { openRouterService, OpenRouterMessage } from '../services/openRouterService';
-import { PrismaClient, ChampionClass } from '@prisma/client';
+import { PrismaClient, ChampionClass, AbilityLinkType } from '@prisma/client';
 import { config } from '../config';
 import logger from '../services/loggerService';
 import { sheetsService } from '../services/sheetsService';
@@ -679,6 +679,162 @@ class ChampionAdminHelper {
       logger.error(error, 'An error occurred during sheet sync');
       await interaction.editReply(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  async addChampionAbility(interaction: CommandInteraction) {
+    if (!interaction.isChatInputCommand()) return;
+    logger.info(`Starting champion ability add process for ${interaction.user.tag}`);
+
+    try {
+      const championName = interaction.options.getString('champion', true);
+      const type = interaction.options.getString('type', true) as AbilityLinkType;
+      const abilityName = interaction.options.getString('ability', true);
+      const source = interaction.options.getString('source') ?? null;
+
+      await interaction.editReply(`Adding ${type.toLowerCase()} '${abilityName}' to **${championName}** from source '${source || 'Unknown'}'...`);
+
+      const champion = await prisma.champion.findUnique({ where: { name: championName } });
+      if (!champion) {
+        await interaction.editReply(`Champion **${championName}** not found.`);
+        return;
+      }
+
+      const ability = await prisma.ability.upsert({
+        where: { name: abilityName },
+        update: { name: abilityName },
+        create: { name: abilityName, description: '' },
+      });
+
+      await prisma.championAbilityLink.create({
+        data: {
+          championId: champion.id,
+          abilityId: ability.id,
+          type,
+          source,
+        },
+      });
+
+      await interaction.editReply(`Successfully added ${type.toLowerCase()} '${abilityName}' to **${championName}**.`);
+      logger.info(`Successfully added ability ${abilityName} to ${championName}`);
+    } catch (error) {
+      logger.error(error, 'An error occurred during champion ability add');
+      await interaction.editReply(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async removeChampionAbility(interaction: CommandInteraction) {
+    if (!interaction.isChatInputCommand()) return;
+    logger.info(`Starting champion ability remove process for ${interaction.user.tag}`);
+
+    try {
+      const championName = interaction.options.getString('champion', true);
+      const type = interaction.options.getString('type', true) as AbilityLinkType;
+      const abilityName = interaction.options.getString('ability', true);
+      const source: string | null = interaction.options.getString('source');
+
+      await interaction.editReply(`Removing ${type.toLowerCase()} '${abilityName}' from **${championName}** with source '${source || 'Unknown'}'...`);
+
+      const champion = await prisma.champion.findUnique({ where: { name: championName } });
+      if (!champion) {
+        await interaction.editReply(`Champion **${championName}** not found.`);
+        return;
+      }
+
+      const ability = await prisma.ability.findUnique({ where: { name: abilityName } });
+      if (!ability) {
+        await interaction.editReply(`Ability '${abilityName}' not found.`);
+        return;
+      }
+
+      const link = await prisma.championAbilityLink.findFirst({
+        where: {
+          championId: champion.id,
+          abilityId: ability.id,
+          type: type,
+          source: source,
+        },
+      });
+
+      if (!link) {
+        await interaction.editReply(`Could not find ${type.toLowerCase()} '${abilityName}' with source '${source || 'Unknown'}' for **${championName}**.`);
+        return;
+      }
+
+      await prisma.championAbilityLink.delete({ where: { id: link.id } });
+
+      await interaction.editReply(`Successfully removed ${type.toLowerCase()} '${abilityName}' from **${championName}**.`);
+      logger.info(`Successfully removed ability ${abilityName} from ${championName}`);
+    } catch (error) {
+      logger.error(error, 'An error occurred during champion ability remove');
+      await interaction.editReply(`An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async autocompleteAllAbilities(interaction: AutocompleteInteraction) {
+    const focusedValue = interaction.options.getFocused();
+    const abilities = await prisma.ability.findMany({
+      where: { name: { contains: focusedValue, mode: 'insensitive' } },
+      take: 25,
+    });
+    await interaction.respond(abilities.map(ability => ({ name: ability.name, value: ability.name })));
+  }
+
+  async autocompleteChampionAbility(interaction: AutocompleteInteraction) {
+    const championName = interaction.options.getString('champion');
+    const type = interaction.options.getString('type') as AbilityLinkType;
+    const focusedValue = interaction.options.getFocused();
+
+    if (!championName || !type) {
+      await interaction.respond([]);
+      return;
+    }
+
+    const links = await prisma.championAbilityLink.findMany({
+      where: {
+        champion: { name: championName },
+        type: type,
+        ability: { name: { contains: focusedValue, mode: 'insensitive' } },
+      },
+      include: {
+        ability: true,
+      },
+      distinct: ['abilityId'],
+      take: 25,
+    });
+
+    const abilities = links.map(link => link.ability);
+    await interaction.respond(abilities.map(ability => ({ name: ability.name, value: ability.name })));
+  }
+
+  async autocompleteSource(interaction: AutocompleteInteraction) {
+    const championName = interaction.options.getString('champion');
+    const type = interaction.options.getString('type') as AbilityLinkType;
+    const abilityName = interaction.options.getString('ability');
+    const focusedValue = interaction.options.getFocused();
+
+    if (!championName || !abilityName || !type) {
+      await interaction.respond([]);
+      return;
+    }
+
+    const links = await prisma.championAbilityLink.findMany({
+      where: {
+        champion: { name: championName },
+        ability: { name: abilityName },
+        type: type,
+        source: { contains: focusedValue, mode: 'insensitive' },
+      },
+      distinct: ['source'],
+      take: 25,
+    });
+
+    const sources = links.map(link => link.source);
+    await interaction.respond(
+      sources.map(source => {
+        const sourceValue = source === null ? '<None>' : source;
+        return { name: sourceValue, value: sourceValue };
+      })
+    );
   }
 }
 

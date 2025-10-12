@@ -3,6 +3,7 @@ import { Command } from '../types/command';
 import { championAdminHelper } from '../utils/championAdminHelper';
 import { config } from '../config';
 import { championsByName } from '../services/championService';
+import { AbilityLinkType } from '@prisma/client';
 
 const authorizedUsers = config.DEV_USER_IDS || [];
 
@@ -41,6 +42,35 @@ export const command: Command = {
             .setName('sync-sheet')
             .setDescription('Syncs the champion database with Google Sheets.')
         )
+    )
+    .addSubcommandGroup(group =>
+      group
+        .setName('ability')
+        .setDescription('Admin commands for managing champion abilities.')
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('add')
+            .setDescription('Adds an ability or immunity to a champion.')
+            .addStringOption(option => option.setName('champion').setDescription('Name of the champion.').setRequired(true).setAutocomplete(true))
+            .addStringOption(option => option.setName('type').setDescription('Type of link.').setRequired(true).addChoices(
+              { name: 'Ability', value: AbilityLinkType.ABILITY },
+              { name: 'Immunity', value: AbilityLinkType.IMMUNITY },
+            ))
+            .addStringOption(option => option.setName('ability').setDescription('Name of the ability or immunity.').setRequired(true).setAutocomplete(true))
+            .addStringOption(option => option.setName('source').setDescription('Source of the ability (e.g., Signature Ability, SP1, Synergy).').setRequired(false).setAutocomplete(true))
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('remove')
+            .setDescription('Removes an ability or immunity from a champion.')
+            .addStringOption(option => option.setName('champion').setDescription('Name of the champion.').setRequired(true).setAutocomplete(true))
+            .addStringOption(option => option.setName('type').setDescription('Type of link to remove.').setRequired(true).addChoices(
+              { name: 'Ability', value: AbilityLinkType.ABILITY },
+              { name: 'Immunity', value: AbilityLinkType.IMMUNITY },
+            ))
+            .addStringOption(option => option.setName('ability').setDescription('Name of the ability or immunity.').setRequired(true).setAutocomplete(true))
+            .addStringOption(option => option.setName('source').setDescription('Source of the ability.').setRequired(false).setAutocomplete(true))
+        )
     ),
   async execute(interaction) {
     if (!interaction.isChatInputCommand()) return;
@@ -66,17 +96,47 @@ export const command: Command = {
         await interaction.deferReply({ ephemeral: true });
         await championAdminHelper.syncSheet(interaction);
       }
+    } else if (group === 'ability') {
+      if (subcommand === 'add') {
+        await interaction.deferReply({ ephemeral: true });
+        await championAdminHelper.addChampionAbility(interaction);
+      } else if (subcommand === 'remove') {
+        await interaction.deferReply({ ephemeral: true });
+        await championAdminHelper.removeChampionAbility(interaction);
+      }
     }
   },
   async autocomplete(interaction) {
-    const focusedValue = interaction.options.getFocused();
+    const focused = interaction.options.getFocused(true);
+    const group = interaction.options.getSubcommandGroup();
     const subcommand = interaction.options.getSubcommand();
-    if (subcommand === 'update_images' || subcommand === 'update_tags') {
+
+    if (group === 'champion') {
+      if (subcommand === 'update_images' || subcommand === 'update_tags') {
+        if (focused.name === 'name') {
+          const champions = Array.from(championsByName.values());
+          const filtered = champions.filter(champion => champion.name.toLowerCase().includes(focused.value.toLowerCase()));
+          await interaction.respond(
+              filtered.map(champion => ({ name: champion.name, value: champion.name })).slice(0, 25)
+          );
+        }
+      }
+    } else if (group === 'ability') {
+      if (focused.name === 'champion') {
         const champions = Array.from(championsByName.values());
-        const filtered = champions.filter(champion => champion.name.toLowerCase().includes(focusedValue.toLowerCase()));
+        const filtered = champions.filter(champion => champion.name.toLowerCase().includes(focused.value.toLowerCase()));
         await interaction.respond(
             filtered.map(champion => ({ name: champion.name, value: champion.name })).slice(0, 25)
         );
+      } else if (focused.name === 'ability') {
+        if (subcommand === 'remove') {
+          await championAdminHelper.autocompleteChampionAbility(interaction);
+        } else {
+          await championAdminHelper.autocompleteAllAbilities(interaction);
+        }
+      } else if (focused.name === 'source') {
+        await championAdminHelper.autocompleteSource(interaction);
+      }
     }
   },
 };
