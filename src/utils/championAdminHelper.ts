@@ -1595,9 +1595,10 @@ Champion Name: [Champion Name]
         ${JSON.stringify(champion.fullAbilities, null, 2)}\n
         **Generate ONLY the JSON object for this new champion, strictly following all rules and examples provided.**`;
 
+      const model = interaction.options.getString('model') ?? 'google/gemini-2.5-flash';
       logger.info("Sending ability draft request to LLM...");
       const response = await openRouterService.chat({
-        model: "google/gemini-2.5-flash",
+        model: model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },

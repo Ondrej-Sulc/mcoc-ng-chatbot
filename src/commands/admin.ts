@@ -76,6 +76,7 @@ export const command: Command = {
             .setName('draft')
             .setDescription('Drafts abilities and immunities for a champion using AI.')
             .addStringOption(option => option.setName('champion').setDescription('Name of the champion.').setRequired(true).setAutocomplete(true))
+            .addStringOption(option => option.setName('model').setDescription('The name of the model to use for the draft.').setRequired(false))
         )
     ),
   async execute(interaction) {
