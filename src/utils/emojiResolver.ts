@@ -47,5 +47,3 @@ export function createEmojiResolver(client: Client): (text: string) => string {
     });
   };
 }
-
-

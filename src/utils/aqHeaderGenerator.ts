@@ -49,10 +49,7 @@ const NEUTRAL_COLORS = {
 // ---- background ----
 
 function createBackgroundSvg(width: number, height: number): Buffer {
-  const {
-    primary,
-    secondary
-  } = NEUTRAL_COLORS;
+  const { primary, secondary } = NEUTRAL_COLORS;
   const svg = `
     <svg width="${width}" height="${height}"
       viewBox="0 0 ${width} ${height}"
@@ -100,7 +97,15 @@ function createGlassPanelSvg(width: number, height: number): Buffer {
 
 // ---- text ----
 
-function createPill(text: string, x: number, y: number, width: number, height: number, font: opentype.Font, fontSize: number): string {
+function createPill(
+  text: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  font: opentype.Font,
+  fontSize: number
+): string {
   const textPathData = font.getPath(text, 0, 0, fontSize).toPathData(2);
   const textWidth = font.getAdvanceWidth(text, fontSize);
 
@@ -110,7 +115,9 @@ function createPill(text: string, x: number, y: number, width: number, height: n
   return `
     <g>
       <rect x="${x}" y="${y}" rx="10" ry="10" width="${width}" height="${height}" fill="url(#pillGrad)" filter="url(#pillGlow)"/>
-      <path d="${font.getPath(text, textX, textY, fontSize).toPathData(2)}" fill="#ffffff"/>
+      <path d="${font
+        .getPath(text, textX, textY, fontSize)
+        .toPathData(2)}" fill="#ffffff"/>
     </g>
   `;
 }
@@ -142,11 +149,15 @@ function createTextSvg(opts: {
   let rolePill = "";
 
   if (font) {
-    const mainTitlePathData = font.getPath(mainTitle, padding, titleY, titleSize).toPathData(2);
+    const mainTitlePathData = font
+      .getPath(mainTitle, padding, titleY, titleSize)
+      .toPathData(2);
     mainTitlePath = `<g transform="skewX(-5)"><path d="${mainTitlePathData}" fill="#ffffff" filter="url(#titleShadow)"/></g>`;
 
     const dayTextWidth = font.getAdvanceWidth(dayText, titleSize);
-    const dayTextPathData = font.getPath(dayText, width - padding - dayTextWidth, titleY, titleSize).toPathData(2);
+    const dayTextPathData = font
+      .getPath(dayText, width - padding - dayTextWidth, titleY, titleSize)
+      .toPathData(2);
     dayTextPath = `<path d="${dayTextPathData}" fill="#ffffff" filter="url(#titleShadow)"/>`;
 
     const pillHeight = subTextSize + 10;
@@ -154,11 +165,27 @@ function createTextSvg(opts: {
 
     const channelTextWidth = font.getAdvanceWidth(channelText, subTextSize);
     const channelPillWidth = channelTextWidth + pillPadding * 2;
-    channelPill = createPill(channelText, padding, height - padding - pillHeight, channelPillWidth, pillHeight, font, subTextSize);
+    channelPill = createPill(
+      channelText,
+      padding,
+      height - padding - pillHeight,
+      channelPillWidth,
+      pillHeight,
+      font,
+      subTextSize
+    );
 
     const roleTextWidth = font.getAdvanceWidth(roleText, subTextSize);
     const rolePillWidth = roleTextWidth + pillPadding * 2;
-    rolePill = createPill(roleText, width - padding - rolePillWidth, height - padding - pillHeight, rolePillWidth, pillHeight, font, subTextSize);
+    rolePill = createPill(
+      roleText,
+      width - padding - rolePillWidth,
+      height - padding - pillHeight,
+      rolePillWidth,
+      pillHeight,
+      font,
+      subTextSize
+    );
   }
 
   const svg = `
@@ -188,7 +215,9 @@ function createTextSvg(opts: {
 
 // ---- main ----
 
-export async function generateAQHeader(options: AQHeaderOptions): Promise<Buffer> {
+export async function generateAQHeader(
+  options: AQHeaderOptions
+): Promise<Buffer> {
   const {
     day,
     channelName,

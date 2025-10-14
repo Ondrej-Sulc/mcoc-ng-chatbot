@@ -1,5 +1,5 @@
-import { PrismaClient, Schedule } from '@prisma/client';
-import { ScheduleFrequency } from '@prisma/client';
+import { PrismaClient, Schedule } from "@prisma/client";
+import { ScheduleFrequency } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -8,7 +8,10 @@ export { Schedule, ScheduleFrequency };
 /**
  * A subset of the Schedule model for creating a new schedule.
  */
-export type NewSchedulePayload = Omit<Schedule, 'id' | 'createdAt' | 'updatedAt' | 'is_active' | 'last_run'>;
+export type NewSchedulePayload = Omit<
+  Schedule,
+  "id" | "createdAt" | "updatedAt" | "is_active" | "last_run"
+>;
 
 /**
  * Retrieves all active schedules from the database.
@@ -28,16 +31,16 @@ export async function getSchedules(): Promise<Schedule[]> {
 export async function addSchedule(data: NewSchedulePayload): Promise<Schedule> {
   return prisma.schedule.create({
     data: {
-        ...data,
-        command: data.command || null,
-        message: data.message || null,
-        target_channel_id: data.target_channel_id || null,
-        target_user_id: data.target_user_id || null,
-        day: data.day || null,
-        interval: data.interval || null,
-        unit: data.unit || null,
-        cron_expression: data.cron_expression || null,
-    }
+      ...data,
+      command: data.command || null,
+      message: data.message || null,
+      target_channel_id: data.target_channel_id || null,
+      target_user_id: data.target_user_id || null,
+      day: data.day || null,
+      interval: data.interval || null,
+      unit: data.unit || null,
+      cron_expression: data.cron_expression || null,
+    },
   });
 }
 
@@ -59,9 +62,12 @@ export async function deleteSchedule(id: string): Promise<Schedule> {
  * @param data - The partial schedule data to update.
  * @returns A promise that resolves to the updated Schedule object.
  */
-export async function updateSchedule(id: string, data: Partial<Schedule>): Promise<Schedule> {
-    return prisma.schedule.update({
-        where: { id },
-        data,
-    });
+export async function updateSchedule(
+  id: string,
+  data: Partial<Schedule>
+): Promise<Schedule> {
+  return prisma.schedule.update({
+    where: { id },
+    data,
+  });
 }

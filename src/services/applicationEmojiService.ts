@@ -34,7 +34,9 @@ export async function loadApplicationEmojis(client: Client): Promise<void> {
   nameToMarkup.clear();
   for (const e of emojis) {
     if (!e.name || !e.id) continue;
-    const markup = e.animated ? `<a:${e.name}:${e.id}>` : `<:${e.name}:${e.id}>`;
+    const markup = e.animated
+      ? `<a:${e.name}:${e.id}>`
+      : `<:${e.name}:${e.id}>`;
     nameToMarkup.set(e.name, markup);
   }
   isLoaded = true;
@@ -51,5 +53,3 @@ export function getApplicationEmojiMarkupByName(name: string): string | null {
   if (!isLoaded) return null;
   return nameToMarkup.get(name) ?? null;
 }
-
-

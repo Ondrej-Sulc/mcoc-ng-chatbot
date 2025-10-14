@@ -81,8 +81,7 @@ async function checkAqStatuses(client: Client) {
 
     // Slacker ping
     const slackerPingTime = new Date(
-      startTime.getTime() +
-        config.AQ_SLACKER_PING_DELAY_HOURS * 60 * 60 * 1000
+      startTime.getTime() + config.AQ_SLACKER_PING_DELAY_HOURS * 60 * 60 * 1000
     );
     if (!state.slackerPingSent && now >= slackerPingTime) {
       await sendReminderPing(client, state, false);

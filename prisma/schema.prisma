@@ -158,12 +158,12 @@ model Schedule {
   cron_expression   String?
   last_run          DateTime?
 
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model AQState {
-  channelId String @id
+  channelId String   @id
   state     Json
   updatedAt DateTime @updatedAt
 }
@@ -171,16 +171,16 @@ model AQState {
 // --- Player and Prestige Logging ---
 
 model Player {
-  id          String @id @default(cuid())
-  discordId   String @unique
-  ingameName  String
-  guildId     String
+  id         String @id @default(cuid())
+  discordId  String @unique
+  ingameName String
+  guildId    String
 
-  summonerPrestige   Int?
-  championPrestige   Int?
-  relicPrestige      Int?
+  summonerPrestige Int?
+  championPrestige Int?
+  relicPrestige    Int?
 
-  roster    Roster[]
+  roster Roster[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -189,20 +189,20 @@ model Player {
 }
 
 model Roster {
-  id           String   @id @default(cuid())
-  stars        Int
-  rank         Int
-  isAwakened   Boolean
-  isAscended   Boolean  @default(false)
-  powerRating  Int?
+  id          String  @id @default(cuid())
+  stars       Int
+  rank        Int
+  isAwakened  Boolean
+  isAscended  Boolean @default(false)
+  powerRating Int?
 
-  player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  playerId     String
-  champion     Champion @relation(fields: [championId], references: [id], onDelete: Cascade)
-  championId   Int
+  player     Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  playerId   String
+  champion   Champion @relation(fields: [championId], references: [id], onDelete: Cascade)
+  championId Int
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([playerId, championId, stars])
   @@index([playerId])

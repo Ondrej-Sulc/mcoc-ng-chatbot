@@ -34,5 +34,5 @@ export type ChampionWithRelations = Champion & {
 };
 
 export type RosterEntryWithChampionRelations = Roster & {
-    champion: ChampionWithRelations;
+  champion: ChampionWithRelations;
 };

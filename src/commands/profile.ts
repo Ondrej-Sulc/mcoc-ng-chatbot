@@ -7,7 +7,9 @@ import { importRosterFromSheet } from "../services/rosterService";
 
 const prisma = new PrismaClient();
 
-async function register(interaction: ChatInputCommandInteraction): Promise<CommandResult> {
+async function register(
+  interaction: ChatInputCommandInteraction
+): Promise<CommandResult> {
   const ingameName = interaction.options.getString("name", true);
   const discordId = interaction.user.id;
   const guildId = interaction.guildId;
@@ -57,6 +59,8 @@ export const command: Command = {
         result = { content: "Unknown subcommand." };
     }
 
-    await interaction.editReply({ content: result.content || "An unknown error occurred." });
+    await interaction.editReply({
+      content: result.content || "An unknown error occurred.",
+    });
   },
 };

@@ -197,11 +197,13 @@ type AQCoreParams = AQCoreStartParams | AQCoreEndParams;
 
 export async function core(params: AQCoreParams): Promise<CommandResult> {
   if (params.subcommand === "start") {
-    const { day, roleId, channel, guild, createThread, channelName, roleName } = params;
+    const { day, roleId, channel, guild, createThread, channelName, roleName } =
+      params;
 
     if (!("send" in channel)) {
       return {
-                flags: MessageFlags.Ephemeral,      };
+        flags: MessageFlags.Ephemeral,
+      };
     }
 
     const channelId = channel.id;
@@ -215,7 +217,10 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
 
     const role = guild.roles.cache.get(roleId);
     if (!role) {
-      return { content: "Selected role not found.", flags: MessageFlags.Ephemeral };
+      return {
+        content: "Selected role not found.",
+        flags: MessageFlags.Ephemeral,
+      };
     }
 
     await guild.members.fetch();
@@ -250,8 +255,7 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
     });
 
     const container = buildAQContainer(state, channelName, roleName);
-    const file = new AttachmentBuilder(headerImage)
-      .setName("aq_header.png");
+    const file = new AttachmentBuilder(headerImage).setName("aq_header.png");
     const sent = await (channel as any).send({
       components: [container],
       files: [file],
@@ -269,7 +273,10 @@ export async function core(params: AQCoreParams): Promise<CommandResult> {
 
     await setState(channelId, state);
 
-    return { content: "AQ Tracker started successfully.", flags: MessageFlags.Ephemeral };
+    return {
+      content: "AQ Tracker started successfully.",
+      flags: MessageFlags.Ephemeral,
+    };
   } else if (params.subcommand === "end") {
     const { channel, user } = params;
     const channelId = channel.id;

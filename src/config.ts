@@ -24,27 +24,30 @@ export interface Config {
 
   // Alliance War Settings
   allianceWar: {
-    battlegroupChannelMappings: Record<string, { sheet: string; color: number; }>;
+    battlegroupChannelMappings: Record<
+      string,
+      { sheet: string; color: number }
+    >;
     dataRange: string;
     descriptionCol: number;
     nodeCol: number;
     playerCol: number;
     defenderCol: number;
     attackerCol: number;
-    PreFightTacticDataRange: string,
-    PreFightPlayerCol: number,
-    PreFightChampionCol: number,
-    PreFightDescriptionCol: number,
-    TacticAttackCol: number,
-    TacticDefenseCol: number,
+    PreFightTacticDataRange: string;
+    PreFightPlayerCol: number;
+    PreFightChampionCol: number;
+    PreFightDescriptionCol: number;
+    TacticAttackCol: number;
+    TacticDefenseCol: number;
     nodesRange: string;
     teamRange: string;
-  }
+  };
 
   championSheet: {
     range: string;
     clearRange: string;
-  }
+  };
 }
 
 function getEnv(key: string, defaultValue?: string): string {
@@ -106,42 +109,51 @@ const createConfig = (): Config => {
         : "DISCORD_BOT_TOKEN_DEV"
     ),
     OPEN_ROUTER_API_KEY: getEnv("OPEN_ROUTER_API_KEY"),
-    OPENROUTER_DEFAULT_MODEL: getEnv("OPENROUTER_DEFAULT_MODEL", "google/gemini-2.5-flash"),
+    OPENROUTER_DEFAULT_MODEL: getEnv(
+      "OPENROUTER_DEFAULT_MODEL",
+      "google/gemini-2.5-flash"
+    ),
     GOOGLE_CREDENTIALS: credentials,
     MCOC_SHEET_ID: getEnv("MCOC_SHEET_ID"),
     CHAMPION_SHEET_ID: getEnv("CHAMPION_SHEET_ID"),
     GCS_BUCKET_NAME: getEnv("GCS_BUCKET_NAME", "champion-images"),
     TIMEZONE: getEnv("TIMEZONE", "Europe/Prague"),
-    AQ_SLACKER_PING_DELAY_HOURS: parseInt(getEnv("AQ_SLACKER_PING_DELAY_HOURS", "11"), 10),
-    AQ_FINAL_PING_HOURS_BEFORE_END: parseInt(getEnv("AQ_FINAL_PING_HOURS_BEFORE_END", "4"), 10),
-    DEV_USER_IDS: getEnv("DEV_USER_IDS", '').split(',').filter(Boolean),
+    AQ_SLACKER_PING_DELAY_HOURS: parseInt(
+      getEnv("AQ_SLACKER_PING_DELAY_HOURS", "11"),
+      10
+    ),
+    AQ_FINAL_PING_HOURS_BEFORE_END: parseInt(
+      getEnv("AQ_FINAL_PING_HOURS_BEFORE_END", "4"),
+      10
+    ),
+    DEV_USER_IDS: getEnv("DEV_USER_IDS", "").split(",").filter(Boolean),
 
     // Alliance War Settings
     allianceWar: {
       battlegroupChannelMappings: {
-        "1176169292241309776": { sheet: "AW BG1", color: 0xC62828 }, // Red
-        "1176169440107307008": { sheet: "AW BG2", color: 0x388E3C }, // Green
-        "1227167947458482206": { sheet: "AW BG3", color: 0x1565C0 }  // Blue
+        "1176169292241309776": { sheet: "AW BG1", color: 0xc62828 }, // Red
+        "1176169440107307008": { sheet: "AW BG2", color: 0x388e3c }, // Green
+        "1227167947458482206": { sheet: "AW BG3", color: 0x1565c0 }, // Blue
       },
-      dataRange: 'FB3:FF52',
+      dataRange: "FB3:FF52",
       descriptionCol: 0,
       nodeCol: 1,
       playerCol: 2,
       defenderCol: 3,
       attackerCol: 4,
-      PreFightTacticDataRange: 'GD3:GH52',
+      PreFightTacticDataRange: "GD3:GH52",
       PreFightPlayerCol: 0,
       PreFightChampionCol: 1,
       PreFightDescriptionCol: 2,
       TacticAttackCol: 3,
       TacticDefenseCol: 4,
-      nodesRange: 'AWNodes',
-      teamRange: 'BG4:BG43',
+      nodesRange: "AWNodes",
+      teamRange: "BG4:BG43",
     },
     championSheet: {
-      range: 'DB!A1',
-      clearRange: 'DB!A1:Z1000',
-    }
+      range: "DB!A1",
+      clearRange: "DB!A1:Z1000",
+    },
   };
 };
 

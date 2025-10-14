@@ -192,8 +192,7 @@ export const command: Command = {
       const day = interaction.options.getString("day") || null;
       const interval = interaction.options.getString("interval") || null;
       const rawUnit = interaction.options.getString("unit");
-      const unit =
-        rawUnit === "days" || rawUnit === "weeks" ? rawUnit : null;
+      const unit = rawUnit === "days" || rawUnit === "weeks" ? rawUnit : null;
       const cron_expression =
         interaction.options.getString("cron_expression") || null;
 
@@ -239,27 +238,47 @@ export const command: Command = {
 - Name: **${name}**
 - Frequency: **${frequency}**
 - Time: **${time}**
-- ${ 
-          message ? `Message: 
+- ${
+          message
+            ? `Message: 
 
-${message}` : `Command: 
+${message}`
+            : `Command: 
 
 ${command}`
         }
-${day ? `- Day: ${day}
-` : ""}${ 
-        interval ? `- Interval: ${interval}
-` : ""
-      }${unit ? `- Unit: ${unit}
-` : ""}${ 
-        cron_expression ? `- Cron: 
+${
+  day
+    ? `- Day: ${day}
+`
+    : ""
+}${
+          interval
+            ? `- Interval: ${interval}
+`
+            : ""
+        }${
+          unit
+            ? `- Unit: ${unit}
+`
+            : ""
+        }${
+          cron_expression
+            ? `- Cron: 
 
-${cron_expression}` : ""
-      }${ 
-        target_channel_id ? `- Channel: <#${target_channel_id}>
-` : ""
-      }${target_user_id ? `- User: <@${target_user_id}>
-` : ""}`
+${cron_expression}`
+            : ""
+        }${
+          target_channel_id
+            ? `- Channel: <#${target_channel_id}>
+`
+            : ""
+        }${
+          target_user_id
+            ? `- User: <@${target_user_id}>
+`
+            : ""
+        }`
       );
     } else if (subcommand === "list") {
       const schedules = await getSchedules();
@@ -277,14 +296,16 @@ ${cron_expression}` : ""
         const section = new SectionBuilder()
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `**${i + 1}.** [${s.name}] ${s.frequency} at ${s.time} — ${ 
-                s.message ? `"${s.message}"` : `
+              `**${i + 1}.** [${s.name}] ${s.frequency} at ${s.time} — ${
+                s.message
+                  ? `"${s.message}"`
+                  : `
 
 ${s.command}`
               } (ID: 
 
 ${s.id})
-${s.target_channel_id ? ` (<#${s.target_channel_id}>)` : ""}${ 
+${s.target_channel_id ? ` (<#${s.target_channel_id}>)` : ""}${
                 s.target_user_id ? ` (<@${s.target_user_id}>)` : ""
               }`
             )
@@ -379,4 +400,3 @@ ${id} has been removed (set inactive).`
     await interaction.respond(filtered.map((c) => ({ name: c, value: c })));
   },
 };
-

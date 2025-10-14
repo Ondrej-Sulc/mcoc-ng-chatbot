@@ -2,7 +2,12 @@ import { config } from "../config";
 
 const OPEN_ROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-export type OpenRouterMessageContent = string | Array<{ type: 'text', text: string } | { type: 'image_url', image_url: { url: string } }>;
+export type OpenRouterMessageContent =
+  | string
+  | Array<
+      | { type: "text"; text: string }
+      | { type: "image_url"; image_url: { url: string } }
+    >;
 
 export interface OpenRouterMessage {
   role: "system" | "user" | "assistant";
@@ -14,7 +19,7 @@ export interface OpenRouterRequest {
   messages: OpenRouterMessage[];
   max_tokens?: number;
   temperature?: number;
-  response_format?: { type: 'json_object' };
+  response_format?: { type: "json_object" };
 }
 
 export interface OpenRouterResponse {

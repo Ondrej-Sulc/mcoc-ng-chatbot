@@ -37,15 +37,16 @@ export async function core(
     });
 
     if (!effect) {
-      return { content: `Effect "${name}" not found.`, flags: MessageFlags.Ephemeral };
+      return {
+        content: `Effect "${name}" not found.`,
+        flags: MessageFlags.Ephemeral,
+      };
     }
 
     const embed = new EmbedBuilder()
       .setColor(0x5865f2)
       .setTitle(
-        `${
-          effect.emoji ? `${resolveEmoji(effect.emoji)} ` : ""
-        }${effect.name}`
+        `${effect.emoji ? `${resolveEmoji(effect.emoji)} ` : ""}${effect.name}`
       )
       .setDescription(
         effect.description
@@ -126,15 +127,16 @@ export async function core(
     });
 
     if (!category) {
-      return { content: `Category "${name}" not found.`, flags: MessageFlags.Ephemeral };
+      return {
+        content: `Category "${name}" not found.`,
+        flags: MessageFlags.Ephemeral,
+      };
     }
 
     const embed = new EmbedBuilder()
       .setColor(0x5865f2)
       .setTitle(category.name)
-      .setDescription(
-        category.description ? `*${category.description}*` : ""
-      );
+      .setDescription(category.description ? `*${category.description}*` : "");
 
     if (category.abilities.length > 0) {
       const formatted = category.abilities.map((a: Ability) => {

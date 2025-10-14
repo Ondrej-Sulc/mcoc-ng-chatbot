@@ -79,7 +79,7 @@ export function buildAQContainer(
 
   container.addActionRowComponents(pathButtons);
   container.addSeparatorComponents(
-  new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
   );
 
   const clearButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(

@@ -28,16 +28,17 @@ function buildPrestigeConfirmationContainer(
   targetPlayer: Player,
   authorPlayer: Player
 ): ActionRowBuilder<ButtonBuilder> {
-  const confirmationButtons = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`prestige:confirm:${targetPlayer.discordId}`)
-      .setLabel("Confirm")
-      .setStyle(ButtonStyle.Success),
-    new ButtonBuilder()
-      .setCustomId(`prestige:cancel:${targetPlayer.discordId}`)
-      .setLabel("Cancel")
-      .setStyle(ButtonStyle.Danger)
-  );
+  const confirmationButtons =
+    new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`prestige:confirm:${targetPlayer.discordId}`)
+        .setLabel("Confirm")
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`prestige:cancel:${targetPlayer.discordId}`)
+        .setLabel("Cancel")
+        .setStyle(ButtonStyle.Danger)
+    );
 
   return confirmationButtons;
 }
@@ -50,7 +51,9 @@ const recognizeWithTimeout = (
   const timeoutPromise = new Promise<never>((_, reject) =>
     setTimeout(
       () =>
-        reject(new Error(`OCR recognition timed out after ${timeoutMs / 1000}s.`)),
+        reject(
+          new Error(`OCR recognition timed out after ${timeoutMs / 1000}s.`)
+        ),
       timeoutMs
     )
   );
@@ -375,13 +378,17 @@ async function handleLeaderboard(interaction: ChatInputCommandInteraction) {
   });
 
   if (players.length === 0) {
-    await interaction.editReply("No players with prestige found in this server.");
+    await interaction.editReply(
+      "No players with prestige found in this server."
+    );
     return;
   }
 
   let leaderboardString = "🏆 **Prestige Leaderboard** 🏆\n\n";
   players.forEach((p, index) => {
-    leaderboardString += `${index + 1}. **${p.ingameName}** - ${p.summonerPrestige}\n`;
+    leaderboardString += `${index + 1}. **${p.ingameName}** - ${
+      p.summonerPrestige
+    }\n`;
   });
 
   await interaction.editReply(leaderboardString);
@@ -397,12 +404,18 @@ export async function core(params: {
   const { userId, imageUrl, targetUserId, debug, interaction } = params;
   const finalUserId = targetUserId || userId;
 
-  const authorPlayer = await prisma.player.findUnique({ where: { discordId: userId } });
+  const authorPlayer = await prisma.player.findUnique({
+    where: { discordId: userId },
+  });
   if (!authorPlayer) {
-    return { content: `You are not registered. Please register with \n/profile register\n first.` };
+    return {
+      content: `You are not registered. Please register with \n/profile register\n first.`,
+    };
   }
 
-  const targetPlayer = await prisma.player.findUnique({ where: { discordId: finalUserId } });
+  const targetPlayer = await prisma.player.findUnique({
+    where: { discordId: finalUserId },
+  });
 
   if (!targetPlayer) {
     const content = targetUserId
@@ -438,7 +451,10 @@ export async function core(params: {
 
         collector.stop();
         if (i.customId.startsWith("prestige:confirm")) {
-          const result = await updatePrestige({ ...params, player: targetPlayer });
+          const result = await updatePrestige({
+            ...params,
+            player: targetPlayer,
+          });
           resolve(result);
         } else {
           resolve({ content: "Prestige update cancelled." });
@@ -502,7 +518,10 @@ async function updatePrestige(params: {
         debugContent += `**Detected:** S: ${result.debugInfo.cropAttempt.detectedLabels.summoner}, C: ${result.debugInfo.cropAttempt.detectedLabels.champion}, R: ${result.debugInfo.cropAttempt.detectedLabels.relic}\n`;
       }
       if (result.debugInfo.cropAttempt.text) {
-        debugContent += "**OCR Text:**\n```\n" + result.debugInfo.cropAttempt.text.substring(0, 1000) + "\n```\n";
+        debugContent +=
+          "**OCR Text:**\n```\n" +
+          result.debugInfo.cropAttempt.text.substring(0, 1000) +
+          "\n```\n";
       }
     }
 
@@ -515,7 +534,10 @@ async function updatePrestige(params: {
         debugContent += `**Detected:** S: ${result.debugInfo.fullAttempt.detectedLabels.summoner}, C: ${result.debugInfo.fullAttempt.detectedLabels.champion}, R: ${result.debugInfo.fullAttempt.detectedLabels.relic}\n`;
       }
       if (result.debugInfo.fullAttempt.text) {
-        debugContent += "**OCR Text:**\n```\n" + result.debugInfo.fullAttempt.text.substring(0, 1000) + "\n```\n";
+        debugContent +=
+          "**OCR Text:**\n```\n" +
+          result.debugInfo.fullAttempt.text.substring(0, 1000) +
+          "\n```\n";
       }
     }
 
@@ -525,14 +547,10 @@ async function updatePrestige(params: {
     };
   }
 
-  const {
-    success,
-    summonerPrestige,
-    championPrestige,
-    relicPrestige,
-  } = result;
+  const { success, summonerPrestige, championPrestige, relicPrestige } = result;
 
-  const isValid = success && summonerPrestige! === championPrestige! + relicPrestige!;
+  const isValid =
+    success && summonerPrestige! === championPrestige! + relicPrestige!;
 
   if (isValid) {
     const oldPrestige = player.summonerPrestige;
@@ -546,7 +564,8 @@ async function updatePrestige(params: {
       },
     });
 
-    const prestigeChange = oldPrestige && oldPrestige > 0 ? summonerPrestige! - oldPrestige : 0;
+    const prestigeChange =
+      oldPrestige && oldPrestige > 0 ? summonerPrestige! - oldPrestige : 0;
     const changeString =
       prestigeChange > 0
         ? `(+${prestigeChange})`
@@ -562,15 +581,15 @@ async function updatePrestige(params: {
       `\n*Prestige has been updated for ${player.ingameName}.*`;
 
     const container = new ContainerBuilder();
-    container.setAccentColor(0xFFD700); // Gold color for prestige
+    container.setAccentColor(0xffd700); // Gold color for prestige
     container.addMediaGalleryComponents(
       new MediaGalleryBuilder().addItems(
         new MediaGalleryItemBuilder().setURL(imageUrl)
       )
-    )
+    );
     container.addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
-    )
+    );
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(prestigeInfo)
     );
@@ -590,18 +609,22 @@ async function updatePrestige(params: {
 export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("prestige")
-    .setDescription("Extract prestige values from an MCOC screenshot or view the leaderboard.")
-    .addSubcommand(subcommand =>
+    .setDescription(
+      "Extract prestige values from an MCOC screenshot or view the leaderboard."
+    )
+    .addSubcommand((subcommand) =>
       subcommand
-        .setName('update')
-        .setDescription('Extract prestige values from an MCOC screenshot.')
-        .addAttachmentOption(option =>
+        .setName("update")
+        .setDescription("Extract prestige values from an MCOC screenshot.")
+        .addAttachmentOption((option) =>
           option
             .setName("image")
-            .setDescription("Screenshot of your MCOC profile showing prestige values.")
+            .setDescription(
+              "Screenshot of your MCOC profile showing prestige values."
+            )
             .setRequired(true)
         )
-        .addStringOption(option =>
+        .addStringOption((option) =>
           option
             .setName("player")
             .setDescription("The player to update prestige for.")
@@ -609,17 +632,17 @@ export const command: Command = {
             .setAutocomplete(true)
         )
     )
-    .addSubcommand(subcommand =>
+    .addSubcommand((subcommand) =>
       subcommand
-        .setName('leaderboard')
-        .setDescription('Shows the server prestige leaderboard.')
+        .setName("leaderboard")
+        .setDescription("Shows the server prestige leaderboard.")
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
     const subcommand = interaction.options.getSubcommand();
-    if (subcommand === 'update') {
+    if (subcommand === "update") {
       await handleUpdate(interaction);
-    } else if (subcommand === 'leaderboard') {
+    } else if (subcommand === "leaderboard") {
       await handleLeaderboard(interaction);
     }
   },

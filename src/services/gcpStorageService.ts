@@ -1,5 +1,5 @@
-import { Storage } from '@google-cloud/storage';
-import { config } from '../config';
+import { Storage } from "@google-cloud/storage";
+import { config } from "../config";
 
 class GcpStorageService {
   private storage: Storage;
@@ -14,10 +14,13 @@ class GcpStorageService {
       projectId: config.GOOGLE_CREDENTIALS.project_id,
     });
 
-    this.bucketName = process.env.GCS_BUCKET_NAME || 'champion-images';
+    this.bucketName = process.env.GCS_BUCKET_NAME || "champion-images";
   }
 
-  async uploadFile(sourcePath: string, destinationPath: string): Promise<string> {
+  async uploadFile(
+    sourcePath: string,
+    destinationPath: string
+  ): Promise<string> {
     await this.storage.bucket(this.bucketName).upload(sourcePath, {
       destination: destinationPath,
     });

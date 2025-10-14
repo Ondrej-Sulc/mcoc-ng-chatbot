@@ -10,7 +10,7 @@ export const commands = new Collection<string, Command>();
 async function findCommandFiles(dir: string): Promise<string[]> {
   const entries = readdirSync(dir);
   const files: string[] = [];
-  const isTsMode = process.env.TS_MODE_ENABLED === 'true';
+  const isTsMode = process.env.TS_MODE_ENABLED === "true";
   const fileExtension = isTsMode ? ".ts" : ".js";
 
   for (const entry of entries) {
@@ -25,7 +25,10 @@ async function findCommandFiles(dir: string): Promise<string[]> {
       } catch (e) {
         // Not a command directory, ignore
       }
-    } else if (entry.endsWith(fileExtension) && entry !== `index${fileExtension}`) {
+    } else if (
+      entry.endsWith(fileExtension) &&
+      entry !== `index${fileExtension}`
+    ) {
       files.push(fullPath);
     }
   }

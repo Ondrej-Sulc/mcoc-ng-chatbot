@@ -193,9 +193,7 @@ function formatMessageHistory(
  * @param messageHistory The message history to truncate.
  * @returns An object containing the truncated history and a warning message.
  */
-function truncateHistory(
-  messageHistory: { role: string; content: string }[]
-): {
+function truncateHistory(messageHistory: { role: string; content: string }[]): {
   truncatedHistory: { role: string; content: string }[];
   truncationWarning: string;
 } {
@@ -372,7 +370,10 @@ export const command: Command = {
       });
       // Send remaining embeds as follow-ups
       for (const embed of result.embeds) {
-        await interaction.followUp({ embeds: [embed], flags: [MessageFlags.Ephemeral] });
+        await interaction.followUp({
+          embeds: [embed],
+          flags: [MessageFlags.Ephemeral],
+        });
       }
     } else if (result.content) {
       // If only content exists (e.g., an error message from core)

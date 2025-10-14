@@ -31,7 +31,10 @@ import { config } from "../config";
 import logger from "../services/loggerService";
 import { sheetsService } from "../services/sheetsService";
 import { getChampionImageUrl } from "./championHelper";
-import { _buildDraftContainer, pendingDrafts } from "./championAbilityDraftHandler";
+import {
+  _buildDraftContainer,
+  pendingDrafts,
+} from "./championAbilityDraftHandler";
 import { registerModalHandler } from "./modalHandlerRegistry";
 import { registerButtonHandler } from "./buttonHandlerRegistry";
 
@@ -1595,7 +1598,8 @@ Champion Name: [Champion Name]
         ${JSON.stringify(champion.fullAbilities, null, 2)}\n
         **Generate ONLY the JSON object for this new champion, strictly following all rules and examples provided.**`;
 
-      const model = interaction.options.getString('model') ?? 'google/gemini-2.5-flash';
+      const model =
+        interaction.options.getString("model") ?? "google/gemini-2.5-flash";
       logger.info("Sending ability draft request to LLM...");
       const response = await openRouterService.chat({
         model: model,
@@ -1631,6 +1635,15 @@ Champion Name: [Champion Name]
 
 export const championAdminHelper = new ChampionAdminHelper();
 
-registerModalHandler('addChampionModalPart1', championAdminHelper.handleChampionModalPart1);
-registerModalHandler('addChampionModalPart2', championAdminHelper.handleChampionModalPart2);
-registerButtonHandler('champion-add-part2', championAdminHelper.showChampionModalPart2);
+registerModalHandler(
+  "addChampionModalPart1",
+  championAdminHelper.handleChampionModalPart1
+);
+registerModalHandler(
+  "addChampionModalPart2",
+  championAdminHelper.handleChampionModalPart2
+);
+registerButtonHandler(
+  "champion-add-part2",
+  championAdminHelper.showChampionModalPart2
+);

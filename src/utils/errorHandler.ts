@@ -36,7 +36,7 @@ function getErrorProperties(error: unknown) {
     return error;
   }
   const plainObject: Record<string, any> = {};
-  Object.getOwnPropertyNames(error).forEach(key => {
+  Object.getOwnPropertyNames(error).forEach((key) => {
     plainObject[key] = (error as any)[key];
   });
   return plainObject;

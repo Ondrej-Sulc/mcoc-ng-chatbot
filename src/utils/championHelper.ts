@@ -32,6 +32,6 @@ export function getChampionImageUrl(
 }
 
 export function normalizeChampionName(name: string): string {
-  if (!name) return '';
-  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!name) return "";
+  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
 }

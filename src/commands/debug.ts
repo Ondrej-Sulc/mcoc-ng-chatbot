@@ -12,14 +12,22 @@ import {
   AutocompleteInteraction,
 } from "discord.js";
 import { Command } from "../types/command";
-import { processRosterScreenshot, RosterDebugResult } from "../services/rosterService";
-import { config } from '../config';
+import {
+  processRosterScreenshot,
+  RosterDebugResult,
+} from "../services/rosterService";
+import { config } from "../config";
 import { createEmojiResolver } from "../utils/emojiResolver";
-import { core as prestigeCore, autocomplete as prestigeAutocomplete } from './prestige';
+import {
+  core as prestigeCore,
+  autocomplete as prestigeAutocomplete,
+} from "./prestige";
 
 const authorizedUsers = config.DEV_USER_IDS || [];
 
-async function handleRosterDebug(interaction: ChatInputCommandInteraction): Promise<void> {
+async function handleRosterDebug(
+  interaction: ChatInputCommandInteraction
+): Promise<void> {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const images: Attachment[] = [];
@@ -31,7 +39,7 @@ async function handleRosterDebug(interaction: ChatInputCommandInteraction): Prom
   }
 
   if (images.length === 0) {
-    await interaction.editReply('You must provide at least one image.');
+    await interaction.editReply("You must provide at least one image.");
     return;
   }
 
@@ -43,17 +51,27 @@ async function handleRosterDebug(interaction: ChatInputCommandInteraction): Prom
     // Pass dummy values.
     const stars = 0;
     const rank = 0;
-    const result = await processRosterScreenshot(image.url, stars, rank, false, true) as RosterDebugResult;
+    const result = (await processRosterScreenshot(
+      image.url,
+      stars,
+      rank,
+      false,
+      true
+    )) as RosterDebugResult;
 
     const files: AttachmentBuilder[] = [];
     const container = new ContainerBuilder();
 
-    const title = new TextDisplayBuilder().setContent(`### Result for ${image.name}:`);
+    const title = new TextDisplayBuilder().setContent(
+      `### Result for ${image.name}:`
+    );
     container.addTextDisplayComponents(title);
 
     if (result.debugImageBuffer) {
       const attachmentName = `debug_${image.name}`;
-      files.push(new AttachmentBuilder(result.debugImageBuffer, { name: attachmentName }));
+      files.push(
+        new AttachmentBuilder(result.debugImageBuffer, { name: attachmentName })
+      );
       const gallery = new MediaGalleryBuilder().addItems(
         new MediaGalleryItemBuilder()
           .setURL(`attachment://${attachmentName}`)
@@ -62,13 +80,15 @@ async function handleRosterDebug(interaction: ChatInputCommandInteraction): Prom
       container.addMediaGalleryComponents(gallery);
     }
 
-    const content = new TextDisplayBuilder().setContent(resolveEmojis(result.message));
+    const content = new TextDisplayBuilder().setContent(
+      resolveEmojis(result.message)
+    );
     container.addTextDisplayComponents(content);
-    
-    await interaction.followUp({ 
+
+    await interaction.followUp({
       components: [container],
-      files, 
-      flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
+      files,
+      flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
     });
   }
 }
@@ -80,7 +100,7 @@ async function handlePrestigeDebug(interaction: ChatInputCommandInteraction) {
   const targetUserId = interaction.options.getString("player") ?? undefined;
 
   if (!image || !image.url) {
-    await interaction.editReply('Image is required.');
+    await interaction.editReply("Image is required.");
     return;
   }
 
@@ -109,40 +129,100 @@ export const command: Command = {
       subcommand
         .setName("roster")
         .setDescription("Debug roster processing from one or more screenshots.")
-        .addAttachmentOption(option => option.setName("image1").setDescription("A screenshot of your champion roster.").setRequired(true))
-        .addAttachmentOption(option => option.setName("image2").setDescription("Another screenshot.").setRequired(false))
-        .addAttachmentOption(option => option.setName("image3").setDescription("Another screenshot.").setRequired(false))
-        .addAttachmentOption(option => option.setName("image4").setDescription("Another screenshot.").setRequired(false))
-        .addAttachmentOption(option => option.setName("image5").setDescription("Another screenshot.").setRequired(false))
-        .addAttachmentOption(option => option.setName("image6").setDescription("Another screenshot.").setRequired(false))
-        .addAttachmentOption(option => option.setName("image7").setDescription("Another screenshot.").setRequired(false))
-        .addAttachmentOption(option => option.setName("image8").setDescription("Another screenshot.").setRequired(false))
-        .addAttachmentOption(option => option.setName("image9").setDescription("Another screenshot.").setRequired(false))
-        .addAttachmentOption(option => option.setName("image10").setDescription("Another screenshot.").setRequired(false))
-    )
-    .addSubcommand(subcommand =>
-      subcommand
-        .setName('prestige')
-        .setDescription('Debug prestige extraction from a screenshot.')
-        .addAttachmentOption(option =>
+        .addAttachmentOption((option) =>
           option
-            .setName("image")
-            .setDescription("Screenshot of MCOC profile showing prestige values.")
+            .setName("image1")
+            .setDescription("A screenshot of your champion roster.")
             .setRequired(true)
         )
-        .addStringOption(option =>
+        .addAttachmentOption((option) =>
+          option
+            .setName("image2")
+            .setDescription("Another screenshot.")
+            .setRequired(false)
+        )
+        .addAttachmentOption((option) =>
+          option
+            .setName("image3")
+            .setDescription("Another screenshot.")
+            .setRequired(false)
+        )
+        .addAttachmentOption((option) =>
+          option
+            .setName("image4")
+            .setDescription("Another screenshot.")
+            .setRequired(false)
+        )
+        .addAttachmentOption((option) =>
+          option
+            .setName("image5")
+            .setDescription("Another screenshot.")
+            .setRequired(false)
+        )
+        .addAttachmentOption((option) =>
+          option
+            .setName("image6")
+            .setDescription("Another screenshot.")
+            .setRequired(false)
+        )
+        .addAttachmentOption((option) =>
+          option
+            .setName("image7")
+            .setDescription("Another screenshot.")
+            .setRequired(false)
+        )
+        .addAttachmentOption((option) =>
+          option
+            .setName("image8")
+            .setDescription("Another screenshot.")
+            .setRequired(false)
+        )
+        .addAttachmentOption((option) =>
+          option
+            .setName("image9")
+            .setDescription("Another screenshot.")
+            .setRequired(false)
+        )
+        .addAttachmentOption((option) =>
+          option
+            .setName("image10")
+            .setDescription("Another screenshot.")
+            .setRequired(false)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("prestige")
+        .setDescription("Debug prestige extraction from a screenshot.")
+        .addAttachmentOption((option) =>
+          option
+            .setName("image")
+            .setDescription(
+              "Screenshot of MCOC profile showing prestige values."
+            )
+            .setRequired(true)
+        )
+        .addStringOption((option) =>
           option
             .setName("player")
-            .setDescription("The player to update prestige for (for debug context).")
+            .setDescription(
+              "The player to update prestige for (for debug context)."
+            )
             .setRequired(false)
             .setAutocomplete(true)
         )
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
-    if (authorizedUsers.length === 0 || !authorizedUsers.includes(interaction.user.id)) {
-        await interaction.reply({ content: 'You are not authorized to use this command.', flags: MessageFlags.Ephemeral });
-        return;
+    if (
+      authorizedUsers.length === 0 ||
+      !authorizedUsers.includes(interaction.user.id)
+    ) {
+      await interaction.reply({
+        content: "You are not authorized to use this command.",
+        flags: MessageFlags.Ephemeral,
+      });
+      return;
     }
 
     const subcommand = interaction.options.getSubcommand();
@@ -155,8 +235,8 @@ export const command: Command = {
 
   async autocomplete(interaction: AutocompleteInteraction) {
     const subcommand = interaction.options.getSubcommand();
-    if (subcommand === 'prestige') {
+    if (subcommand === "prestige") {
       await prestigeAutocomplete(interaction);
     }
-  }
+  },
 };

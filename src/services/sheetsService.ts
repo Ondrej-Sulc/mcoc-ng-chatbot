@@ -53,13 +53,13 @@ class SheetsService {
       spreadsheetId,
       ranges,
     });
-    
+
     const valueRanges = response.data.valueRanges;
     if (!valueRanges) {
       return ranges.map(() => null);
     }
 
-    return valueRanges.map(valueRange => valueRange.values || null);
+    return valueRanges.map((valueRange) => valueRange.values || null);
   }
 
   /**

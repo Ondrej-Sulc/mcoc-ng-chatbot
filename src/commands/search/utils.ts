@@ -4,8 +4,19 @@ import {
   ChampionClass,
   AttackType as AttackTypeEnum,
 } from "@prisma/client";
-import { SearchCoreParams, ChampionWithRelations, RosterEntryWithChampionRelations } from "../../types/search";
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, Guild } from "discord.js";
+import {
+  SearchCoreParams,
+  ChampionWithRelations,
+  RosterEntryWithChampionRelations,
+} from "../../types/search";
+import {
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  Client,
+  Guild,
+} from "discord.js";
 import { createEmojiResolver } from "../../utils/emojiResolver";
 
 const prisma = new PrismaClient();
@@ -18,7 +29,7 @@ export const CLASS_EMOJIS: Record<ChampionClass, string> = {
   SCIENCE: "<:Science:1253449774271696967>",
   COSMIC: "<:Cosmic:1253449702595235950>",
   TECH: "<:Tech:1253449817808703519>",
-  SUPERIOR: "<:Superior:1253458213618323660>",  
+  SUPERIOR: "<:Superior:1253458213618323660>",
 };
 
 export const ATTACK_PROPERTIES = [
@@ -43,8 +54,8 @@ export type SearchCacheEntry = {
 export const searchCache = new Map<string, SearchCacheEntry>();
 
 export type RosterSearchCacheEntry = {
-    criteria: Omit<SearchCoreParams, "userId" | "page" | "searchId">;
-    pages: RosterEntryWithChampionRelations[][];
+  criteria: Omit<SearchCoreParams, "userId" | "page" | "searchId">;
+  pages: RosterEntryWithChampionRelations[][];
 };
 export const rosterSearchCache = new Map<string, RosterSearchCacheEntry>();
 
@@ -97,16 +108,20 @@ export async function buildSearchWhereClause(
   params: Omit<SearchCoreParams, "userId" | "page" | "searchId">
 ): Promise<Prisma.ChampionWhereInput> {
   const where: Prisma.ChampionWhereInput = { AND: [] };
-  const { abilities, immunities, tags, championClass, abilityCategory, attackType } = 
-    params;
+  const {
+    abilities,
+    immunities,
+    tags,
+    championClass,
+    abilityCategory,
+    attackType,
+  } = params;
 
   if (championClass) {
     const { conditions, useAnd } = parseAndOrConditions(championClass);
     const classEnums = conditions
       .map((c) => c.toUpperCase())
-      .filter((c) =>
-        Object.keys(ChampionClass).includes(c)
-      ) as ChampionClass[];
+      .filter((c) => Object.keys(ChampionClass).includes(c)) as ChampionClass[];
 
     if (classEnums.length > 0) {
       if (useAnd) {
@@ -265,7 +280,9 @@ export async function buildSearchWhereClause(
         if (ATTACK_TYPE_KEYWORDS.includes(part.toUpperCase() as any)) {
           attackTypes.push(part.toUpperCase() as AttackTypeEnum);
         } else if (part === "basic") {
-          attackTypes.push(...(["L1", "L2", "L3", "L4", "M1", "M2", "H"] as AttackTypeEnum[]));
+          attackTypes.push(
+            ...(["L1", "L2", "L3", "L4", "M1", "M2", "H"] as AttackTypeEnum[])
+          );
         } else if (part === "special") {
           attackTypes.push(...(["S1", "S2"] as AttackTypeEnum[]));
         } else if (part === "non-contact") {
@@ -276,8 +293,7 @@ export async function buildSearchWhereClause(
             ],
           });
         } else if (part !== "all" && part !== "any") {
-          const normalizedProp =
-            part.charAt(0).toUpperCase() + part.slice(1);
+          const normalizedProp = part.charAt(0).toUpperCase() + part.slice(1);
           if (ATTACK_PROPERTIES.includes(normalizedProp)) {
             properties.push({ properties: { has: normalizedProp } });
           }
@@ -333,15 +349,19 @@ export async function buildSearchWhereClause(
   return where;
 }
 
-function getCriteriaString(searchCriteria: Omit<SearchCoreParams, "userId" | "page" | "searchId">) {
-    const criteriaParts: string[] = [];
-    for (const [key, value] of Object.entries(searchCriteria)) {
-        if (value) {
-            const formattedKey = key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase());
-            criteriaParts.push(`**${formattedKey}:** \`${value}\``);
-        }
+function getCriteriaString(
+  searchCriteria: Omit<SearchCoreParams, "userId" | "page" | "searchId">
+) {
+  const criteriaParts: string[] = [];
+  for (const [key, value] of Object.entries(searchCriteria)) {
+    if (value) {
+      const formattedKey = key
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (str) => str.toUpperCase());
+      criteriaParts.push(`**${formattedKey}:** \`${value}\``);
     }
-    return criteriaParts.join('\n');
+  }
+  return criteriaParts.join("\n");
 }
 
 export async function generateResponse(
@@ -351,18 +371,23 @@ export async function generateResponse(
   currentPage: number,
   totalPages: number,
   searchId: string
-): Promise<{ embed: EmbedBuilder; row: ActionRowBuilder<ButtonBuilder> | null }> {
+): Promise<{
+  embed: EmbedBuilder;
+  row: ActionRowBuilder<ButtonBuilder> | null;
+}> {
   const maybeClient: Client | undefined = (global as any).__discordClient;
   const maybeGuild: Guild | null = (global as any).__discordGuild || null;
-  const resolveEmoji = maybeClient ? createEmojiResolver(maybeClient) : (t: string) => t;
+  const resolveEmoji = maybeClient
+    ? createEmojiResolver(maybeClient)
+    : (t: string) => t;
 
   const descriptionLines: string[] = [];
   const parsedSearchCriteria = {
-    abilities: parseAndOrConditions(searchCriteria.abilities).conditions.map((c) =>
-      c.toLowerCase()
+    abilities: parseAndOrConditions(searchCriteria.abilities).conditions.map(
+      (c) => c.toLowerCase()
     ),
-    immunities: parseAndOrConditions(searchCriteria.immunities).conditions.map((c) =>
-      c.toLowerCase()
+    immunities: parseAndOrConditions(searchCriteria.immunities).conditions.map(
+      (c) => c.toLowerCase()
     ),
     tags: parseAndOrConditions(searchCriteria.tags).conditions.map((c) =>
       c.toLowerCase()
@@ -370,21 +395,25 @@ export async function generateResponse(
     abilityCategory: parseAndOrConditions(
       searchCriteria.abilityCategory
     ).conditions.map((c) => c.toLowerCase()),
-    attackType: parseAndOrConditions(searchCriteria.attackType).conditions.map((c) =>
-      c.toLowerCase()
+    attackType: parseAndOrConditions(searchCriteria.attackType).conditions.map(
+      (c) => c.toLowerCase()
     ),
   };
 
   for (const champion of champions) {
     const classEmoji = CLASS_EMOJIS[champion.class];
-    const championEmoji = champion.discordEmoji ? resolveEmoji(champion.discordEmoji) : "";
+    const championEmoji = champion.discordEmoji
+      ? resolveEmoji(champion.discordEmoji)
+      : "";
     let champString = `${championEmoji} **${champion.name}** ${classEmoji}`;
 
     const matchedAbilities = champion.abilities
       .filter(
         (link) =>
           link.type === "ABILITY" &&
-          parsedSearchCriteria.abilities.includes(link.ability.name.toLowerCase())
+          parsedSearchCriteria.abilities.includes(
+            link.ability.name.toLowerCase()
+          )
       )
       .map((link) => link.ability.name);
     if (matchedAbilities.length > 0) {
@@ -395,7 +424,9 @@ export async function generateResponse(
       .filter(
         (link) =>
           link.type === "IMMUNITY" &&
-          parsedSearchCriteria.immunities.includes(link.ability.name.toLowerCase())
+          parsedSearchCriteria.immunities.includes(
+            link.ability.name.toLowerCase()
+          )
       )
       .map((link) => link.ability.name);
     if (matchedImmunities.length > 0) {
@@ -403,7 +434,9 @@ export async function generateResponse(
     }
 
     const matchedTags = champion.tags
-      .filter((tag) => parsedSearchCriteria.tags.includes(tag.name.toLowerCase()))
+      .filter((tag) =>
+        parsedSearchCriteria.tags.includes(tag.name.toLowerCase())
+      )
       .map((tag) => tag.name);
     if (matchedTags.length > 0) {
       champString += `\n> Tags: *${matchedTags.join(", ")}*`;
@@ -439,7 +472,9 @@ export async function generateResponse(
 
         if (displayCategories.length > 0) {
           champString += `\n> Categories: *${displayCategories.join(", ")}*`;
-          champString += `\n> Matching Abilities: *${displayAbilities.join(", ")}*`;
+          champString += `\n> Matching Abilities: *${displayAbilities.join(
+            ", "
+          )}*`;
         }
       }
     }
@@ -456,7 +491,9 @@ export async function generateResponse(
           if (ATTACK_TYPE_KEYWORDS.includes(part.toUpperCase() as any)) {
             searchAttackTypes.push(part.toUpperCase() as AttackTypeEnum);
           } else if (part === "basic") {
-            searchAttackTypes.push(...(["L1", "L2", "L3", "L4", "M1", "M2", "H"] as AttackTypeEnum[]));
+            searchAttackTypes.push(
+              ...(["L1", "L2", "L3", "L4", "M1", "M2", "H"] as AttackTypeEnum[])
+            );
           } else if (part === "special") {
             searchAttackTypes.push(...(["S1", "S2"] as AttackTypeEnum[]));
           } else if (!MODIFIER_KEYWORDS.includes(part)) {
@@ -504,10 +541,10 @@ export async function generateResponse(
   }
 
   const criteriaString = getCriteriaString(searchCriteria);
-  const header = `Found **${totalChampions}** champion(s) matching your criteria.\n${criteriaString ? `\n${criteriaString}\n` : ''}`;
-  const fullDescription = `${header}\n${descriptionLines.join(
-    "\n\n"
-  )}`;
+  const header = `Found **${totalChampions}** champion(s) matching your criteria.\n${
+    criteriaString ? `\n${criteriaString}\n` : ""
+  }`;
+  const fullDescription = `${header}\n${descriptionLines.join("\n\n")}`;
 
   const embed = new EmbedBuilder()
     .setTitle("Champion Search Results")
@@ -548,11 +585,11 @@ export function paginateChampions(
   const resolveEmoji = createEmojiResolver((global as any).__discordClient);
 
   const parsedSearchCriteria = {
-    abilities: parseAndOrConditions(searchCriteria.abilities).conditions.map((c) =>
-      c.toLowerCase()
+    abilities: parseAndOrConditions(searchCriteria.abilities).conditions.map(
+      (c) => c.toLowerCase()
     ),
-    immunities: parseAndOrConditions(searchCriteria.immunities).conditions.map((c) =>
-      c.toLowerCase()
+    immunities: parseAndOrConditions(searchCriteria.immunities).conditions.map(
+      (c) => c.toLowerCase()
     ),
     tags: parseAndOrConditions(searchCriteria.tags).conditions.map((c) =>
       c.toLowerCase()
@@ -560,21 +597,29 @@ export function paginateChampions(
     abilityCategory: parseAndOrConditions(
       searchCriteria.abilityCategory
     ).conditions.map((c) => c.toLowerCase()),
-    attackType: parseAndOrConditions(searchCriteria.attackType).conditions.map((c) =>
-      c.toLowerCase()
+    attackType: parseAndOrConditions(searchCriteria.attackType).conditions.map(
+      (c) => c.toLowerCase()
     ),
   };
 
   const getChampionStringLength = (champion: ChampionWithRelations): number => {
     const classEmoji = CLASS_EMOJIS[champion.class];
-    const championEmoji = champion.discordEmoji ? resolveEmoji(champion.discordEmoji) : "";
-    let length = PER_CHAMPION_BASE_LENGTH + champion.name.length + classEmoji.length + championEmoji.length;
+    const championEmoji = champion.discordEmoji
+      ? resolveEmoji(champion.discordEmoji)
+      : "";
+    let length =
+      PER_CHAMPION_BASE_LENGTH +
+      champion.name.length +
+      classEmoji.length +
+      championEmoji.length;
 
     const matchedAbilities = champion.abilities
       .filter(
         (link) =>
           link.type === "ABILITY" &&
-          parsedSearchCriteria.abilities.includes(link.ability.name.toLowerCase())
+          parsedSearchCriteria.abilities.includes(
+            link.ability.name.toLowerCase()
+          )
       )
       .map((link) => link.ability.name);
     if (matchedAbilities.length > 0) {
@@ -585,7 +630,9 @@ export function paginateChampions(
       .filter(
         (link) =>
           link.type === "IMMUNITY" &&
-          parsedSearchCriteria.immunities.includes(link.ability.name.toLowerCase())
+          parsedSearchCriteria.immunities.includes(
+            link.ability.name.toLowerCase()
+          )
       )
       .map((link) => link.ability.name);
     if (matchedImmunities.length > 0) {
@@ -593,7 +640,9 @@ export function paginateChampions(
     }
 
     const matchedTags = champion.tags
-      .filter((tag) => parsedSearchCriteria.tags.includes(tag.name.toLowerCase()))
+      .filter((tag) =>
+        parsedSearchCriteria.tags.includes(tag.name.toLowerCase())
+      )
       .map((tag) => tag.name);
     if (matchedTags.length > 0) {
       length += `\n> Tags: *${matchedTags.join(", ")}*`.length;
@@ -629,7 +678,8 @@ export function paginateChampions(
 
         if (displayCategories.length > 0) {
           length += `\n> Categories: *${displayCategories.join(", ")}*`.length;
-          length += `\n> Matching Abilities: *${displayAbilities.join(", ")}*`.length;
+          length += `\n> Matching Abilities: *${displayAbilities.join(", ")}*`
+            .length;
         }
       }
     }
@@ -646,7 +696,9 @@ export function paginateChampions(
           if (ATTACK_TYPE_KEYWORDS.includes(part.toUpperCase() as any)) {
             searchAttackTypes.push(part.toUpperCase() as AttackTypeEnum);
           } else if (part === "basic") {
-            searchAttackTypes.push(...(["L1", "L2", "L3", "L4", "M1", "M2", "H"] as AttackTypeEnum[]));
+            searchAttackTypes.push(
+              ...(["L1", "L2", "L3", "L4", "M1", "M2", "H"] as AttackTypeEnum[])
+            );
           } else if (part === "special") {
             searchAttackTypes.push(...(["S1", "S2"] as AttackTypeEnum[]));
           } else if (!MODIFIER_KEYWORDS.includes(part)) {
@@ -698,7 +750,8 @@ export function paginateChampions(
 
     if (
       currentPage.length > 0 &&
-      currentLength + championLength + SEPARATOR_LENGTH > EMBED_DESCRIPTION_LIMIT
+      currentLength + championLength + SEPARATOR_LENGTH >
+        EMBED_DESCRIPTION_LIMIT
     ) {
       pages.push(currentPage);
       currentPage = [];
@@ -706,7 +759,8 @@ export function paginateChampions(
     }
 
     currentPage.push(champion);
-    currentLength += championLength + (currentPage.length > 1 ? SEPARATOR_LENGTH : 0);
+    currentLength +=
+      championLength + (currentPage.length > 1 ? SEPARATOR_LENGTH : 0);
   }
 
   if (currentPage.length > 0) {
@@ -723,53 +777,62 @@ export async function generateRosterResponse(
   currentPage: number,
   totalPages: number,
   searchId: string
-): Promise<{ embed: EmbedBuilder; row: ActionRowBuilder<ButtonBuilder> | null }> {
-    const maybeClient: Client | undefined = (global as any).__discordClient;
-    const maybeGuild: Guild | null = (global as any).__discordGuild || null;
-    const resolveEmoji = maybeClient ? createEmojiResolver(maybeClient) : (t: string) => t;
+): Promise<{
+  embed: EmbedBuilder;
+  row: ActionRowBuilder<ButtonBuilder> | null;
+}> {
+  const maybeClient: Client | undefined = (global as any).__discordClient;
+  const maybeGuild: Guild | null = (global as any).__discordGuild || null;
+  const resolveEmoji = maybeClient
+    ? createEmojiResolver(maybeClient)
+    : (t: string) => t;
 
-    const descriptionLines: string[] = [];
+  const descriptionLines: string[] = [];
 
-    for (const entry of champions) {
-        const { champion } = entry;
-        const classEmoji = CLASS_EMOJIS[champion.class];
-        const championEmoji = champion.discordEmoji ? resolveEmoji(champion.discordEmoji) : "";
-        const ascendedEmoji = entry.isAscended ? "🏆" : "";
-        const awakenedEmoji = entry.isAwakened ? "★" : "☆";
+  for (const entry of champions) {
+    const { champion } = entry;
+    const classEmoji = CLASS_EMOJIS[champion.class];
+    const championEmoji = champion.discordEmoji
+      ? resolveEmoji(champion.discordEmoji)
+      : "";
+    const ascendedEmoji = entry.isAscended ? "🏆" : "";
+    const awakenedEmoji = entry.isAwakened ? "★" : "☆";
 
-        let champString = `${championEmoji} **${champion.name}** ${classEmoji}\n> ${awakenedEmoji} ${entry.stars}* R${entry.rank} ${ascendedEmoji}`;
-        descriptionLines.push(champString);
-    }
+    let champString = `${championEmoji} **${champion.name}** ${classEmoji}\n> ${awakenedEmoji} ${entry.stars}* R${entry.rank} ${ascendedEmoji}`;
+    descriptionLines.push(champString);
+  }
 
-    const criteriaString = getCriteriaString(searchCriteria);
-    const header = `Found **${totalChampions}** champion(s) in the roster matching your criteria.\n${criteriaString ? `\n${criteriaString}\n` : ''}`;
-    const fullDescription = `${header}\n${descriptionLines.join("\n\n")}`;
+  const criteriaString = getCriteriaString(searchCriteria);
+  const header = `Found **${totalChampions}** champion(s) in the roster matching your criteria.\n${
+    criteriaString ? `\n${criteriaString}\n` : ""
+  }`;
+  const fullDescription = `${header}\n${descriptionLines.join("\n\n")}`;
 
-    const embed = new EmbedBuilder()
-        .setTitle("Roster Search Results")
-        .setDescription(fullDescription)
-        .setColor("Gold");
+  const embed = new EmbedBuilder()
+    .setTitle("Roster Search Results")
+    .setDescription(fullDescription)
+    .setColor("Gold");
 
-    let row: ActionRowBuilder<ButtonBuilder> | null = null;
-    if (totalPages > 1) {
-        embed.setFooter({ text: `Page ${currentPage} of ${totalPages}` });
+  let row: ActionRowBuilder<ButtonBuilder> | null = null;
+  if (totalPages > 1) {
+    embed.setFooter({ text: `Page ${currentPage} of ${totalPages}` });
 
-        row = new ActionRowBuilder<ButtonBuilder>();
-        row.addComponents(
-            new ButtonBuilder()
-                .setCustomId(`roster_search:prev:${searchId}:${currentPage}`)
-                .setLabel("Previous")
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(currentPage === 1),
-            new ButtonBuilder()
-                .setCustomId(`roster_search:next:${searchId}:${currentPage}`)
-                .setLabel("Next")
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(currentPage === totalPages)
-        );
-    }
+    row = new ActionRowBuilder<ButtonBuilder>();
+    row.addComponents(
+      new ButtonBuilder()
+        .setCustomId(`roster_search:prev:${searchId}:${currentPage}`)
+        .setLabel("Previous")
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(currentPage === 1),
+      new ButtonBuilder()
+        .setCustomId(`roster_search:next:${searchId}:${currentPage}`)
+        .setLabel("Next")
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(currentPage === totalPages)
+    );
+  }
 
-    return { embed, row };
+  return { embed, row };
 }
 
 export function paginateRosterChampions(
@@ -777,42 +840,54 @@ export function paginateRosterChampions(
   searchCriteria: Omit<SearchCoreParams, "userId" | "page" | "searchId">,
   criteriaLength: number
 ): RosterEntryWithChampionRelations[][] {
-    const pages: RosterEntryWithChampionRelations[][] = [];
-    let currentPage: RosterEntryWithChampionRelations[] = [];
-    let currentLength = criteriaLength + HEADER_FOOTER_BUFFER;
-    const resolveEmoji = createEmojiResolver((global as any).__discordClient);
+  const pages: RosterEntryWithChampionRelations[][] = [];
+  let currentPage: RosterEntryWithChampionRelations[] = [];
+  let currentLength = criteriaLength + HEADER_FOOTER_BUFFER;
+  const resolveEmoji = createEmojiResolver((global as any).__discordClient);
 
-    const getRosterChampionStringLength = (entry: RosterEntryWithChampionRelations): number => {
-        const { champion } = entry;
-        const classEmoji = CLASS_EMOJIS[champion.class];
-        const championEmoji = champion.discordEmoji ? resolveEmoji(champion.discordEmoji) : "";
-        const ascendedEmoji = entry.isAscended ? "🏆" : "";
-        const awakenedEmoji = entry.isAwakened ? "★" : "☆";
+  const getRosterChampionStringLength = (
+    entry: RosterEntryWithChampionRelations
+  ): number => {
+    const { champion } = entry;
+    const classEmoji = CLASS_EMOJIS[champion.class];
+    const championEmoji = champion.discordEmoji
+      ? resolveEmoji(champion.discordEmoji)
+      : "";
+    const ascendedEmoji = entry.isAscended ? "🏆" : "";
+    const awakenedEmoji = entry.isAwakened ? "★" : "☆";
 
-        let length = PER_CHAMPION_BASE_LENGTH + champion.name.length + classEmoji.length + championEmoji.length;
-        length += `\n> ${awakenedEmoji} ${entry.stars}* R${entry.rank} ${ascendedEmoji}`.length;
-        return length;
-    };
+    let length =
+      PER_CHAMPION_BASE_LENGTH +
+      champion.name.length +
+      classEmoji.length +
+      championEmoji.length;
+    length +=
+      `\n> ${awakenedEmoji} ${entry.stars}* R${entry.rank} ${ascendedEmoji}`
+        .length;
+    return length;
+  };
 
-    for (const entry of rosterEntries) {
-        const championLength = getRosterChampionStringLength(entry);
+  for (const entry of rosterEntries) {
+    const championLength = getRosterChampionStringLength(entry);
 
-        if (
-            currentPage.length > 0 &&
-            currentLength + championLength + SEPARATOR_LENGTH > EMBED_DESCRIPTION_LIMIT
-        ) {
-            pages.push(currentPage);
-            currentPage = [];
-            currentLength = criteriaLength + HEADER_FOOTER_BUFFER;
-        }
-
-        currentPage.push(entry);
-        currentLength += championLength + (currentPage.length > 1 ? SEPARATOR_LENGTH : 0);
+    if (
+      currentPage.length > 0 &&
+      currentLength + championLength + SEPARATOR_LENGTH >
+        EMBED_DESCRIPTION_LIMIT
+    ) {
+      pages.push(currentPage);
+      currentPage = [];
+      currentLength = criteriaLength + HEADER_FOOTER_BUFFER;
     }
 
-    if (currentPage.length > 0) {
-        pages.push(currentPage);
-    }
+    currentPage.push(entry);
+    currentLength +=
+      championLength + (currentPage.length > 1 ? SEPARATOR_LENGTH : 0);
+  }
 
-    return pages;
+  if (currentPage.length > 0) {
+    pages.push(currentPage);
+  }
+
+  return pages;
 }

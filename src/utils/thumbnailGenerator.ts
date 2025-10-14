@@ -395,7 +395,7 @@ async function fetchArrayBufferWithTimeout(
 let cachedTitleFont: opentype.Font | null = null;
 
 function nodeBufferToArrayBuffer(buf: Buffer): ArrayBuffer {
-  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+  return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength).slice().buffer;
 }
 
 async function loadTitleFont(): Promise<opentype.Font | null> {
@@ -567,7 +567,11 @@ function createBackgroundSvg(
     /(stroke-opacity|fill-opacity)="([^"]*)"/g,
     (match, p1, p2) => {
       const originalOpacity = parseFloat(p2);
-      const newOpacity = clamp(originalOpacity * patternOpacityMultiplier, 0, 1);
+      const newOpacity = clamp(
+        originalOpacity * patternOpacityMultiplier,
+        0,
+        1
+      );
       return `${p1}="${newOpacity.toFixed(3)}"`;
     }
   );
@@ -993,7 +997,8 @@ export async function generateChampionThumbnail(
     CLASS_PATTERN_CONFIG[championClass] ?? CLASS_PATTERN_CONFIG.SKILL; // Default for safety
 
   const finalPatternScale = patternScale ?? classPatternConfig.scale;
-  const finalPatternOpacity = patternOpacityMultiplier ?? classPatternConfig.opacity;
+  const finalPatternOpacity =
+    patternOpacityMultiplier ?? classPatternConfig.opacity;
 
   // Fetch images
   const [secondaryAB, primaryAB] = await Promise.all([
