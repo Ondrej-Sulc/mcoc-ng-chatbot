@@ -3,6 +3,8 @@ import {
   PrismaClient,
   ChampionClass,
   AttackType as AttackTypeEnum,
+  AbilityCategory,
+  Hit,
 } from "@prisma/client";
 import {
   SearchCoreParams,
@@ -18,8 +20,7 @@ import {
   Guild,
 } from "discord.js";
 import { createEmojiResolver } from "../../utils/emojiResolver";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../services/prismaService";
 
 // Store by name so we can resolve IDs dynamically per-guild
 export const CLASS_EMOJIS: Record<ChampionClass, string> = {
@@ -409,42 +410,42 @@ export async function generateResponse(
 
     const matchedAbilities = champion.abilities
       .filter(
-        (link) =>
+        (link: ChampionWithRelations['abilities'][number]) =>
           link.type === "ABILITY" &&
           parsedSearchCriteria.abilities.includes(
             link.ability.name.toLowerCase()
           )
       )
-      .map((link) => link.ability.name);
+      .map((link: ChampionWithRelations['abilities'][number]) => link.ability.name);
     if (matchedAbilities.length > 0) {
       champString += `\n> Abilities: *${matchedAbilities.join(", ")}*`;
     }
 
     const matchedImmunities = champion.abilities
       .filter(
-        (link) =>
+        (link: ChampionWithRelations['abilities'][number]) =>
           link.type === "IMMUNITY" &&
           parsedSearchCriteria.immunities.includes(
             link.ability.name.toLowerCase()
           )
       )
-      .map((link) => link.ability.name);
+      .map((link: ChampionWithRelations['abilities'][number]) => link.ability.name);
     if (matchedImmunities.length > 0) {
       champString += `\n> Immunities: *${matchedImmunities.join(", ")}*`;
     }
 
     const matchedTags = champion.tags
-      .filter((tag) =>
+      .filter((tag: ChampionWithRelations['tags'][number]) =>
         parsedSearchCriteria.tags.includes(tag.name.toLowerCase())
       )
-      .map((tag) => tag.name);
+      .map((tag: ChampionWithRelations['tags'][number]) => tag.name);
     if (matchedTags.length > 0) {
       champString += `\n> Tags: *${matchedTags.join(", ")}*`;
     }
 
     if (parsedSearchCriteria.abilityCategory.length > 0) {
-      const matchedAbilitiesForCategory = champion.abilities.filter((link) =>
-        link.ability.categories.some((cat) =>
+      const matchedAbilitiesForCategory = champion.abilities.filter((link: ChampionWithRelations['abilities'][number]) =>
+        link.ability.categories.some((cat: AbilityCategory) =>
           parsedSearchCriteria.abilityCategory.includes(cat.name.toLowerCase())
         )
       );
@@ -452,21 +453,21 @@ export async function generateResponse(
       if (matchedAbilitiesForCategory.length > 0) {
         const displayCategories = [
           ...new Set(
-            matchedAbilitiesForCategory.flatMap((link) =>
+            matchedAbilitiesForCategory.flatMap((link: ChampionWithRelations['abilities'][number]) =>
               link.ability.categories
-                .filter((cat) =>
+                .filter((cat: AbilityCategory) =>
                   parsedSearchCriteria.abilityCategory.includes(
                     cat.name.toLowerCase()
                   )
                 )
-                .map((cat) => cat.name)
+                .map((cat: AbilityCategory) => cat.name)
             )
           ),
         ];
 
         const displayAbilities = [
           ...new Set(
-            matchedAbilitiesForCategory.map((link) => link.ability.name)
+            matchedAbilitiesForCategory.map((link: ChampionWithRelations['abilities'][number]) => link.ability.name)
           ),
         ];
 
@@ -501,7 +502,7 @@ export async function generateResponse(
           }
         });
 
-        champion.attacks.forEach((attack) => {
+        champion.attacks.forEach((attack: ChampionWithRelations['attacks'][number]) => {
           const attackTypeMatch =
             searchAttackTypes.length === 0 ||
             searchAttackTypes.includes(attack.type);
@@ -510,19 +511,19 @@ export async function generateResponse(
             const hasAllProperties = searchProperties.every((prop) => {
               if (prop === "non-contact") {
                 return attack.hits.some(
-                  (h) =>
+                  (h: Hit) =>
                     !h.properties.includes("Contact") && h.properties.length > 0
                 );
               } else {
-                return attack.hits.some((h) =>
-                  h.properties.some((p) => p.toLowerCase() === prop)
+                return attack.hits.some((h: Hit) =>
+                  h.properties.some((p: string) => p.toLowerCase() === prop)
                 );
               }
             });
 
             if (hasAllProperties) {
               const props =
-                attack.hits.flatMap((h) => h.properties).join(", ") ||
+                attack.hits.flatMap((h: Hit) => h.properties).join(", ") ||
                 "No Properties";
               matchedAttacksOutput.add(`${attack.type} (${props})`);
             }
@@ -615,42 +616,42 @@ export function paginateChampions(
 
     const matchedAbilities = champion.abilities
       .filter(
-        (link) =>
+        (link: ChampionWithRelations['abilities'][number]) =>
           link.type === "ABILITY" &&
           parsedSearchCriteria.abilities.includes(
             link.ability.name.toLowerCase()
           )
       )
-      .map((link) => link.ability.name);
+      .map((link: ChampionWithRelations['abilities'][number]) => link.ability.name);
     if (matchedAbilities.length > 0) {
       length += `\n> Abilities: *${matchedAbilities.join(", ")}*`.length;
     }
 
     const matchedImmunities = champion.abilities
       .filter(
-        (link) =>
+        (link: ChampionWithRelations['abilities'][number]) =>
           link.type === "IMMUNITY" &&
           parsedSearchCriteria.immunities.includes(
             link.ability.name.toLowerCase()
           )
       )
-      .map((link) => link.ability.name);
+      .map((link: ChampionWithRelations['abilities'][number]) => link.ability.name);
     if (matchedImmunities.length > 0) {
       length += `\n> Immunities: *${matchedImmunities.join(", ")}*`.length;
     }
 
     const matchedTags = champion.tags
-      .filter((tag) =>
+      .filter((tag: ChampionWithRelations['tags'][number]) =>
         parsedSearchCriteria.tags.includes(tag.name.toLowerCase())
       )
-      .map((tag) => tag.name);
+      .map((tag: ChampionWithRelations['tags'][number]) => tag.name);
     if (matchedTags.length > 0) {
       length += `\n> Tags: *${matchedTags.join(", ")}*`.length;
     }
 
     if (parsedSearchCriteria.abilityCategory.length > 0) {
-      const matchedAbilitiesForCategory = champion.abilities.filter((link) =>
-        link.ability.categories.some((cat) =>
+      const matchedAbilitiesForCategory = champion.abilities.filter((link: ChampionWithRelations['abilities'][number]) =>
+        link.ability.categories.some((cat: AbilityCategory) =>
           parsedSearchCriteria.abilityCategory.includes(cat.name.toLowerCase())
         )
       );
@@ -658,21 +659,21 @@ export function paginateChampions(
       if (matchedAbilitiesForCategory.length > 0) {
         const displayCategories = [
           ...new Set(
-            matchedAbilitiesForCategory.flatMap((link) =>
+            matchedAbilitiesForCategory.flatMap((link: ChampionWithRelations['abilities'][number]) =>
               link.ability.categories
-                .filter((cat) =>
+                .filter((cat: AbilityCategory) =>
                   parsedSearchCriteria.abilityCategory.includes(
                     cat.name.toLowerCase()
                   )
                 )
-                .map((cat) => cat.name)
+                .map((cat: AbilityCategory) => cat.name)
             )
           ),
         ];
 
         const displayAbilities = [
           ...new Set(
-            matchedAbilitiesForCategory.map((link) => link.ability.name)
+            matchedAbilitiesForCategory.map((link: ChampionWithRelations['abilities'][number]) => link.ability.name)
           ),
         ];
 
@@ -706,7 +707,7 @@ export function paginateChampions(
           }
         });
 
-        champion.attacks.forEach((attack) => {
+        champion.attacks.forEach((attack: ChampionWithRelations['attacks'][number]) => {
           const attackTypeMatch =
             searchAttackTypes.length === 0 ||
             searchAttackTypes.includes(attack.type);
@@ -715,19 +716,19 @@ export function paginateChampions(
             const hasAllProperties = searchProperties.every((prop) => {
               if (prop === "non-contact") {
                 return attack.hits.some(
-                  (h) =>
+                  (h: Hit) =>
                     !h.properties.includes("Contact") && h.properties.length > 0
                 );
               } else {
-                return attack.hits.some((h) =>
-                  h.properties.some((p) => p.toLowerCase() === prop)
+                return attack.hits.some((h: Hit) =>
+                  h.properties.some((p: string) => p.toLowerCase() === prop)
                 );
               }
             });
 
             if (hasAllProperties) {
               const props =
-                attack.hits.flatMap((h) => h.properties).join(", ") ||
+                attack.hits.flatMap((h: Hit) => h.properties).join(", ") ||
                 "No Properties";
               matchedAttacksOutput.add(`${attack.type} (${props})`);
             }

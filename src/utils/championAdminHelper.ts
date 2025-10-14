@@ -26,19 +26,15 @@ import {
   openRouterService,
   OpenRouterMessage,
 } from "../services/openRouterService";
-import { PrismaClient, ChampionClass, AbilityLinkType } from "@prisma/client";
+import { prisma } from "../services/prismaService";
+import { ChampionClass, AbilityLinkType } from "@prisma/client";
 import { config } from "../config";
 import logger from "../services/loggerService";
 import { sheetsService } from "../services/sheetsService";
 import { getChampionImageUrl } from "./championHelper";
-import {
-  _buildDraftContainer,
-  pendingDrafts,
-} from "./championAbilityDraftHandler";
+import { _buildDraftContainer, pendingDrafts } from "./championAbilityDraftHandler";
 import { registerModalHandler } from "./modalHandlerRegistry";
 import { registerButtonHandler } from "./buttonHandlerRegistry";
-
-const prisma = new PrismaClient();
 const pendingChampions = new Map<string, any>();
 
 async function downloadImage(url: string): Promise<Buffer> {

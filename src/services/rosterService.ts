@@ -1,5 +1,6 @@
 import sharp from "sharp";
-import { PrismaClient, Champion, Roster, Prisma } from "@prisma/client";
+import { prisma } from "./prismaService";
+import { Champion, Roster, Prisma } from "@prisma/client";
 import { v1 } from "@google-cloud/vision";
 import Fuse from "fuse.js";
 // @ts-ignore
@@ -7,13 +8,9 @@ import { imageHash } from "image-hash";
 import { promises as fs } from "fs";
 import * as path from "path";
 import { tmpdir } from "os";
-
 import { config } from "../config";
 import { sheetsService } from "./sheetsService";
-
 import { getChampionImageUrl } from "../utils/championHelper";
-
-const prisma = new PrismaClient();
 
 const visionClient = new v1.ImageAnnotatorClient({
   credentials: config.GOOGLE_CREDENTIALS,
@@ -269,7 +266,7 @@ async function updateRosterInSheet(
   }
 
   const playerIndex = playerNames[0].findIndex(
-    (name) => name.toLowerCase() === player.ingameName.toLowerCase()
+    (name: string) => name.toLowerCase() === player.ingameName.toLowerCase()
   );
 
   if (playerIndex === -1) {
@@ -574,7 +571,7 @@ async function getImageHash(imageBuffer: Buffer): Promise<string> {
     try {
       await fs.writeFile(tempPath, pngBuffer);
       imageHash(tempPath, 16, true, (error: any, data: string) => {
-        fs.unlink(tempPath).catch((err) =>
+        fs.unlink(tempPath).catch((err: any) =>
           console.error(`Failed to delete temp file: ${tempPath}`, err)
         );
         if (error) return reject(error);

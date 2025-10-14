@@ -1,17 +1,24 @@
-import { PrismaClient, Schedule } from "@prisma/client";
-import { ScheduleFrequency } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "./prismaService";
+import { Schedule, ScheduleFrequency, Prisma } from "@prisma/client";
 
 export { Schedule, ScheduleFrequency };
 
 /**
  * A subset of the Schedule model for creating a new schedule.
  */
-export type NewSchedulePayload = Omit<
-  Schedule,
-  "id" | "createdAt" | "updatedAt" | "is_active" | "last_run"
->;
+export type NewSchedulePayload = {
+  name: string;
+  frequency: ScheduleFrequency;
+  time: string;
+  command?: string | null;
+  message?: string | null;
+  target_channel_id?: string | null;
+  target_user_id?: string | null;
+  day?: string | null;
+  interval?: string | null;
+  unit?: string | null;
+  cron_expression?: string | null;
+};
 
 /**
  * Retrieves all active schedules from the database.
@@ -30,17 +37,7 @@ export async function getSchedules(): Promise<Schedule[]> {
  */
 export async function addSchedule(data: NewSchedulePayload): Promise<Schedule> {
   return prisma.schedule.create({
-    data: {
-      ...data,
-      command: data.command || null,
-      message: data.message || null,
-      target_channel_id: data.target_channel_id || null,
-      target_user_id: data.target_user_id || null,
-      day: data.day || null,
-      interval: data.interval || null,
-      unit: data.unit || null,
-      cron_expression: data.cron_expression || null,
-    },
+    data,
   });
 }
 

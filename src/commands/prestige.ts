@@ -21,8 +21,7 @@ import { Command, CommandResult } from "../types/command";
 import sharp from "sharp";
 import Tesseract from "tesseract.js";
 import { PrismaClient, Player } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../services/prismaService";
 
 function buildPrestigeConfirmationContainer(
   targetPlayer: Player,

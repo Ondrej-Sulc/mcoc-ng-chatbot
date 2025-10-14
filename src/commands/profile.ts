@@ -3,9 +3,8 @@ import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { Command, CommandResult } from "../types/command";
 
 import { PrismaClient } from "@prisma/client";
+import { prisma } from "../services/prismaService";
 import { importRosterFromSheet } from "../services/rosterService";
-
-const prisma = new PrismaClient();
 
 async function register(
   interaction: ChatInputCommandInteraction

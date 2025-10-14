@@ -18,8 +18,7 @@ import { loadChampions } from "./services/championService";
 import { initializeAqReminders } from "./services/aqReminderService.js";
 import { PrismaClient } from "@prisma/client";
 import { getModalHandler } from "./utils/modalHandlerRegistry";
-
-const prisma = new PrismaClient();
+import { prisma } from "./services/prismaService";
 
 declare module "discord.js" {
   interface Client {

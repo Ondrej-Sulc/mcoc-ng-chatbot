@@ -1,14 +1,6 @@
-import {
-  PrismaClient,
-  Champion,
-  Attack,
-  Hit,
-  ChampionAbilityLink,
-  Ability,
-} from "@prisma/client";
+import { prisma } from "./prismaService";
+import { Champion, Attack, Hit, ChampionAbilityLink, Ability } from "@prisma/client";
 import { normalizeChampionName } from "../utils/championHelper";
-
-const prisma = new PrismaClient();
 
 export let championsByName = new Map<string, Champion>();
 export let championList: Champion[] = [];

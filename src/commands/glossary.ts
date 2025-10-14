@@ -6,10 +6,8 @@ import {
 } from "discord.js";
 import { Command, CommandResult } from "../types/command";
 import { PrismaClient, Ability, AbilityCategory } from "@prisma/client";
-
+import { prisma } from "../services/prismaService";
 import { createEmojiResolver } from "../utils/emojiResolver";
-
-const prisma = new PrismaClient();
 
 interface GlossaryCoreParams {
   subcommand: string;

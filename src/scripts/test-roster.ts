@@ -1,13 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import {
-  processRosterScreenshot,
-  RosterDebugResult,
-  RosterUpdateResult,
-} from "../services/rosterService";
+import { prisma } from "../services/prismaService";
+import { RosterUpdateResult, RosterDebugResult, processRosterScreenshot } from "../services/rosterService";
 import * as fs from "fs/promises";
 import * as path from "path";
-
-const prisma = new PrismaClient();
 
 // URL from the user
 const imageUrl =
@@ -62,7 +57,7 @@ async function testRoster() {
       console.log("Result:", `${result.count} champions processed.`);
       console.log(
         "Champions:",
-        result.champions.flat().map((c) => c.champion.name)
+        result.champions.flat().map((c: any) => c.champion.name)
       );
     }
 

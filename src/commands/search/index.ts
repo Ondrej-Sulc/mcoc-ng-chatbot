@@ -6,10 +6,10 @@ import {
 } from "discord.js";
 import { Command, CommandResult } from "../../types/command";
 import { PrismaClient, ChampionClass } from "@prisma/client";
-
+import { prisma } from "../../services/prismaService";
 import { registerButtonHandler } from "../../utils/buttonHandlerRegistry";
 import crypto from "crypto";
-import { RosterEntryWithChampionRelations } from "../../types/search";
+import { RosterEntryWithChampionRelations, SearchCoreParams, ChampionWithRelations } from "../../types/search";
 import {
   buildSearchWhereClause,
   generateResponse,
@@ -24,9 +24,6 @@ import {
   ATTACK_GROUP_KEYWORDS,
   MODIFIER_KEYWORDS,
 } from "./utils";
-import { SearchCoreParams, ChampionWithRelations } from "../../types/search";
-
-const prisma = new PrismaClient();
 
 async function rosterCore(
   champions: RosterEntryWithChampionRelations[],

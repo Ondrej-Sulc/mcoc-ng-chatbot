@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import { Prisma } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../services/prismaService";
 
 export type SectionKey = "s1" | "s2" | "s3";
 

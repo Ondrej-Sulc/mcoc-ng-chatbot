@@ -1,4 +1,4 @@
-import { ChampionClass } from "@prisma/client";
+import { ChampionClass, Hit } from "@prisma/client";
 import {
   AttackWithHits,
   ChampionAbilityLinkWithAbility,
@@ -52,18 +52,18 @@ export function formatAttacks(attacks: AttackWithHits[]): string {
     const group = groupedAttacks[key];
     if (group.length > 1) {
       const firstAttackHits = JSON.stringify(
-        group[0].hits.map((h) => h.properties).sort()
+        group[0].hits.map((h: Hit) => h.properties).sort()
       );
       const allSame = group.every(
         (attack) =>
-          JSON.stringify(attack.hits.map((h) => h.properties).sort()) ===
+          JSON.stringify(attack.hits.map((h: Hit) => h.properties).sort()) ===
           firstAttackHits
       );
 
       if (allSame) {
         const attack = group[0];
         const hitCounts = attack.hits.reduce(
-          (acc: Record<string, number>, hit) => {
+          (acc: Record<string, number>, hit: Hit) => {
             const key = hit.properties.join(" ");
             acc[key] = (acc[key] || 0) + 1;
             return acc;
@@ -79,7 +79,7 @@ export function formatAttacks(attacks: AttackWithHits[]): string {
       } else {
         for (const attack of group) {
           const hitCounts = attack.hits.reduce(
-            (acc: Record<string, number>, hit) => {
+            (acc: Record<string, number>, hit: Hit) => {
               const key = hit.properties.join(" ");
               acc[key] = (acc[key] || 0) + 1;
               return acc;
@@ -95,7 +95,7 @@ export function formatAttacks(attacks: AttackWithHits[]): string {
     } else {
       const attack = group[0];
       const hitCounts = attack.hits.reduce(
-        (acc: Record<string, number>, hit) => {
+        (acc: Record<string, number>, hit: Hit) => {
           const key = hit.properties.join(" ");
           acc[key] = (acc[key] || 0) + 1;
           return acc;
@@ -145,7 +145,7 @@ export function formatLinkedAbilitySection(
     if (source) {
       const entry = byName.get(key)!;
       if (
-        !entry.sources.some((s) => s.toLowerCase() === source.toLowerCase())
+        !entry.sources.some((s: string) => s.toLowerCase() === source.toLowerCase())
       ) {
         entry.sources.push(source);
       }
@@ -169,7 +169,7 @@ export function formatLinkedAbilitySection(
     } else {
       lines.push(base);
       // Sort sources for consistent ordering
-      item.sources.sort((a, b) => a.localeCompare(b));
+      item.sources.sort((a: string, b: string) => a.localeCompare(b));
       for (const source of item.sources) {
         lines.push(`  • ${source}`);
       }
@@ -293,7 +293,7 @@ export function handleAbilities(
     CLASS_COLOR[champion.class]
   );
   const relevantAbilities = champion.abilities.filter(
-    (a) => a.type === (subcommand === "abilities" ? "ABILITY" : "IMMUNITY")
+    (a: ChampionAbilityLinkWithAbility) => a.type === (subcommand === "abilities" ? "ABILITY" : "IMMUNITY")
   );
 
   const formattedAbilities =

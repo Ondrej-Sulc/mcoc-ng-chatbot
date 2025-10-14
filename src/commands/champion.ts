@@ -2,18 +2,12 @@ import {
   SlashCommandBuilder,
   ChatInputCommandInteraction,
   MessageFlags,
-  ContainerBuilder,
-  TextDisplayBuilder,
   AttachmentBuilder,
   MediaGalleryBuilder,
   MediaGalleryItemBuilder,
 } from "discord.js";
-import { ChampionClass, Champion } from "@prisma/client";
 import {
   getChampionData,
-  ChampionWithAllRelations,
-  AttackWithHits,
-  ChampionAbilityLinkWithAbility,
   championList,
 } from "../services/championService";
 import { Command, CommandResult } from "../types/command";

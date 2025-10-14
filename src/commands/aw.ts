@@ -17,8 +17,7 @@ import { sheetsService } from "../services/sheetsService";
 import { getChampionByName } from "../services/championService";
 import { getApplicationEmojiMarkupByName } from "../services/applicationEmojiService";
 import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../services/prismaService";
 
 // --- HELPER FUNCTIONS ---
 

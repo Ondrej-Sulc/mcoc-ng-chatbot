@@ -1,24 +1,9 @@
-import {
-  ButtonInteraction,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
-  ActionRowBuilder,
-  ModalSubmitInteraction,
-  ContainerBuilder,
-  TextDisplayBuilder,
-  SeparatorBuilder,
-  MessageFlags,
-  ButtonStyle,
-  ButtonBuilder,
-} from "discord.js";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../services/prismaService";
+import { ButtonInteraction, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalSubmitInteraction, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags, ButtonStyle, ButtonBuilder } from "discord.js";
 import logger from "../services/loggerService";
 import { openRouterService } from "../services/openRouterService";
 import { registerButtonHandler } from "./buttonHandlerRegistry";
 import { registerModalHandler } from "./modalHandlerRegistry";
-
-const prisma = new PrismaClient();
 
 export const pendingDrafts = new Map<string, any>();
 
