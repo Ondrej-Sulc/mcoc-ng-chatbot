@@ -1,7 +1,7 @@
 import { Client, TextChannel } from "discord.js";
 import cron from "node-cron";
 import { config } from "../config";
-import { getAllStates, setState, AQState } from "../utils/aqState";
+import { AQState, getAllStates, setState } from "../commands/aq/state";
 
 function getSlackers(state: AQState, isFinal: boolean): string[] {
   const slackers: Set<string> = new Set();

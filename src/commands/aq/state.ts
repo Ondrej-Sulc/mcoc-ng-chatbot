@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { prisma } from "../services/prismaService";
+import { prisma } from "../../services/prismaService";
 
 export type SectionKey = "s1" | "s2" | "s3";
 

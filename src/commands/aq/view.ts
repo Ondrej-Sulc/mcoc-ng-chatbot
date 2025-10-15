@@ -8,8 +8,9 @@ import {
   SeparatorSpacingSize,
   MediaGalleryBuilder,
   MediaGalleryItemBuilder,
+  MessageFlags,
 } from "discord.js";
-import { AQState, SectionKey } from "./aqState";
+import { AQState, SectionKey, getState } from "./state";
 
 export function buildProgressLines(state: AQState): string {
   const allUserIds = new Set<string>();
@@ -99,4 +100,24 @@ export function buildAQContainer(
 
   container.addActionRowComponents(clearButtons);
   return container;
+}
+
+export async function updateAqMessage(
+  interaction: { client: any },
+  channelId: string
+) {
+  const state = await getState(channelId);
+  if (!state) return;
+  try {
+    const channel = await interaction.client.channels.fetch(channelId);
+    const message = await (channel as any).messages.fetch(state.messageId);
+    const role = await (channel as any).guild.roles.fetch(state.roleId);
+    const container = buildAQContainer(state, channel.name, role.name);
+    await message.edit({
+      components: [container],
+      flags: [MessageFlags.IsComponentsV2],
+    });
+  } catch (e) {
+    // best-effort update
+  }
 }
