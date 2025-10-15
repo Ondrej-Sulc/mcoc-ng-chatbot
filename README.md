@@ -1,5 +1,7 @@
 # NG Bot for MCOC
 
+*This bot is an unofficial fan-made tool and is not affiliated with, endorsed, or sponsored by Marvel or Kabam. All game content and materials are trademarks and copyrights of their respective owners.*
+
 A personal, modular Discord bot built with TypeScript, designed for Marvel Contest of Champions (MCOC) related tasks. This bot integrates with Google Sheets for data logging and OpenRouter for AI capabilities, all running on Discord.js v14.
 
 ## Key Features
@@ -11,6 +13,11 @@ A personal, modular Discord bot built with TypeScript, designed for Marvel Conte
     - **AI Tag Extraction:** Uses an AI model (via OpenRouter) to analyze a provided image and extract a champion's tags.
     - **Application Emoji Creation:** Automatically creates a new application emoji for the champion.
     - **Database Integration:** Upserts the champion data into the PostgreSQL database, ensuring no duplicates are created.
+- **Roster Management:** A comprehensive `/roster` command that allows users to manage their personal champion rosters. It includes subcommands to `add`, `update`, `view`, and `delete` champions, providing a full suite of tools for roster maintenance.
+- **Advanced Search:** A powerful `/search` command with two main subcommands:
+    - `/search all`: Performs a global search across all champions in the database based on a wide range of criteria, including abilities, immunities, tags, and more.
+    - `/search roster`: Allows users to search within their own personal roster, making it easy to find specific champions they own.
+- **AQ Management:** An interactive `/aq` command to manage Alliance Quest (AQ) trackers. Users can `start` and `end` trackers, and progress is updated through interactive buttons, providing a real-time view of the AQ status.
 - **PostgreSQL Database:** Uses a robust PostgreSQL database managed with Prisma for persistent data storage.
 - **Google Sheets Integration:** Utilizes Google Sheets for data storage and retrieval (e.g., for scheduling).
 - **Advanced Scheduling:** Schedule commands or custom messages with flexible timing (daily, weekly, custom cron, etc.) via `/schedule`.
@@ -27,6 +34,23 @@ A personal, modular Discord bot built with TypeScript, designed for Marvel Conte
 - **APIs:** Google Sheets, OpenRouter, Google Cloud Storage
 - **Scheduling:** `node-cron`
 - **Containerization:** Docker & Docker Compose
+
+## Commands
+
+| Command | Description |
+| --- | --- |
+| `/admin` | Administrative commands for managing champions. |
+| `/aq` | Alliance Quest utilities. |
+| `/aw` | Alliance War utilities. |
+| `/debug` | Debugging commands. |
+| `/glossary` | Glossary of MCOC terms. |
+| `/champion` | Champion information. |
+| `/prestige` | Prestige tracking. |
+| `/profile` | User profile management. |
+| `/roster` | Roster management. |
+| `/schedule` | Schedule reminders and other events. |
+| `/search` | Advanced search for champions. |
+| `/summarize` | Summarize text. |
 
 ---
 
@@ -52,32 +76,7 @@ This project is a complete rewrite of a legacy Python-based MCOC bot. The migrat
 
 ## Getting Started (Local Development)
 
-### Prerequisites
-
-- Node.js v18+
-- Docker and Docker Compose
-- A Discord Bot application
-- API keys for Google and OpenRouter
-
-### 1. Clone the Repository
-
-### 2. Set Up Environment Variables
-
-Create a `.env` file by copying the example:
-
-Fill in the values in the `.env` file. This includes your Discord bot token, API keys, and the connection details for your PostgreSQL database.
-
-**Important:** For `GOOGLE_CREDENTIALS_JSON`, you must provide the full JSON content of your service account key, encoded in Base64.
-
-### 3. Run the Bot
-
-Use Docker Compose to build the images and start the containers (bot and database). The `docker-compose.yaml` is configured for development with hot-reloading.
-
-```bash
-docker-compose up --build
-```
-
-The bot should now be running and connected to Discord and the database.
+The bot is designed to be run in a Dockerized environment. The `docker-compose.yaml` file is configured for a development environment with hot-reloading.
 
 ---
 
@@ -87,10 +86,13 @@ mcoc-ng-chatbot/
 ├── prisma/ # Prisma schema and migration files
 │ └── schema.prisma
 ├── src/
-│ ├── commands/ # Each file or directory is a slash command
-│ │ └── search/ # Example of a command with sub-files
-│ │   ├── index.ts # Main command logic
-│ │   └── utils.ts # Command-specific helpers
+│ ├── commands/ # Each directory is a slash command with subcommands
+│ │ ├── roster/ # Example of a command with subcommands
+│ │ │   ├── index.ts # Main command logic and subcommand router
+│ │ │   ├── add.ts # Logic for the 'add' subcommand
+│ │ │   └── ... # Other subcommand files
+│ │ ├── search/
+│ │ └── aq/
 │ ├── services/ # Modules for external APIs and business logic
 │ ├── types/ # Shared TypeScript interfaces and types
 │ ├── utils/ # Generic helpers and internal logic handlers
@@ -108,4 +110,4 @@ To maintain a clean and scalable architecture, the project distinguishes between
     -   *Examples*: `openRouterService.ts`, `sheetsService.ts`, `schedulerService.ts`, `aqReminderService.ts`.
 
 -   **`src/utils`**: This directory contains more generic, often stateless helper functions, formatters, type guards, or internal application logic handlers (like command and error handling). They are broadly reusable across different parts of the application.
-    -   *Examples*: `errorHandler.ts`, `emojiResolver.ts`, `commandHandler.ts`, `aqState.ts`, `aqView.ts`.
+    -   *Examples*: `errorHandler.ts`, `emojiResolver.ts`, `commandHandler.ts`.

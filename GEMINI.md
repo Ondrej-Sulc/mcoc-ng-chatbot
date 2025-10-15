@@ -21,7 +21,14 @@ The bot is built with a modern tech stack, including:
 *   **APIs:** Google Sheets, OpenRouter, Google Cloud Storage
 *   **Containerization:** Docker and Docker Compose
 
-The project is well-structured, with a clear separation of concerns between commands, services, and utilities. It also includes a robust error handling system and a dynamic command loading mechanism.
+The project is well-structured, with a clear separation of concerns. Commands are organized into their own directories, each containing sub-files for subcommands, handlers, and other related logic. This modular approach is demonstrated in the `roster`, `search`, and `aq` commands. The bot also includes a robust error handling system and a dynamic command loading mechanism.
+
+## Guiding Principles
+
+*   **Code Quality:** The highest priority is to maintain a clean, readable, and well-organized codebase.
+*   **Modularity:** Commands and features should be modular and self-contained to the extent possible. As demonstrated with the `roster`, `search`, and `aq` commands, the preferred structure is to have a directory for each command, with sub-files for subcommands, handlers, and other related logic.
+*   **Type Safety:** The project uses TypeScript in strict mode. Avoid using `any` and ensure all new code is type-safe.
+*   **Refactoring:** Proactively refactor code to improve its structure and maintainability.
 
 ## Building and Running
 
@@ -73,8 +80,4 @@ The bot should now be running and connected to Discord and the database.
 *   **Logging:** For consistency and performance, all logging should be done using the `pino` logger, which is available through the `loggerService`. This provides structured, leveled logging. Avoid using `console.log` for any persistent or important logging.
 *   **Services vs. Utils:**
     *   `src/services`: For modules that connect to external APIs or manage stateful business logic.
-    *   `src/utils`: For generic, stateless helper functions and internal application logic handlers.
-*   **Type Checking:** To ensure type safety, run the TypeScript compiler without emitting files:
-    ```bash
-    npx tsc --noEmit
-    ```
+*   **`src/utils`: For generic, stateless helper functions and internal application logic handlers.
