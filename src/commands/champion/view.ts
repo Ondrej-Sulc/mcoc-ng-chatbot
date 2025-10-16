@@ -2,10 +2,7 @@ import { ChampionClass, Hit } from "@prisma/client";
 import {
   AttackWithHits,
   ChampionAbilityLinkWithAbility,
-  ChampionWithAllRelations,
-} from "../services/championService";
-import { ContainerBuilder, MessageFlags, TextDisplayBuilder } from "discord.js";
-import { CommandResult } from "../types/command";
+} from "../../services/championService";
 
 export const CLASS_COLOR: Record<ChampionClass, number> = {
   MYSTIC: 0xc026d3, // vivid magenta-purple
@@ -145,7 +142,9 @@ export function formatLinkedAbilitySection(
     if (source) {
       const entry = byName.get(key)!;
       if (
-        !entry.sources.some((s: string) => s.toLowerCase() === source.toLowerCase())
+        !entry.sources.some(
+          (s: string) => s.toLowerCase() === source.toLowerCase()
+        )
       ) {
         entry.sources.push(source);
       }
@@ -191,121 +190,4 @@ export function formatImmunities(
   resolveEmoji: (text: string) => string
 ): string {
   return formatLinkedAbilitySection(immunities, resolveEmoji, "Immunities");
-}
-
-export function handleInfo(champion: ChampionWithAllRelations): CommandResult {
-  const fullAbilities = champion.fullAbilities as FullAbilities;
-
-  if (
-    !fullAbilities ||
-    (!fullAbilities.signature && !fullAbilities.abilities_breakdown)
-  ) {
-    return {
-      content: `Detailed abilities are not available for ${champion.name}.`,
-      flags: MessageFlags.Ephemeral,
-    };
-  }
-
-  const containers: ContainerBuilder[] = [];
-  let currentContainer = new ContainerBuilder().setAccentColor(
-    CLASS_COLOR[champion.class]
-  );
-  let currentLength = 0;
-  const MAX_CONTAINER_LENGTH = 4000;
-  const MAX_TEXT_DISPLAY_LENGTH = 2000;
-
-  const addTextToContainer = (text: string) => {
-    if (currentLength + text.length > MAX_CONTAINER_LENGTH) {
-      containers.push(currentContainer);
-      currentContainer = new ContainerBuilder().setAccentColor(
-        CLASS_COLOR[champion.class]
-      );
-      currentLength = 0;
-    }
-    currentContainer.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(text)
-    );
-    currentLength += text.length;
-  };
-
-  const addBlock = (title: string, description: string) => {
-    addTextToContainer(`**${title}**`);
-    const descParts =
-      description.match(new RegExp(`.{1,${MAX_TEXT_DISPLAY_LENGTH}}`, "gs")) ||
-      [];
-    for (const part of descParts) {
-      addTextToContainer(part);
-    }
-  };
-
-  addTextToContainer(`**${champion.name}**\n*${champion.class}*`);
-
-  if (fullAbilities.signature) {
-    const sig = fullAbilities.signature;
-    addBlock(
-      sig.name || "Signature Ability",
-      sig.description || "No description."
-    );
-  }
-
-  if (fullAbilities.abilities_breakdown) {
-    for (const abilityBlock of fullAbilities.abilities_breakdown) {
-      addBlock(
-        abilityBlock.title || "Ability",
-        abilityBlock.description || "No description."
-      );
-    }
-  }
-
-  if (currentContainer.components.length > 0) {
-    containers.push(currentContainer);
-  }
-
-  return {
-    components: containers,
-    isComponentsV2: true,
-  };
-}
-
-export function handleAttacks(
-  champion: ChampionWithAllRelations
-): CommandResult {
-  const container = new ContainerBuilder().setAccentColor(
-    CLASS_COLOR[champion.class]
-  );
-  const formattedAttacks = formatAttacks(champion.attacks);
-  container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(formattedAttacks)
-  );
-
-  return {
-    components: [container],
-    isComponentsV2: true,
-  };
-}
-
-export function handleAbilities(
-  champion: ChampionWithAllRelations,
-  subcommand: "abilities" | "immunities",
-  resolveEmoji: (text: string) => string
-): CommandResult {
-  const container = new ContainerBuilder().setAccentColor(
-    CLASS_COLOR[champion.class]
-  );
-  const relevantAbilities = champion.abilities.filter(
-    (a: ChampionAbilityLinkWithAbility) => a.type === (subcommand === "abilities" ? "ABILITY" : "IMMUNITY")
-  );
-
-  const formattedAbilities =
-    subcommand === "abilities"
-      ? formatAbilities(relevantAbilities, resolveEmoji)
-      : formatImmunities(relevantAbilities, resolveEmoji);
-  container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(formattedAbilities)
-  );
-
-  return {
-    components: [container],
-    isComponentsV2: true,
-  };
 }
