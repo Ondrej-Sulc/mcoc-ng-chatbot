@@ -1,9 +1,9 @@
-import { prisma } from "../services/prismaService";
-import { ButtonInteraction, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalSubmitInteraction, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags, ButtonStyle, ButtonBuilder } from "discord.js";
-import logger from "../services/loggerService";
-import { openRouterService } from "../services/openRouterService";
-import { registerButtonHandler } from "./buttonHandlerRegistry";
-import { registerModalHandler } from "./modalHandlerRegistry";
+import { prisma } from "../../../services/prismaService";
+import { ButtonInteraction, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalSubmitInteraction, ButtonStyle, ButtonBuilder, EmbedBuilder } from "discord.js";
+import logger from "../../../services/loggerService";
+import { openRouterService } from "../../../services/openRouterService";
+import { registerButtonHandler } from "../../../utils/buttonHandlerRegistry";
+import { registerModalHandler } from "../../../utils/modalHandlerRegistry";
 
 export const pendingDrafts = new Map<string, any>();
 
@@ -61,14 +61,12 @@ export async function handleConfirmAbilityDraft(
       });
     }
 
-    const successContainer = new ContainerBuilder().addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        "Drafted abilities have been added to the champion."
-      )
-    );
+    const embed = new EmbedBuilder()
+        .setDescription("Drafted abilities have been added to the champion.");
+
     await interaction.editReply({
-      components: [successContainer],
-      flags: [MessageFlags.IsComponentsV2],
+      embeds: [embed],
+      components: [],
     });
     const champion = await prisma.champion.findUnique({
       where: { id: championId },
@@ -80,7 +78,7 @@ export async function handleConfirmAbilityDraft(
   } catch (error) {
     logger.error(error, "An error occurred while confirming ability draft");
     await interaction.followUp({
-      content: `An error occurred: ${
+      content: `An error occurred: ${ 
         error instanceof Error ? error.message : "Unknown error"
       }`,
       ephemeral: true,
@@ -96,48 +94,35 @@ export async function handleCancelAbilityDraft(interaction: ButtonInteraction) {
   await interaction.message.delete();
 }
 
-export function _buildDraftContainer(
+
+
+export function buildDraftContainer(
   championName: string,
   championId: number,
   draft: any
-): ContainerBuilder {
-  const container = new ContainerBuilder();
-
-  container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(
-      "Please review the drafted abilities below."
-    )
-  );
-
-  const title = new TextDisplayBuilder().setContent(
-    `## Drafted Abilities for ${championName}`
-  );
-  container.addTextDisplayComponents(title);
+): { embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] } {
+  const embed = new EmbedBuilder()
+    .setTitle(`Drafted Abilities for ${championName}`)
+    .setDescription("Please review the drafted abilities below.");
 
   if (draft.abilities?.length > 0) {
-    const abilities = draft.abilities
+    let abilities = draft.abilities
       .map((a: any) => `**${a.name}**: ${a.source || "-"}`)
       .join("\n");
-    container.addSeparatorComponents(new SeparatorBuilder());
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent("### Abilities")
-    );
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(abilities)
-    );
+    if (abilities.length > 1024) {
+        abilities = abilities.substring(0, 1020) + "...";
+    }
+    embed.addFields({ name: "Abilities", value: abilities });
   }
 
   if (draft.immunities?.length > 0) {
-    const immunities = draft.immunities
+    let immunities = draft.immunities
       .map((i: any) => `**${i.name}**: ${i.source || "-"}`)
       .join("\n");
-    container.addSeparatorComponents(new SeparatorBuilder());
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent("### Immunities")
-    );
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(immunities)
-    );
+    if (immunities.length > 1024) {
+        immunities = immunities.substring(0, 1020) + "...";
+    }
+    embed.addFields({ name: "Immunities", value: immunities });
   }
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -155,10 +140,7 @@ export function _buildDraftContainer(
       .setStyle(ButtonStyle.Danger)
   );
 
-  container.addSeparatorComponents(new SeparatorBuilder());
-  container.addActionRowComponents(row);
-
-  return container;
+  return { embeds: [embed], components: [row] };
 }
 
 export async function handleSuggestEdits(interaction: ButtonInteraction) {
@@ -218,9 +200,11 @@ export async function handleSuggestEditsModal(
   const systemPrompt = `You are an expert MCOC assistant. You will be provided with a JSON object representing a champion's abilities and immunities, and a user's suggestion for edits. Your task is to return a new JSON object with the suggested edits applied. Make sure to only return the JSON object.`;
 
   const userPrompt = `Original JSON:\n\
-\`\`\`json\n${JSON.stringify(originalDraft, null, 2)}
 \
-\`\`\`\n\nUser Suggestions:\n${suggestions}\n\nReturn only the updated JSON object.`;
+${JSON.stringify(originalDraft, null, 2)}\
+\
+User Suggestions:${suggestions}\n\
+Return only the updated JSON object.`;
 
   logger.info("Sending request to LLM for draft update.");
   const response = await openRouterService.chat({
@@ -237,7 +221,7 @@ export async function handleSuggestEditsModal(
   logger.info({ newDraft }, "Parsed new draft from LLM response");
   pendingDrafts.set(championId.toString(), newDraft);
 
-  const newContainer = _buildDraftContainer(
+const newContainer = buildDraftContainer(
     champion.name,
     champion.id,
     newDraft
@@ -245,8 +229,8 @@ export async function handleSuggestEditsModal(
 
   if (interaction.channel && "send" in interaction.channel) {
     await interaction.channel.send({
-      components: [newContainer],
-      flags: [MessageFlags.IsComponentsV2],
+      embeds: newContainer.embeds,
+      components: newContainer.components,
     });
   }
 

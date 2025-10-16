@@ -4,10 +4,13 @@ import {
   MessageFlags,
   AutocompleteInteraction,
 } from "discord.js";
-import { Command } from "../types/command";
-import { championAdminHelper } from "../utils/championAdminHelper";
-import { config } from "../config";
-import { championsByName } from "../services/championService";
+import { Command } from "../../types/command";
+import { handleAdminAutocomplete } from "./autocomplete";
+import { handleChampionAdd, handleChampionUpdateImages, handleChampionUpdateTags, handleChampionSyncSheet } from "./champion/handlers";
+import "./champion/init";
+import { config } from "../../config";
+import { handleAbilityAdd, handleAbilityRemove, handleAbilityDraft } from "./ability/handlers";
+import { championsByName } from "../../services/championService";
 import { AbilityLinkType } from "@prisma/client";
 
 const authorizedUsers = config.DEV_USER_IDS || [];
@@ -198,72 +201,25 @@ export const command: Command = {
 
     if (group === "champion") {
       if (subcommand === "add") {
-        await championAdminHelper.showChampionModalPart1(interaction);
+        await handleChampionAdd(interaction);
       } else if (subcommand === "update_images") {
-        await interaction.deferReply({ ephemeral: true });
-        await championAdminHelper.updateChampionImages(interaction);
+        await handleChampionUpdateImages(interaction);
       } else if (subcommand === "update_tags") {
-        await interaction.deferReply({ ephemeral: true });
-        await championAdminHelper.updateChampionTags(interaction);
+        await handleChampionUpdateTags(interaction);
       } else if (subcommand === "sync-sheet") {
-        await interaction.deferReply({ ephemeral: true });
-        await championAdminHelper.syncSheet(interaction);
+        await handleChampionSyncSheet(interaction);
       }
     } else if (group === "ability") {
       if (subcommand === "add") {
-        await interaction.deferReply({ ephemeral: true });
-        await championAdminHelper.addChampionAbility(interaction);
+        await handleAbilityAdd(interaction);
       } else if (subcommand === "remove") {
-        await interaction.deferReply({ ephemeral: true });
-        await championAdminHelper.removeChampionAbility(interaction);
+        await handleAbilityRemove(interaction);
       } else if (subcommand === "draft") {
-        await interaction.deferReply();
-        await championAdminHelper.draftChampionAbilities(interaction);
+        await handleAbilityDraft(interaction);
       }
     }
   },
   async autocomplete(interaction) {
-    const focused = interaction.options.getFocused(true);
-    const group = interaction.options.getSubcommandGroup();
-    const subcommand = interaction.options.getSubcommand();
-
-    if (group === "champion") {
-      if (subcommand === "update_images" || subcommand === "update_tags") {
-        if (focused.name === "name") {
-          const champions = Array.from(championsByName.values());
-          const filtered = champions.filter((champion) =>
-            champion.name.toLowerCase().includes(focused.value.toLowerCase())
-          );
-          await interaction.respond(
-            filtered
-              .map((champion) => ({
-                name: champion.name,
-                value: champion.name,
-              }))
-              .slice(0, 25)
-          );
-        }
-      }
-    } else if (group === "ability") {
-      if (focused.name === "champion") {
-        const champions = Array.from(championsByName.values());
-        const filtered = champions.filter((champion) =>
-          champion.name.toLowerCase().includes(focused.value.toLowerCase())
-        );
-        await interaction.respond(
-          filtered
-            .map((champion) => ({ name: champion.name, value: champion.name }))
-            .slice(0, 25)
-        );
-      } else if (focused.name === "ability") {
-        if (subcommand === "remove") {
-          await championAdminHelper.autocompleteChampionAbility(interaction);
-        } else {
-          await championAdminHelper.autocompleteAllAbilities(interaction);
-        }
-      } else if (focused.name === "source") {
-        await championAdminHelper.autocompleteSource(interaction);
-      }
-    }
+    await handleAdminAutocomplete(interaction);
   },
 };

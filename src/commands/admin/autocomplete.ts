@@ -1,0 +1,46 @@
+import { AutocompleteInteraction } from "discord.js";
+import { championsByName } from "../../services/championService";
+import { autocompleteChampionAbility, autocompleteAllAbilities, autocompleteSource } from "./ability/autocomplete";
+
+export async function handleAdminAutocomplete(interaction: AutocompleteInteraction) {
+    const focused = interaction.options.getFocused(true);
+    const group = interaction.options.getSubcommandGroup();
+    const subcommand = interaction.options.getSubcommand();
+
+    if (group === "champion") {
+        if (focused.name === "name") {
+            const champions = Array.from(championsByName.values());
+            const filtered = champions.filter((champion) =>
+            champion.name.toLowerCase().includes(focused.value.toLowerCase())
+            );
+            await interaction.respond(
+            filtered
+                .map((champion) => ({
+                name: champion.name,
+                value: champion.name,
+                }))
+                .slice(0, 25)
+            );
+        }
+    } else if (group === "ability") {
+      if (focused.name === "champion") {
+        const champions = Array.from(championsByName.values());
+        const filtered = champions.filter((champion) =>
+          champion.name.toLowerCase().includes(focused.value.toLowerCase())
+        );
+        await interaction.respond(
+          filtered
+            .map((champion) => ({ name: champion.name, value: champion.name }))
+            .slice(0, 25)
+        );
+      } else if (focused.name === "ability") {
+        if (subcommand === "remove") {
+          await autocompleteChampionAbility(interaction);
+        } else {
+          await autocompleteAllAbilities(interaction);
+        }
+      } else if (focused.name === "source") {
+        await autocompleteSource(interaction);
+      }
+    }
+}
