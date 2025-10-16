@@ -1,0 +1,140 @@
+import {
+  ChatInputCommandInteraction,
+  MessageFlags,
+  ContainerBuilder,
+  TextDisplayBuilder,
+} from "discord.js";
+import { config } from "../../config";
+import { getMergedData, getNodesData } from "./handlers";
+import { capitalize, formatAssignment, getEmoji } from "./utils";
+
+export async function handleDetails(interaction: ChatInputCommandInteraction) {
+  await interaction.deferReply();
+
+  if (!interaction.channel || !interaction.channel.isThread()) {
+    await interaction.editReply(
+      "This command can only be used in a player\'s war thread."
+    );
+    return;
+  }
+
+  const playerName = interaction.channel.name.toLowerCase();
+  const parentChannelId = interaction.channel.parentId;
+
+  if (!parentChannelId) {
+    await interaction.editReply("This thread is not in a valid channel.");
+    return;
+  }
+
+  const bgConfig =
+    config.allianceWar.battlegroupChannelMappings[parentChannelId];
+  if (!bgConfig) {
+    await interaction.editReply(
+      "This thread is not in a recognized battlegroup channel."
+    );
+    return;
+  }
+
+  const nodeLookup = await getNodesData(bgConfig.sheet);
+  const mergedData = await getMergedData(bgConfig.sheet);
+
+  const playerAssignments: { node: string; value: string }[] = [];
+
+  for (const assignment of mergedData) {
+    const { node, prefightPlayer, prefightChampion } = assignment;
+
+    let formattedAssignment = formatAssignment(assignment);
+
+    // Append note if a prefight is for this player\'s assignment
+    if (
+      prefightPlayer &&
+      prefightChampion &&
+      assignment.playerName === playerName
+    ) {
+      const prefightNote = ` (Prefight: ${getEmoji(
+        prefightChampion
+      )} ${prefightChampion})`;
+      formattedAssignment += prefightNote;
+    }
+
+    // Add assignment if it belongs to the player
+    if (assignment.playerName === playerName) {
+      playerAssignments.push({
+        node: node,
+        value: formattedAssignment,
+      });
+    }
+  }
+
+  let filteredAssignments = playerAssignments;
+  const targetNodeOption = interaction.options.getString("node");
+  if (targetNodeOption) {
+    filteredAssignments = playerAssignments.filter(
+      (a) => a.node === targetNodeOption
+    );
+  }
+
+  if (filteredAssignments.length === 0) {
+    await interaction.editReply(
+      targetNodeOption
+        ? `No assignment for node '${targetNodeOption}'.`
+        : `No assignments found for you in ${bgConfig.sheet}.`
+    );
+    return;
+  }
+
+  const MAX_LENGTH = 3800;
+  let components: TextDisplayBuilder[] = [];
+  let currentLength = 0;
+  let isFirstMessage = true;
+
+  const sendContainer = async () => {
+    if (components.length === 0) return;
+
+    const container = new ContainerBuilder()
+      .setAccentColor(bgConfig.color)
+      .addTextDisplayComponents(...components);
+
+    if (isFirstMessage) {
+      await interaction.editReply({
+        components: [container],
+        flags: [MessageFlags.IsComponentsV2],
+      });
+      isFirstMessage = false;
+    } else {
+      await interaction.followUp({
+        components: [container],
+        flags: [MessageFlags.IsComponentsV2],
+      });
+    }
+  };
+
+  const title = `**AW Details for ${capitalize(interaction.channel.name)}**`;
+  components.push(new TextDisplayBuilder().setContent(title));
+  currentLength += title.length;
+
+  for (const assignment of filteredAssignments) {
+    let assignmentText = `**Node ${assignment.node}**\n- ${assignment.value}\n`;
+    const nodeDetails = nodeLookup[assignment.node];
+    if (nodeDetails) {
+      assignmentText += nodeDetails;
+    }
+
+    if (currentLength + assignmentText.length > MAX_LENGTH) {
+      await sendContainer();
+      components = [
+        new TextDisplayBuilder().setContent(
+          `**AW Details for ${capitalize(interaction.channel.name)} (cont.)**`
+        ),
+      ];
+      currentLength = components[0].toJSON().content.length;
+    }
+
+    components.push(new TextDisplayBuilder().setContent(assignmentText));
+    currentLength += assignmentText.length;
+  }
+
+  if (components.length > 0) {
+    await sendContainer();
+  }
+}
