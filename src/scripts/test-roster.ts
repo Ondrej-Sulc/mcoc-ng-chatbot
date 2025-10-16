@@ -62,7 +62,7 @@ async function testRoster() {
     }
 
     if ("debugImageBuffer" in result && result.debugImageBuffer) {
-      const debugDir = path.join(__dirname, "..", "..", "debug");
+      const debugDir = path.join(__dirname, "..", "..", "temp");
       await fs.mkdir(debugDir, { recursive: true });
 
       if (result.imageBuffer) {

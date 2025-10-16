@@ -139,7 +139,7 @@ dist
 .crush
 
 legacy/
-debug/
+temp/
 backup/
 /src/generated/prisma
 temp_*.ts
