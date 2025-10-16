@@ -93,7 +93,7 @@ export async function getLLMSummary(
       model: config.OPENROUTER_DEFAULT_MODEL, // Or another suitable model
       messages: messages,
       temperature: 0.7,
-      max_tokens: 1000, // Adjust as needed for summary length
+      max_tokens: 4000, // Adjust as needed for summary length
     };
 
     const response = await openRouterService.chat(request);
