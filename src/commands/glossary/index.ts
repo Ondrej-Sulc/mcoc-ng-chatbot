@@ -27,7 +27,7 @@ export const glossaryColors = {
 
 registerGlossaryButtons();
 
-const command: Command = {
+export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("glossary")
     .setDescription("Look up MCOC effects, buffs, and debuffs.")
