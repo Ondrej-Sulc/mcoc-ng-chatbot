@@ -1,7 +1,11 @@
 import { prisma } from "../../../services/prismaService";
 import { ButtonInteraction, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalSubmitInteraction, ButtonStyle, ButtonBuilder, EmbedBuilder } from "discord.js";
 import logger from "../../../services/loggerService";
-import { openRouterService } from "../../../services/openRouterService";
+import {
+  openRouterService,
+  OpenRouterMessage,
+} from "../../../services/openRouterService";
+import { abilityDraftPrompt } from "../../../prompts/abilityDraft";
 import { registerButtonHandler } from "../../../utils/buttonHandlerRegistry";
 import { registerModalHandler } from "../../../utils/modalHandlerRegistry";
 
@@ -12,15 +16,16 @@ export async function handleConfirmAbilityDraft(
 ) {
   try {
     const championId = parseInt(interaction.customId.split("_")[1]);
-    const draft = pendingDrafts.get(championId.toString());
+    const draftData = pendingDrafts.get(championId.toString());
 
-    if (!draft) {
+    if (!draftData) {
       await interaction.reply({
         content: "Could not find the draft.",
         ephemeral: true,
       });
       return;
     }
+    const draft = draftData.draft;
 
     const abilities = draft.abilities.map((a: any) => ({
       ...a,
@@ -183,11 +188,12 @@ export async function handleSuggestEditsModal(
   const suggestions = interaction.fields.getTextInputValue("suggestions");
   logger.info({ suggestions }, "User suggestions");
 
-  const originalDraft = pendingDrafts.get(championId.toString());
-  if (!originalDraft) {
+  const draftData = pendingDrafts.get(championId.toString());
+  if (!draftData) {
     await interaction.editReply("Could not find the original draft.");
     return;
   }
+  const { draft: originalDraft, initialUserPrompt } = draftData;
 
   const champion = await prisma.champion.findUnique({
     where: { id: championId },
@@ -197,31 +203,32 @@ export async function handleSuggestEditsModal(
     return;
   }
 
-  const systemPrompt = `You are an expert MCOC assistant. You will be provided with a JSON object representing a champion's abilities and immunities, and a user's suggestion for edits. Your task is to return a new JSON object with the suggested edits applied. Make sure to only return the JSON object.`;
-
-  const userPrompt = `Original JSON:\n\
-\
-${JSON.stringify(originalDraft, null, 2)}\
-\
-User Suggestions:${suggestions}\n\
-Return only the updated JSON object.`;
+  const messages: OpenRouterMessage[] = [
+    { role: "system", content: abilityDraftPrompt },
+    { role: "user", content: initialUserPrompt },
+    { role: "assistant", content: JSON.stringify(originalDraft, null, 2) },
+    {
+      role: "user",
+      content: `User Suggestions: "${suggestions}"\n\nPlease apply these suggestions and return the complete, updated JSON object. Remember to strictly follow all the rules. Generate ONLY the updated JSON object.`,
+    },
+  ];
 
   logger.info("Sending request to LLM for draft update.");
   const response = await openRouterService.chat({
-    model: "google/gemini-2.5-flash",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
+    model: "google/gemini-2.5-pro",
+    messages: messages,
     response_format: { type: "json_object" },
   });
   logger.info("Received response from LLM for draft update.");
 
   const newDraft = JSON.parse(response.choices[0].message.content);
   logger.info({ newDraft }, "Parsed new draft from LLM response");
-  pendingDrafts.set(championId.toString(), newDraft);
+  pendingDrafts.set(championId.toString(), {
+    draft: newDraft,
+    initialUserPrompt: initialUserPrompt,
+  });
 
-const newContainer = buildDraftContainer(
+  const newContainer = buildDraftContainer(
     champion.name,
     champion.id,
     newDraft
@@ -238,7 +245,6 @@ const newContainer = buildDraftContainer(
 
   await interaction.editReply("Draft updated with your suggestions.");
 }
-
 registerButtonHandler("confirm-ability-draft_", handleConfirmAbilityDraft);
 registerButtonHandler("cancel-ability-draft", handleCancelAbilityDraft);
 registerButtonHandler("suggest-ability-draft_", handleSuggestEdits);

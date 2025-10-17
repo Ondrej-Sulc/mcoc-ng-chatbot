@@ -1,4 +1,4 @@
-import { ChampionClass, Hit } from "@prisma/client";
+import { ChampionClass, Hit, Tag } from "@prisma/client";
 import {
   AttackWithHits,
   ChampionAbilityLinkWithAbility,
@@ -190,4 +190,14 @@ export function formatImmunities(
   resolveEmoji: (text: string) => string
 ): string {
   return formatLinkedAbilitySection(immunities, resolveEmoji, "Immunities");
+}
+
+export function formatTags(tags: Tag[]): string {
+  if (!tags || tags.length === 0) {
+    return "No tags found for this champion.";
+  }
+  return tags
+    .map((t) => `\`${t.name}\``)
+    .sort()
+    .join(" ");
 }

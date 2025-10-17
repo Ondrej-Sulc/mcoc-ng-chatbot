@@ -1,5 +1,12 @@
 import { prisma } from "./prismaService";
-import { Champion, Attack, Hit, ChampionAbilityLink, Ability } from "@prisma/client";
+import {
+  Champion,
+  Attack,
+  Hit,
+  ChampionAbilityLink,
+  Ability,
+  Tag,
+} from "@prisma/client";
 import { normalizeChampionName } from "../utils/championHelper";
 
 export let championsByName = new Map<string, Champion>();
@@ -34,8 +41,8 @@ export type ChampionAbilityLinkWithAbility = ChampionAbilityLink & {
 
 export type ChampionWithAllRelations = Champion & {
   attacks: AttackWithHits[];
-
   abilities: ChampionAbilityLinkWithAbility[];
+  tags: Tag[];
 };
 
 export async function getChampionData(
@@ -46,8 +53,8 @@ export async function getChampionData(
 
     include: {
       attacks: { include: { hits: true } },
-
       abilities: { include: { ability: true } },
+      tags: true,
     },
   }) as Promise<ChampionWithAllRelations | null>;
 }

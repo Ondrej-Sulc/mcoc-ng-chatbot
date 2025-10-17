@@ -53,14 +53,13 @@ ${JSON.stringify(champion.fullAbilities, null, 2)}
         ],
         response_format: { type: "json_object" },
       });
-      logger.info("Received ability draft response from LLM.");
-
-      const draft = JSON.parse(response.choices[0].message.content);
-      logger.info({ draft }, "Parsed ability draft from LLM response");
-      pendingDrafts.set(champion.id.toString(), draft);
-
-const { embeds, components } = buildDraftContainer(champion.name, champion.id, draft);
-
+            logger.info("Received ability draft response from LLM.");
+      
+            const draft = JSON.parse(response.choices[0].message.content);
+            logger.info({ draft }, "Parsed ability draft from LLM response");
+            pendingDrafts.set(champion.id.toString(), { draft, initialUserPrompt: userPrompt });
+      
+            const { embeds, components } = buildDraftContainer(champion.name, champion.id, draft);
       logger.info("Sending confirmation message with drafted abilities.");
       await interaction.editReply({
         embeds,

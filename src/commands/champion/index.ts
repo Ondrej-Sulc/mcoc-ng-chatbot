@@ -15,6 +15,8 @@ import { handleInfo } from "./info";
 import { handleAttacks } from "./attacks";
 import { handleAbilities } from "./abilities";
 import { handleImmunities } from "./immunities";
+import { handleTags } from "./tags";
+import { handleOverview } from "./overview";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -60,6 +62,30 @@ export const command: Command = {
       subcommand
         .setName("immunities")
         .setDescription("List all of a champion's immunities.")
+        .addStringOption((option) =>
+          option
+            .setName("champion")
+            .setDescription("The name of the champion.")
+            .setRequired(true)
+            .setAutocomplete(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("tags")
+        .setDescription("List all of a champion's tags.")
+        .addStringOption((option) =>
+          option
+            .setName("champion")
+            .setDescription("The name of the champion.")
+            .setRequired(true)
+            .setAutocomplete(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("overview")
+        .setDescription("Display a champion's abilities, immunities, and tags.")
         .addStringOption((option) =>
           option
             .setName("champion")
@@ -150,6 +176,12 @@ export const command: Command = {
         break;
       case "immunities":
         result = handleImmunities(champion, resolveEmoji);
+        break;
+      case "tags":
+        result = handleTags(champion);
+        break;
+      case "overview":
+        result = handleOverview(champion, resolveEmoji);
         break;
       default:
         await interaction.editReply({ content: "Invalid subcommand." });
