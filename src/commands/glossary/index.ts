@@ -4,6 +4,13 @@ import {
   MessageFlags,
   ButtonStyle,
 } from "discord.js";
+import { Command } from "../../types/command";
+import { handleAutocomplete } from "./autocomplete";
+import { handleEffect } from "./effect";
+import { handleCategory } from "./category";
+import { handleList } from "./list";
+import { createEmojiResolver } from "../../utils/emojiResolver";
+import { registerGlossaryButtons } from "./buttons";
 
 export const glossaryColors = {
     buttons: {
@@ -17,13 +24,6 @@ export const glossaryColors = {
         effect: 0xFEE75C, // Discord Yellow
     }
 };
-import { Command } from "../../types/command";
-import { handleAutocomplete } from "./autocomplete";
-import { handleEffect } from "./effect";
-import { handleCategory } from "./category";
-import { handleList } from "./list";
-import { createEmojiResolver } from "../../utils/emojiResolver";
-import { registerGlossaryButtons } from "./buttons";
 
 registerGlossaryButtons();
 
