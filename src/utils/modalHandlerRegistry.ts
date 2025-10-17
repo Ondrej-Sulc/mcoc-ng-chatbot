@@ -6,13 +6,19 @@ export type ModalHandler = (
 
 const modalHandlers = new Map<string, ModalHandler>();
 
-export function registerModalHandler(prefix: string, handler: ModalHandler) {
-  modalHandlers.set(prefix, handler);
+export function registerModalHandler(customId: string, handler: ModalHandler) {
+  if (modalHandlers.has(customId)) {
+    console.warn(`Overwriting modal handler for customId: ${customId}`);
+  }
+  modalHandlers.set(customId, handler);
 }
 
 export function getModalHandler(customId: string): ModalHandler | undefined {
-  for (const [prefix, handler] of modalHandlers) {
-    if (customId.startsWith(prefix)) return handler;
-  }
-  return undefined;
+    // Handle dynamic IDs (e.g., admin_attack_add_championname)
+    for (const [key, handler] of modalHandlers.entries()) {
+        if (customId.startsWith(key)) {
+            return handler;
+        }
+    }
+    return undefined;
 }

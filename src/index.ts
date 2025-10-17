@@ -4,7 +4,6 @@ import {
   GatewayIntentBits,
   Partials,
   Collection,
-  MessageFlags,
 } from "discord.js";
 import { config } from "./config";
 import { loadCommands, commands } from "./utils/commandHandler";
@@ -16,9 +15,7 @@ import { handleError, safeReply } from "./utils/errorHandler";
 import { loadApplicationEmojis } from "./services/applicationEmojiService";
 import { loadChampions } from "./services/championService";
 import { initializeAqReminders } from "./services/aqReminderService.js";
-import { PrismaClient } from "@prisma/client";
 import { getModalHandler } from "./utils/modalHandlerRegistry";
-import { prisma } from "./services/prismaService";
 
 declare module "discord.js" {
   interface Client {

@@ -42,5 +42,17 @@ export async function handleAdminAutocomplete(interaction: AutocompleteInteracti
       } else if (focused.name === "source") {
         await autocompleteSource(interaction);
       }
+    } else if (group === "attack") {
+      if (focused.name === "champion") {
+        const champions = Array.from(championsByName.values());
+        const filtered = champions.filter((champion) =>
+          champion.name.toLowerCase().includes(focused.value.toLowerCase())
+        );
+        await interaction.respond(
+          filtered
+            .map((champion) => ({ name: champion.name, value: champion.name }))
+            .slice(0, 25)
+        );
+      }
     }
 }

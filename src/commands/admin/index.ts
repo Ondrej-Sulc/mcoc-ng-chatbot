@@ -8,8 +8,10 @@ import { Command } from "../../types/command";
 import { handleAdminAutocomplete } from "./autocomplete";
 import { handleChampionAdd, handleChampionUpdateImages, handleChampionUpdateTags, handleChampionSyncSheet } from "./champion/handlers";
 import "./champion/init";
+import "./attack/init";
 import { config } from "../../config";
 import { handleAbilityAdd, handleAbilityRemove, handleAbilityDraft } from "./ability/handlers";
+import { showAttackModal } from "./attack/add";
 import { championsByName } from "../../services/championService";
 import { AbilityLinkType } from "@prisma/client";
 
@@ -181,6 +183,23 @@ export const command: Command = {
                 .setRequired(false)
             )
         )
+    )
+    .addSubcommandGroup((group) =>
+      group
+        .setName("attack")
+        .setDescription("Admin commands for managing champion attacks.")
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("add")
+            .setDescription("Adds an attack to a champion.")
+            .addStringOption((option) =>
+              option
+                .setName("champion")
+                .setDescription("Name of the champion.")
+                .setRequired(true)
+                .setAutocomplete(true)
+            )
+        )
     ),
   async execute(interaction) {
     if (!interaction.isChatInputCommand()) return;
@@ -216,6 +235,11 @@ export const command: Command = {
         await handleAbilityRemove(interaction);
       } else if (subcommand === "draft") {
         await handleAbilityDraft(interaction);
+      }
+    } else if (group === "attack") {
+      if (subcommand === "add") {
+        const championName = interaction.options.getString("champion", true);
+        await showAttackModal(interaction, championName);
       }
     }
   },
