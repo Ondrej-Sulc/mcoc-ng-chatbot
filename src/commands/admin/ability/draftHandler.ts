@@ -1,5 +1,17 @@
 import { prisma } from "../../../services/prismaService";
-import { ButtonInteraction, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ModalSubmitInteraction, ButtonStyle, ButtonBuilder, EmbedBuilder } from "discord.js";
+import {
+  ButtonInteraction,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  ActionRowBuilder,
+  ModalSubmitInteraction,
+} from "discord.js";
+import {
+  buildDraftContainerV2,
+  buildDraftErrorContainerV2,
+  buildDraftSuccessContainerV2,
+} from "./draftUI";
 import logger from "../../../services/loggerService";
 import {
   openRouterService,
@@ -8,23 +20,25 @@ import {
 import { abilityDraftPrompt } from "../../../prompts/abilityDraft";
 import { registerButtonHandler } from "../../../utils/buttonHandlerRegistry";
 import { registerModalHandler } from "../../../utils/modalHandlerRegistry";
-
-export const pendingDrafts = new Map<string, any>();
+import { pendingDrafts } from "./draft";
 
 export async function handleConfirmAbilityDraft(
   interaction: ButtonInteraction
 ) {
   try {
+    await interaction.deferUpdate();
     const championId = parseInt(interaction.customId.split("_")[1]);
     const draftData = pendingDrafts.get(championId.toString());
 
     if (!draftData) {
+      // This should be an ephemeral error container
       await interaction.reply({
         content: "Could not find the draft.",
         ephemeral: true,
       });
       return;
     }
+
     const draft = draftData.draft;
 
     const abilities = draft.abilities.map((a: any) => ({
@@ -37,8 +51,6 @@ export async function handleConfirmAbilityDraft(
     }));
 
     const allLinks = [...abilities, ...immunities];
-
-    await interaction.deferUpdate();
 
     for (const link of allLinks) {
       const ability = await prisma.ability.upsert({
@@ -66,26 +78,33 @@ export async function handleConfirmAbilityDraft(
       });
     }
 
-    const embed = new EmbedBuilder()
-        .setDescription("Drafted abilities have been added to the champion.");
-
-    await interaction.editReply({
-      embeds: [embed],
-      components: [],
-    });
     const champion = await prisma.champion.findUnique({
       where: { id: championId },
     });
     logger.info(
       `Added drafted abilities for champion ${champion?.name || championId}`
     );
+
     pendingDrafts.delete(championId.toString());
+
+    const successContainer = buildDraftSuccessContainerV2(
+      champion?.name || `ID: ${championId}`,
+
+      "Drafted abilities have been successfully added to the champion."
+    );
+
+    await interaction.editReply(successContainer);
   } catch (error) {
     logger.error(error, "An error occurred while confirming ability draft");
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+
+    const errorContainer = buildDraftErrorContainerV2(errorMessage);
+
     await interaction.followUp({
-      content: `An error occurred: ${ 
-        error instanceof Error ? error.message : "Unknown error"
-      }`,
+      ...errorContainer,
+
       ephemeral: true,
     });
   }
@@ -93,68 +112,23 @@ export async function handleConfirmAbilityDraft(
 
 export async function handleCancelAbilityDraft(interaction: ButtonInteraction) {
   const championId = interaction.customId.split("_")[1];
+
   if (championId) {
     pendingDrafts.delete(championId);
   }
+
   await interaction.message.delete();
-}
-
-
-
-export function buildDraftContainer(
-  championName: string,
-  championId: number,
-  draft: any
-): { embeds: EmbedBuilder[], components: ActionRowBuilder<ButtonBuilder>[] } {
-  const embed = new EmbedBuilder()
-    .setTitle(`Drafted Abilities for ${championName}`)
-    .setDescription("Please review the drafted abilities below.");
-
-  if (draft.abilities?.length > 0) {
-    let abilities = draft.abilities
-      .map((a: any) => `**${a.name}**: ${a.source || "-"}`)
-      .join("\n");
-    if (abilities.length > 1024) {
-        abilities = abilities.substring(0, 1020) + "...";
-    }
-    embed.addFields({ name: "Abilities", value: abilities });
-  }
-
-  if (draft.immunities?.length > 0) {
-    let immunities = draft.immunities
-      .map((i: any) => `**${i.name}**: ${i.source || "-"}`)
-      .join("\n");
-    if (immunities.length > 1024) {
-        immunities = immunities.substring(0, 1020) + "...";
-    }
-    embed.addFields({ name: "Immunities", value: immunities });
-  }
-
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`confirm-ability-draft_${championId}`)
-      .setLabel("Confirm")
-      .setStyle(ButtonStyle.Success),
-    new ButtonBuilder()
-      .setCustomId(`suggest-ability-draft_${championId}`)
-      .setLabel("Suggest Edits")
-      .setStyle(ButtonStyle.Primary),
-    new ButtonBuilder()
-      .setCustomId("cancel-ability-draft")
-      .setLabel("Cancel")
-      .setStyle(ButtonStyle.Danger)
-  );
-
-  return { embeds: [embed], components: [row] };
 }
 
 export async function handleSuggestEdits(interaction: ButtonInteraction) {
   const championId = interaction.customId.split("_")[1];
+
   if (!championId) {
     await interaction.reply({
       content: "Invalid champion ID.",
       ephemeral: true,
     });
+
     return;
   }
 
@@ -189,15 +163,18 @@ export async function handleSuggestEditsModal(
   logger.info({ suggestions }, "User suggestions");
 
   const draftData = pendingDrafts.get(championId.toString());
+
   if (!draftData) {
     await interaction.editReply("Could not find the original draft.");
     return;
   }
+
   const { draft: originalDraft, initialUserPrompt } = draftData;
 
   const champion = await prisma.champion.findUnique({
     where: { id: championId },
   });
+
   if (!champion) {
     await interaction.editReply("Champion not found.");
     return;
@@ -223,27 +200,23 @@ export async function handleSuggestEditsModal(
 
   const newDraft = JSON.parse(response.choices[0].message.content);
   logger.info({ newDraft }, "Parsed new draft from LLM response");
+
   pendingDrafts.set(championId.toString(), {
     draft: newDraft,
     initialUserPrompt: initialUserPrompt,
   });
 
-  const newContainer = buildDraftContainer(
+  const newContainer = buildDraftContainerV2(
     champion.name,
     champion.id,
     newDraft
   );
 
-  if (interaction.channel && "send" in interaction.channel) {
-    await interaction.channel.send({
-      embeds: newContainer.embeds,
-      components: newContainer.components,
-    });
-  }
+  await interaction.message?.edit(newContainer);
 
-  await interaction.message?.delete();
-
-  await interaction.editReply("Draft updated with your suggestions.");
+  await interaction.editReply({
+    content: "Draft updated with your suggestions.",
+  });
 }
 registerButtonHandler("confirm-ability-draft_", handleConfirmAbilityDraft);
 registerButtonHandler("cancel-ability-draft", handleCancelAbilityDraft);
