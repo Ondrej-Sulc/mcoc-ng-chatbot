@@ -19,10 +19,12 @@ export async function loadChampions() {
   console.log(`Loaded ${allChampions.length} champions into cache.`);
 }
 
-export function getChampionByName(name: string): Champion | undefined {
-  const normalized = normalizeChampionName(name);
+export async function getChampionByName(name: string) {
+  return await prisma.champion.findUnique({ where: { name } });
+}
 
-  return championsByName.get(normalized);
+export async function getChampionById(id: number) {
+  return await prisma.champion.findUnique({ where: { id } });
 }
 
 // Define the expected type for an Attack with its related Hits.

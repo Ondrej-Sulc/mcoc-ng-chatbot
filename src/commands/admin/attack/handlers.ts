@@ -1,10 +1,22 @@
-import { ModalSubmitInteraction } from "discord.js";
+import {
+  ButtonBuilder,
+  ButtonStyle,
+  ActionRowBuilder,
+  ButtonInteraction,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+} from "discord.js";
 import { prisma } from "../../../services/prismaService";
-import { getChampionByName } from "../../../services/championService";
+import {
+  getChampionByName,
+  getChampionById,
+} from "../../../services/championService";
 import { AttackType } from "@prisma/client";
 import logger from "../../../services/loggerService";
 
 import { registerModalHandler } from "../../../utils/modalHandlerRegistry";
+import { registerButtonHandler } from "../../../utils/buttonHandlerRegistry";
 
 export async function handleAttackAddModal(
   interaction: ModalSubmitInteraction
@@ -12,7 +24,7 @@ export async function handleAttackAddModal(
   await interaction.deferReply({ ephemeral: true });
 
   const championName = interaction.customId.split("_")[3];
-  const champion = getChampionByName(championName);
+  const champion = await getChampionByName(championName);
 
   if (!champion) {
     await interaction.editReply(`Champion "${championName}" not found.`);
@@ -68,21 +80,20 @@ export async function handleAttackAddModal(
   }
 
   try {
-    // 3. Loop and create attacks
-    const createdAttacks: string[] = [];
-    const skippedAttacks: string[] = [];
+    // 3. Loop and process attacks
+    const processedAttacks: string[] = [];
 
     for (const attackType of validTypes) {
-      const existingAttack = await prisma.attack.findUnique({
-        where: {
-          championId_type: { championId: champion.id, type: attackType },
-        },
-      });
-
-      if (existingAttack) {
-        skippedAttacks.push(attackType);
-      } else {
-        await prisma.attack.create({
+      // Use a transaction to first delete all existing attacks of this type for the champion,
+      // then create the new one. This ensures the operation is atomic and handles updates correctly.
+      await prisma.$transaction([
+        prisma.attack.deleteMany({
+          where: {
+            championId: champion.id,
+            type: attackType,
+          },
+        }),
+        prisma.attack.create({
           data: {
             championId: champion.id,
             type: attackType,
@@ -90,32 +101,79 @@ export async function handleAttackAddModal(
               create: hitsProperties.map((properties) => ({ properties })),
             },
           },
-        });
-        createdAttacks.push(attackType);
-      }
+        }),
+      ]);
+      processedAttacks.push(attackType);
     }
 
     // 4. Formulate response
     let response = "";
-    if (createdAttacks.length > 0) {
-      response += `Successfully added attacks: ${createdAttacks.join(", ")}. `;
-    }
-    if (skippedAttacks.length > 0) {
-      response += `Skipped existing attacks: ${skippedAttacks.join(", ")}.`;
-    }
-    if (response === "") {
-      response = "No new attacks were added.";
+    if (processedAttacks.length > 0) {
+      response += `Successfully created/updated attacks: ${processedAttacks.join(
+        ", "
+      )}.`;
+    } else {
+      response = "No attacks were processed.";
     }
 
     logger.info(
-      `User ${interaction.user.username} processed attacks for ${champion.name}. Added: [${createdAttacks}], Skipped: [${skippedAttacks}]`
+      `User ${interaction.user.username} processed attacks for ${champion.name}. Processed: [${processedAttacks.join(", ")}]`
     );
 
-    await interaction.editReply(response.trim());
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`admin_attack_add-more_${champion.id}`)
+        .setLabel("Add More")
+        .setStyle(ButtonStyle.Primary)
+    );
+
+    await interaction.editReply({ content: response.trim(), components: [row] });
   } catch (error) {
-    logger.error({ error }, "Error adding attack(s)");
-    await interaction.editReply("An error occurred while adding the attack(s).");
+    logger.error({ error }, "Error processing attack(s)");
+    await interaction.editReply(
+      "An error occurred while processing the attack(s)."
+    );
   }
 }
 
+export async function handleAttackAddMore(interaction: ButtonInteraction) {
+  const championId = parseInt(interaction.customId.split("_")[3]);
+  const champion = await getChampionById(championId);
+
+  if (!champion) {
+    await interaction.reply({ content: "Champion not found.", ephemeral: true });
+    return;
+  }
+
+  const modal = new ModalBuilder()
+    .setCustomId(`admin_attack_add_${champion.name}`)
+    .setTitle(`Add Attack for ${champion.name}`);
+
+  const attackTypeInput = new TextInputBuilder()
+    .setCustomId("attackType")
+    .setLabel("Attack Type (e.g., M1, S1, S2)")
+    .setPlaceholder("Comma-separated: M1, M2, S1")
+    .setStyle(TextInputStyle.Short)
+    .setRequired(true);
+
+  const hitsInput = new TextInputBuilder()
+    .setCustomId("hits")
+    .setLabel("Hit Properties (one per line)")
+    .setPlaceholder("e.g., BEAM\n- NR\n- P")
+    .setStyle(TextInputStyle.Paragraph)
+    .setRequired(true);
+
+  const firstActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
+    attackTypeInput
+  );
+  const secondActionRow = new ActionRowBuilder<TextInputBuilder>().addComponents(
+    hitsInput
+  );
+
+  modal.addComponents(firstActionRow, secondActionRow);
+
+  await interaction.showModal(modal);
+}
+
 registerModalHandler("admin_attack_add_", handleAttackAddModal);
+registerButtonHandler("admin_attack_add-more_", handleAttackAddMore);
