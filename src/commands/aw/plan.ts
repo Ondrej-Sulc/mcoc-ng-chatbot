@@ -70,7 +70,6 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
   for (const assignment of mergedData) {
     const {
       playerName,
-      attackerName,
       prefightPlayer,
       prefightChampion,
       node,
@@ -86,10 +85,12 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
     }
 
     // Add assignment to the player
+    const formattedAssignment = await formatAssignment(assignment);
     playerDataMap.get(playerName)!.assignments.push({
       node: node,
-      formatted: formatAssignment(assignment),
+      formatted: formattedAssignment,
     });
+
     // Handle prefight logic
     if (prefightPlayer && prefightChampion) {
       // Add prefight task to the performer
@@ -105,9 +106,8 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
         .get(playerName)!
         .assignments.find((a) => a.node === node);
       if (targetAssignment) {
-        targetAssignment.formatted += ` (Prefight: ${getEmoji(
-          prefightChampion
-        )} ${prefightChampion})`;
+        const prefightEmoji = await getEmoji(prefightChampion);
+        targetAssignment.formatted += ` (Prefight: ${prefightEmoji} ${prefightChampion})`;
       }
     }
   }
@@ -151,9 +151,10 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
     );
 
     if (team && team.length > 0) {
+      const teamEmojis = await Promise.all(team.map((name) => getEmoji(name)));
       const attackersString =
         "**Your Team:**\n" +
-        team.map((name) => `${getEmoji(name)} **${name}**`).join(" ");
+        team.map((name, i) => `${teamEmojis[i]} **${name}**`).join(" ");
       container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(attackersString)
       );
@@ -171,14 +172,19 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
     }
 
     if (data && data.prefights.length > 0) {
+      const prefightEmojis = await Promise.all(
+        data.prefights.map((p) =>
+          Promise.all([getEmoji(p.champion), getEmoji(p.targetDefender)])
+        )
+      );
       const prefightsValue =
         "**Pre-Fights**\n" +
         data.prefights
           .map(
-            (p) =>
-              `- ${getEmoji(p.champion)} **${p.champion}** for ${capitalize(
+            (p, i) =>
+              `- ${prefightEmojis[i][0]} **${p.champion}** for ${capitalize(
                 p.targetPlayer
-              )}'s ${getEmoji(p.targetDefender)} **${
+              )}'s ${prefightEmojis[i][1]} **${
                 p.targetDefender
               }** on node ${p.targetNode}`
           )

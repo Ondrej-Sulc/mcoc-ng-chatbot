@@ -6,6 +6,7 @@ import {
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
+  ModalSubmitInteraction,
 } from "discord.js";
 import { prisma } from "../../../services/prismaService";
 import {
@@ -37,7 +38,7 @@ export async function handleAttackAddModal(
   // 1. Parse and validate attack types
   const attackTypeStrings = attackTypesRaw
     .split(",")
-    .map((t) => t.trim().toUpperCase());
+    .map((t: string) => t.trim().toUpperCase());
   const validTypes: AttackType[] = [];
   const invalidTypes: string[] = [];
 
@@ -66,13 +67,13 @@ export async function handleAttackAddModal(
   // 2. Parse hits
   const hitsProperties = hitsRaw
     .split("\n")
-    .map((line) =>
+    .map((line: string) =>
       line
         .trim()
         .split(" ")
-        .filter((p) => p)
+        .filter((p: string) => p)
     )
-    .filter((arr) => arr.length > 0);
+    .filter((arr: string[]) => arr.length > 0);
 
   if (hitsProperties.length === 0) {
     await interaction.editReply("You must provide at least one hit.");
@@ -98,7 +99,7 @@ export async function handleAttackAddModal(
             championId: champion.id,
             type: attackType,
             hits: {
-              create: hitsProperties.map((properties) => ({ properties })),
+              create: hitsProperties.map((properties: string[]) => ({ properties })),
             },
           },
         }),

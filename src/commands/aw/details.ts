@@ -38,33 +38,33 @@ export async function handleDetails(interaction: ChatInputCommandInteraction) {
   const nodeLookup = await getNodesData(bgConfig.sheet);
   const mergedData = await getMergedData(bgConfig.sheet);
 
-  const playerAssignments: { node: string; value: string }[] = [];
-
-  for (const assignment of mergedData) {
+  const assignmentPromises = mergedData.map(async (assignment) => {
     const { node, prefightPlayer, prefightChampion } = assignment;
+    let formattedAssignment = await formatAssignment(assignment);
 
-    let formattedAssignment = formatAssignment(assignment);
-
-    // Append note if a prefight is for this player\'s assignment
     if (
       prefightPlayer &&
       prefightChampion &&
       assignment.playerName === playerName
     ) {
-      const prefightNote = ` (Prefight: ${getEmoji(
-        prefightChampion
-      )} ${prefightChampion})`;
+      const prefightEmoji = await getEmoji(prefightChampion);
+      const prefightNote = ` (Prefight: ${prefightEmoji} ${prefightChampion})`;
       formattedAssignment += prefightNote;
     }
 
-    // Add assignment if it belongs to the player
     if (assignment.playerName === playerName) {
-      playerAssignments.push({
+      return {
         node: node,
         value: formattedAssignment,
-      });
+      };
     }
-  }
+    return null;
+  });
+
+  const resolvedAssignments = await Promise.all(assignmentPromises);
+  const playerAssignments = resolvedAssignments.filter(
+    (a) => a !== null
+  ) as { node: string; value: string }[];
 
   let filteredAssignments = playerAssignments;
   const targetNodeOption = interaction.options.getString("node");
