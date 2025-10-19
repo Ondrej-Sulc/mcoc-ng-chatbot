@@ -8,8 +8,8 @@ import {
   buildDraftLoadingContainerV2,
 } from "./draftUI";
 import { abilityDraftPrompt } from "../../../prompts/abilityDraft";
-
-export const pendingDrafts = new Map<string, any>();
+import { pendingDrafts } from "./draftState";
+import "./draftHandler";
 
 export async function handleAbilityDraft(interaction: CommandInteraction) {
   if (!interaction.isChatInputCommand()) return;

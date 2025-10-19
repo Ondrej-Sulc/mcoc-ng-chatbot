@@ -20,7 +20,7 @@ import {
 import { abilityDraftPrompt } from "../../../prompts/abilityDraft";
 import { registerButtonHandler } from "../../../utils/buttonHandlerRegistry";
 import { registerModalHandler } from "../../../utils/modalHandlerRegistry";
-import { pendingDrafts } from "./draft";
+import { pendingDrafts } from "./draftState";
 
 export async function handleConfirmAbilityDraft(
   interaction: ButtonInteraction
@@ -41,11 +41,11 @@ export async function handleConfirmAbilityDraft(
 
     const draft = draftData.draft;
 
-    const abilities = draft.abilities.map((a: any) => ({
+    const abilities = (draft.abilities || []).map((a: any) => ({
       ...a,
       type: "ABILITY",
     }));
-    const immunities = draft.immunities.map((i: any) => ({
+    const immunities = (draft.immunities || []).map((i: any) => ({
       ...i,
       type: "IMMUNITY",
     }));
