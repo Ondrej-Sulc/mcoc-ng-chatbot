@@ -78,12 +78,12 @@ export async function generateChampionResponse(
     row.addComponents(
       new ButtonBuilder()
         .setCustomId(`search:prev:${searchId}:${currentPage}`)
-        .setLabel("Previous")
+        .setLabel("< Previous")
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(currentPage === 1),
       new ButtonBuilder()
         .setCustomId(`search:next:${searchId}:${currentPage}`)
-        .setLabel("Next")
+        .setLabel("Next >")
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(currentPage === totalPages)
     );

@@ -1,5 +1,6 @@
 import {
   ChampionWithRelations,
+  RosterEntryWithChampionRelations,
   SearchCoreParams,
 } from "../../../types/search";
 import { ChampionClass, AbilityCategory, Hit, AttackType as AttackTypeEnum } from "@prisma/client";
@@ -188,5 +189,13 @@ export function getChampionDisplayLength(champion: ChampionWithRelations, parsed
   const details = getChampionDetailsString(champion, parsedSearchCriteria);
   const classEmoji = CLASS_EMOJIS[champion.class];
   const championEmoji = champion.discordEmoji || "";
-  return champion.name.length + details.length + classEmoji.length + championEmoji.length + 10; // Extra buffer for formatting
+  return champion.name.length + details.length + classEmoji.length + championEmoji.length;
+}
+
+export function getRosterEntryDisplayLength(entry: RosterEntryWithChampionRelations, parsedSearchCriteria: any): number {
+  const championLength = getChampionDisplayLength(entry.champion, parsedSearchCriteria);
+  const ascendedEmoji = entry.isAscended ? "🏆" : "";
+  const awakenedEmoji = entry.isAwakened ? "★" : "☆";
+  const rosterInfoLength = `\n> ${awakenedEmoji} ${entry.stars}* R${entry.rank} ${ascendedEmoji}`.length;
+  return championLength + rosterInfoLength;
 }

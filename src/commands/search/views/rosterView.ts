@@ -82,12 +82,12 @@ export async function generateRosterResponse(
     row.addComponents(
       new ButtonBuilder()
         .setCustomId(`roster_search:prev:${searchId}:${currentPage}`)
-        .setLabel("Previous")
+        .setLabel("< Previous")
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(currentPage === 1),
       new ButtonBuilder()
         .setCustomId(`roster_search:next:${searchId}:${currentPage}`)
-        .setLabel("Next")
+        .setLabel("Next >")
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(currentPage === totalPages)
     );

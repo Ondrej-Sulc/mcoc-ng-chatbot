@@ -12,7 +12,7 @@ import { buildSearchWhereClause, parseAndOrConditions } from "./queryBuilder";
 import { rosterSearchCache } from "./cache";
 import { paginate } from "./pagination";
 import { rosterCore } from "./searchService";
-import { getChampionDisplayLength } from "./views/common";
+import { getRosterEntryDisplayLength } from "./views/common";
 
 
 
@@ -63,7 +63,11 @@ async function handleRosterSearch(interaction: ChatInputCommandInteraction) {
         },
       },
     },
-    orderBy: { champion: { name: "asc" } },
+    orderBy: [
+      { stars: "desc" },
+      { rank: "desc" },
+      { champion: { name: "asc" } },
+    ],
   });
 
   if (rosterEntries.length === 0) {
@@ -91,7 +95,7 @@ async function handleRosterSearch(interaction: ChatInputCommandInteraction) {
     ),
   };
 
-  const pages = paginate(rosterEntries, (entry) => getChampionDisplayLength(entry.champion, parsedSearchCriteria));
+  const pages = paginate(rosterEntries, (entry) => getRosterEntryDisplayLength(entry, parsedSearchCriteria));
   rosterSearchCache.set(searchId, { criteria: searchCriteria, pages });
   setTimeout(() => rosterSearchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
 

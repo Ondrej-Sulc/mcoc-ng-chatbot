@@ -5,11 +5,13 @@ import { createEmojiResolver } from "../../utils/emojiResolver";
 import { handleList } from "./list";
 import { handleEffect } from "./effect";
 import crypto from "crypto";
-import { buildSearchWhereClause } from "../search/queryBuilder";
+import { buildSearchWhereClause, parseAndOrConditions } from "../search/queryBuilder";
 import { searchCache } from "../search/cache";
-import { simplePaginate as paginate } from "../search/pagination";
+import { paginate } from "../search/pagination";
 import { core } from "../search/searchService";
 import { prisma } from "../../services/prismaService";
+import { getChampionDisplayLength } from "../search/views/common";
+import { ChampionWithRelations } from "../../types/search";
 
 async function handleCategoryButton(interaction: ButtonInteraction) {
   await interaction.deferUpdate();
@@ -78,9 +80,25 @@ async function handleSearchButton(interaction: ButtonInteraction) {
         return;
     }
 
+    const parsedSearchCriteria = {
+        abilities: parseAndOrConditions(searchCriteria.abilities).conditions.map(
+            (c) => c.toLowerCase()
+        ),
+        immunities: parseAndOrConditions(searchCriteria.immunities).conditions.map(
+            (c) => c.toLowerCase()
+        ),
+        tags: parseAndOrConditions(searchCriteria.tags).conditions.map((c) =>
+            c.toLowerCase()
+        ),
+        abilityCategory: parseAndOrConditions(
+            searchCriteria.abilityCategory
+        ).conditions.map((c) => c.toLowerCase()),
+        attackType: parseAndOrConditions(searchCriteria.attackType).conditions.map(
+            (c) => c.toLowerCase()
+        ),
+    };
 
-
-    const pages = paginate(allChampions);
+    const pages = paginate(allChampions, (champion) => getChampionDisplayLength(champion, parsedSearchCriteria));
     searchCache.set(searchId, { criteria: searchCriteria, pages });
     setTimeout(() => searchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
 

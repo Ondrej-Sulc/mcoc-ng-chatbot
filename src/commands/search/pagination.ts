@@ -1,17 +1,6 @@
 import { ChampionWithRelations, RosterEntryWithChampionRelations } from "../../types/search";
 
-const PAGE_SIZE = 10;
-const CONTENT_LIMIT = 3800;
-
-export function simplePaginate<T extends ChampionWithRelations | RosterEntryWithChampionRelations>(
-  items: T[]
-): T[][] {
-  const pages: T[][] = [];
-  for (let i = 0; i < items.length; i += PAGE_SIZE) {
-    pages.push(items.slice(i, i + PAGE_SIZE));
-  }
-  return pages;
-}
+const CONTENT_LIMIT = 3800; // 5% buffer under Discord's 4000 character limit per message segment
 
 export function paginate<T extends ChampionWithRelations | RosterEntryWithChampionRelations>(
   items: T[],
