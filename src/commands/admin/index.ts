@@ -14,6 +14,7 @@ import { handleAbilityAdd, handleAbilityRemove, handleAbilityDraft } from "./abi
 import { showAttackModal } from "./attack/add";
 import { championsByName } from "../../services/championService";
 import { AbilityLinkType } from "@prisma/client";
+import { handleGlossaryLink, handleGlossaryUnlink, handleGlossaryUpdateAbility, handleGlossaryUpdateCategory } from "./glossary/handlers";
 
 const authorizedUsers = config.DEV_USER_IDS || [];
 
@@ -200,6 +201,85 @@ export const command: Command = {
                 .setAutocomplete(true)
             )
         )
+    )
+    .addSubcommandGroup((group) =>
+      group
+        .setName("glossary")
+        .setDescription("Admin commands for managing the glossary.")
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("link")
+            .setDescription("Links an ability to a category.")
+            .addStringOption((option) =>
+              option
+                .setName("ability")
+                .setDescription("The name of the ability.")
+                .setRequired(true)
+                .setAutocomplete(true)
+            )
+            .addStringOption((option) =>
+              option
+                .setName("category")
+                .setDescription("The name of the category.")
+                .setRequired(true)
+                .setAutocomplete(true)
+            )
+        )
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("unlink")
+            .setDescription("Unlinks an ability from a category.")
+            .addStringOption((option) =>
+              option
+                .setName("ability")
+                .setDescription("The name of the ability.")
+                .setRequired(true)
+                .setAutocomplete(true)
+            )
+            .addStringOption((option) =>
+              option
+                .setName("category")
+                .setDescription("The name of the category.")
+                .setRequired(true)
+                .setAutocomplete(true)
+            )
+        )
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("update-ability")
+            .setDescription("Adds or updates a glossary ability.")
+            .addStringOption((option) =>
+              option
+                .setName("ability")
+                .setDescription("The name of the ability.")
+                .setRequired(true)
+                .setAutocomplete(true)
+            )
+            .addStringOption((option) =>
+              option
+                .setName("description")
+                .setDescription("The description of the ability.")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("update-category")
+            .setDescription("Adds or updates a glossary category.")
+            .addStringOption((option) =>
+              option
+                .setName("category")
+                .setDescription("The name of the category.")
+                .setRequired(true)
+                .setAutocomplete(true)
+            )
+            .addStringOption((option) =>
+              option
+                .setName("description")
+                .setDescription("The description of the category.")
+                .setRequired(true)
+            )
+        )
     ),
   async execute(interaction) {
     if (!interaction.isChatInputCommand()) return;
@@ -241,6 +321,16 @@ export const command: Command = {
         const championName = interaction.options.getString("champion", true);
         await showAttackModal(interaction, championName);
       }
+    } else if (group === "glossary") {
+        if (subcommand === "link") {
+            await handleGlossaryLink(interaction);
+        } else if (subcommand === "unlink") {
+            await handleGlossaryUnlink(interaction);
+        } else if (subcommand === "update-ability") {
+            await handleGlossaryUpdateAbility(interaction);
+        } else if (subcommand === "update-category") {
+            await handleGlossaryUpdateCategory(interaction);
+        }
     }
   },
   async autocomplete(interaction) {

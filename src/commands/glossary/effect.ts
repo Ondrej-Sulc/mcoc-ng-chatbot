@@ -8,7 +8,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
-import { AbilityCategory } from "@prisma/client";
+import { AbilityCategory, Champion, ChampionAbilityLink } from "@prisma/client";
 import { prisma } from "../../services/prismaService";
 import { CommandResult } from "../../types/command";
 import { glossaryColors } from "./index";
@@ -27,6 +27,12 @@ export async function handleEffect(
     },
     include: {
       categories: true,
+      champions: {
+        include: {
+          champion: true,
+        },
+        distinct: ["championId"],
+      },
     },
   });
 
@@ -51,7 +57,7 @@ export async function handleEffect(
 
   if (effect.description) {
     const description = new TextDisplayBuilder().setContent(
-      `*${effect.description}*`
+      `## *${effect.description}*`
     );
     container.addTextDisplayComponents(description);
   } else {
@@ -83,6 +89,29 @@ export async function handleEffect(
     }
   }
 
+  if (effect.champions.length > 0) {
+    container.addSeparatorComponents(
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+    );
+    const championsTitle = new TextDisplayBuilder().setContent("## Champions");
+    container.addTextDisplayComponents(championsTitle);
+
+    const championEmojis = (effect.champions as (ChampionAbilityLink & { champion: Champion })[])
+      .map((link) => resolveEmoji(link.champion.discordEmoji || ""))
+      .filter(Boolean);
+    
+    if (championEmojis.length > 0) {
+        const limit = 100;
+        let emojiContent = championEmojis.slice(0, limit).join(" ");
+
+        if (championEmojis.length > limit) {
+            emojiContent += `\n*...and ${championEmojis.length - limit} more. Use the search button to see all.*`;
+        }
+        const emojiDisplay = new TextDisplayBuilder().setContent(emojiContent);
+        container.addTextDisplayComponents(emojiDisplay);
+    }
+  }
+
   const buttons = new ActionRowBuilder<ButtonBuilder>();
   // if (categoryName) {
   //     buttons.addComponents(
@@ -92,6 +121,12 @@ export async function handleEffect(
   //             .setStyle(glossaryColors.buttons.navigation)
   //     );
   // }
+  buttons.addComponents(
+    new ButtonBuilder()
+      .setCustomId(`glossary_search_${effect.name}`)
+      .setLabel("Search Champions")
+      .setStyle(ButtonStyle.Primary)
+  );
   buttons.addComponents(
     new ButtonBuilder()
       .setCustomId("glossary_list_back")

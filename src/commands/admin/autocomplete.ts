@@ -1,6 +1,7 @@
 import { AutocompleteInteraction } from "discord.js";
 import { championsByName } from "../../services/championService";
 import { autocompleteChampionAbility, autocompleteAllAbilities, autocompleteSource } from "./ability/autocomplete";
+import { autocompleteAbility, autocompleteCategory } from "./glossary/autocomplete";
 
 export async function handleAdminAutocomplete(interaction: AutocompleteInteraction) {
     const focused = interaction.options.getFocused(true);
@@ -54,5 +55,11 @@ export async function handleAdminAutocomplete(interaction: AutocompleteInteracti
             .slice(0, 25)
         );
       }
+    } else if (group === "glossary") {
+        if (focused.name === "ability") {
+            await autocompleteAbility(interaction);
+        } else if (focused.name === "category") {
+            await autocompleteCategory(interaction);
+        }
     }
 }
