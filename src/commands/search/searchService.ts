@@ -8,7 +8,8 @@ import {
   RosterEntryWithChampionRelations,
   SearchCoreParams,
 } from "../../types/search";
-import { generateResponse, generateRosterResponse } from "./searchView";
+import { generateChampionResponse } from "./views/championView";
+import { generateRosterResponse } from "./views/rosterView";
 
 export async function rosterCore(
   client: Client,
@@ -21,7 +22,7 @@ export async function rosterCore(
   searchId: string,
   userId: string
 ): Promise<CommandResult> {
-  const { embed, row } = await generateRosterResponse(
+  return await generateRosterResponse(
     client,
     guild,
     champions,
@@ -31,8 +32,6 @@ export async function rosterCore(
     totalPages,
     searchId
   );
-
-  return { embeds: [embed], components: row ? [row] : [] };
 }
 
 export async function core(
@@ -46,7 +45,7 @@ export async function core(
   searchId: string,
   userId: string
 ): Promise<CommandResult> {
-  const { embed, row } = await generateResponse(
+  return await generateChampionResponse(
     client,
     guild,
     champions,
@@ -56,8 +55,6 @@ export async function core(
     totalPages,
     searchId
   );
-
-  return { embeds: [embed], components: row ? [row] : [] };
 }
 
 export function isRosterEntry(

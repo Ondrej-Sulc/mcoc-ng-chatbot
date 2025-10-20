@@ -8,10 +8,11 @@ import {
   RosterEntryWithChampionRelations,
   SearchCoreParams,
 } from "../../types/search";
-import { buildSearchWhereClause } from "./queryBuilder";
+import { buildSearchWhereClause, parseAndOrConditions } from "./queryBuilder";
 import { rosterSearchCache } from "./cache";
-import { paginateRosterChampions } from "./pagination";
+import { paginate } from "./pagination";
 import { rosterCore } from "./searchService";
+import { getChampionDisplayLength } from "./views/common";
 
 
 
@@ -72,21 +73,25 @@ async function handleRosterSearch(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const criteriaParts: string[] = [];
-  for (const [key, value] of Object.entries(searchCriteria)) {
-    if (value) {
-      criteriaParts.push(`**${key}:** \`${value}\``);
-    }
-  }
-  const criteriaString = criteriaParts.join("\n");
-  const criteriaLength = criteriaString.length;
+  const parsedSearchCriteria = {
+    abilities: parseAndOrConditions(searchCriteria.abilities).conditions.map(
+      (c) => c.toLowerCase()
+    ),
+    immunities: parseAndOrConditions(searchCriteria.immunities).conditions.map(
+      (c) => c.toLowerCase()
+    ),
+    tags: parseAndOrConditions(searchCriteria.tags).conditions.map((c) =>
+      c.toLowerCase()
+    ),
+    abilityCategory: parseAndOrConditions(
+      searchCriteria.abilityCategory
+    ).conditions.map((c) => c.toLowerCase()),
+    attackType: parseAndOrConditions(searchCriteria.attackType).conditions.map(
+      (c) => c.toLowerCase()
+    ),
+  };
 
-  const pages = paginateRosterChampions(
-    interaction.client,
-    rosterEntries,
-    searchCriteria,
-    criteriaLength
-  );
+  const pages = paginate(rosterEntries, (entry) => getChampionDisplayLength(entry.champion, parsedSearchCriteria));
   rosterSearchCache.set(searchId, { criteria: searchCriteria, pages });
   setTimeout(() => rosterSearchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
 

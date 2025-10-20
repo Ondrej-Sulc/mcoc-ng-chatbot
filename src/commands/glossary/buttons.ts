@@ -7,7 +7,7 @@ import { handleEffect } from "./effect";
 import crypto from "crypto";
 import { buildSearchWhereClause } from "../search/queryBuilder";
 import { searchCache } from "../search/cache";
-import { paginateChampions } from "../search/pagination";
+import { simplePaginate as paginate } from "../search/pagination";
 import { core } from "../search/searchService";
 import { prisma } from "../../services/prismaService";
 
@@ -78,21 +78,9 @@ async function handleSearchButton(interaction: ButtonInteraction) {
         return;
     }
 
-    const criteriaParts: string[] = [];
-    for (const [key, value] of Object.entries(searchCriteria)) {
-        if (value) {
-            criteriaParts.push(`**${key}:** \`${value}\``);
-        }
-    }
-    const criteriaString = criteriaParts.join("\n");
-    const criteriaLength = criteriaString.length;
 
-    const pages = paginateChampions(
-        interaction.client,
-        allChampions,
-        searchCriteria,
-        criteriaLength
-    );
+
+    const pages = paginate(allChampions);
     searchCache.set(searchId, { criteria: searchCriteria, pages });
     setTimeout(() => searchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
 

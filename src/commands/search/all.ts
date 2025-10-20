@@ -8,10 +8,11 @@ import {
   SearchCoreParams,
   ChampionWithRelations,
 } from "../../types/search";
-import { buildSearchWhereClause } from "./queryBuilder";
+import { buildSearchWhereClause, parseAndOrConditions } from "./queryBuilder";
 import { searchCache } from "./cache";
-import { paginateChampions } from "./pagination";
+import { paginate } from "./pagination";
 import { core } from "./searchService";
+import { getChampionDisplayLength } from "./views/common";
 
 
 
@@ -55,21 +56,25 @@ async function handleGlobalSearch(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const criteriaParts: string[] = [];
-  for (const [key, value] of Object.entries(searchCriteria)) {
-    if (value) {
-      criteriaParts.push(`**${key}:** \`${value}\``);
-    }
-  }
-  const criteriaString = criteriaParts.join("\n");
-  const criteriaLength = criteriaString.length;
+  const parsedSearchCriteria = {
+    abilities: parseAndOrConditions(searchCriteria.abilities).conditions.map(
+      (c) => c.toLowerCase()
+    ),
+    immunities: parseAndOrConditions(searchCriteria.immunities).conditions.map(
+      (c) => c.toLowerCase()
+    ),
+    tags: parseAndOrConditions(searchCriteria.tags).conditions.map((c) =>
+      c.toLowerCase()
+    ),
+    abilityCategory: parseAndOrConditions(
+      searchCriteria.abilityCategory
+    ).conditions.map((c) => c.toLowerCase()),
+    attackType: parseAndOrConditions(searchCriteria.attackType).conditions.map(
+      (c) => c.toLowerCase()
+    ),
+  };
 
-  const pages = paginateChampions(
-    interaction.client,
-    allChampions,
-    searchCriteria,
-    criteriaLength
-  );
+  const pages = paginate(allChampions, (champion) => getChampionDisplayLength(champion, parsedSearchCriteria));
   searchCache.set(searchId, { criteria: searchCriteria, pages });
   setTimeout(() => searchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
 

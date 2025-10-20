@@ -113,14 +113,7 @@ export async function handleEffect(
   }
 
   const buttons = new ActionRowBuilder<ButtonBuilder>();
-  // if (categoryName) {
-  //     buttons.addComponents(
-  //         new ButtonBuilder()
-  //             .setCustomId(`glossary_back_category_${categoryName}`)
-  //             .setLabel("Back to Category")
-  //             .setStyle(glossaryColors.buttons.navigation)
-  //     );
-  // }
+
   buttons.addComponents(
     new ButtonBuilder()
       .setCustomId(`glossary_search_${effect.name}`)
