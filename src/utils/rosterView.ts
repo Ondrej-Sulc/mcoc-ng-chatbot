@@ -1,10 +1,15 @@
 import {
   ChatInputCommandInteraction,
   ButtonInteraction,
-  EmbedBuilder,
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+  Colors,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
 } from "discord.js";
 import { RosterWithChampion } from "../services/rosterService";
 import { Player } from "@prisma/client";
@@ -17,16 +22,22 @@ const rosterViewCache = new Map<
   { player: Player; pages: RosterWithChampion[][] }
 >();
 
+function formatRosterEntry(entry: RosterWithChampion, includeMarkdownHeader: boolean = false): string {
+  const awakened = entry.isAwakened ? "★" : "☆";
+  const ascended = entry.isAscended ? "🏆" : "";
+  const emoji = entry.champion.discordEmoji || "";
+  const prefix = includeMarkdownHeader ? "### " : "";
+  return `${prefix}${emoji} **${entry.champion.name}** \`${entry.stars}* R${entry.rank}${ascended} ${awakened}\`\n`;
+}
+
 function paginateRoster(roster: RosterWithChampion[]): RosterWithChampion[][] {
   const pages: RosterWithChampion[][] = [];
   let currentPage: RosterWithChampion[] = [];
   let currentLength = 0;
-  const limit = 4000; // Discord embed description limit is 4096
+  const limit = 3600; // 10% buffer from 4000 character limit
 
   roster.forEach((entry) => {
-    const awakened = entry.isAwakened ? "★" : "☆";
-    const ascended = entry.isAscended ? "+" : "";
-    const line = `${entry.champion.discordEmoji || ""} ${entry.champion.name} ${entry.stars}* R${entry.rank}${ascended} ${awakened}\n`;
+    const line = formatRosterEntry(entry, false);
     if (currentLength + line.length > limit) {
       pages.push(currentPage);
       currentPage = [];
@@ -50,16 +61,19 @@ export async function sendRosterPage(
 ) {
   const cached = rosterViewCache.get(viewId);
   if (!cached) {
-    const errorEmbed = new EmbedBuilder()
-      .setTitle("Error")
-      .setDescription(
-        "This roster view has expired. Please use the command again."
-      )
-      .setColor("Red");
+    const errorContainer = new ContainerBuilder().setAccentColor(Colors.Red);
+    const errorText = new TextDisplayBuilder().setContent(
+      "This roster view has expired. Please use the command again."
+    );
+    errorContainer.addTextDisplayComponents(errorText);
+
     if (interaction instanceof ButtonInteraction) {
-      await interaction.update({ embeds: [errorEmbed], components: [] });
+      await interaction.update({ components: [errorContainer] });
     } else {
-      await interaction.editReply({ embeds: [errorEmbed], components: [] });
+      await interaction.editReply({
+        components: [errorContainer],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+      });
     }
     return;
   }
@@ -70,45 +84,54 @@ export async function sendRosterPage(
   const resolveEmojis = createEmojiResolver(interaction.client);
   let response = "";
   currentPageData.forEach((entry: RosterWithChampion) => {
-    const awakened = entry.isAwakened ? "★" : "☆";
-    const ascended = entry.isAscended ? "+" : "";
-    const emoji = entry.champion.discordEmoji || "";
-    response += `${emoji} ${entry.champion.name} ${entry.stars}* R${entry.rank}${ascended} ${awakened}\n`;
+    response += formatRosterEntry(entry, false);
   });
 
-  const embed = new EmbedBuilder()
-    .setTitle(`Roster for ${player.ingameName}`)
-    .setDescription(resolveEmojis(response))
-    .setFooter({ text: `Page ${page} of ${pages.length}` });
+  const container = new ContainerBuilder();
+
+  const title = new TextDisplayBuilder().setContent(
+    `# Roster for ${player.ingameName}`
+  );
+  container.addTextDisplayComponents(title);
+
+  const rosterContent = new TextDisplayBuilder().setContent(
+    resolveEmojis(response)
+  );
+  container.addTextDisplayComponents(rosterContent);
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+  );
+  const pageIndicator = new TextDisplayBuilder().setContent(
+    `*Page ${page} of ${pages.length}*`
+  );
+  container.addTextDisplayComponents(pageIndicator);
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId(`roster_view:prev:${viewId}:${page}`)
-      .setLabel("Previous")
-      .setStyle(ButtonStyle.Primary)
+      .setLabel("< Previous")
+      .setStyle(ButtonStyle.Secondary)
       .setDisabled(page === 1),
     new ButtonBuilder()
       .setCustomId(`roster_view:next:${viewId}:${page}`)
-      .setLabel("Next")
-      .setStyle(ButtonStyle.Primary)
+      .setLabel("Next >")
+      .setStyle(ButtonStyle.Secondary)
       .setDisabled(page === pages.length)
   );
-
-  const replyOptions = {
-    embeds: [embed],
-    components: [row],
-  };
+  container.addActionRowComponents(row);
 
   if (interaction instanceof ButtonInteraction) {
-    await interaction.update(replyOptions);
+    await interaction.update({ components: [container] });
   } else {
-    await interaction.editReply(replyOptions);
+    await interaction.editReply({
+      components: [container],
+      flags: MessageFlags.IsComponentsV2,
+    });
   }
 }
 
 async function handleRosterViewPagination(interaction: ButtonInteraction) {
-  const [_, direction, viewId, currentPageStr] = 
-    interaction.customId.split(":");
+  const [_, direction, viewId, currentPageStr] = interaction.customId.split(":");
   const currentPage = parseInt(currentPageStr, 10);
   const newPage = direction === "next" ? currentPage + 1 : currentPage - 1;
 
@@ -117,10 +140,13 @@ async function handleRosterViewPagination(interaction: ButtonInteraction) {
 
 registerButtonHandler("roster_view", handleRosterViewPagination);
 
-export function setupRosterView(roster: RosterWithChampion[], player: Player): string {
-    const pages = paginateRoster(roster);
-    const viewId = crypto.randomUUID();
-    rosterViewCache.set(viewId, { player, pages });
-    setTimeout(() => rosterViewCache.delete(viewId), 15 * 60 * 1000); // 15 min expiry
-    return viewId;
+export function setupRosterView(
+  roster: RosterWithChampion[],
+  player: Player
+): string {
+  const pages = paginateRoster(roster);
+  const viewId = crypto.randomUUID();
+  rosterViewCache.set(viewId, { player, pages });
+  setTimeout(() => rosterViewCache.delete(viewId), 15 * 60 * 1000); // 15 min expiry
+  return viewId;
 }

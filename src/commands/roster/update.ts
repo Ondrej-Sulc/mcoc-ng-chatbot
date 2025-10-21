@@ -90,18 +90,18 @@ export async function handleUpdate(
   container.addTextDisplayComponents(summary);
 
   const resolveEmojis = createEmojiResolver(interaction.client);
-  let champList = allAddedChampions
+  let champList = "## " + allAddedChampions
     .map((row) =>
       row
         .map((entry) => {
           const awakened = entry.isAwakened ? "★" : "☆";
-          const ascended = entry.isAscended ? "+" : "";
+          const ascended = entry.isAscended ? "🏆" : "";
           const emoji = entry.champion.discordEmoji || "";
           return `${emoji}${awakened}${ascended}`;
         })
         .join(" ")
     )
-    .join("\n");
+    .join("\n## ");
 
   if (champList) {
     const content = new TextDisplayBuilder().setContent(
