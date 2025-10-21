@@ -17,11 +17,12 @@ export const glossaryColors = {
         category: ButtonStyle.Primary,
         effect: ButtonStyle.Success,
         navigation: ButtonStyle.Secondary,
+        search: ButtonStyle.Secondary,
     },
     containers: {
         list: 0x5865F2, // Discord Blue
         category: 0x57F287, // Discord Green
-        effect: 0xFEE75C, // Discord Yellow
+        effect: 0x323232, // dark gray
     }
 };
 

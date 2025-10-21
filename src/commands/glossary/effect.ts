@@ -86,29 +86,6 @@ export async function handleEffect(
     container.addTextDisplayComponents(noDescription);
   }
 
-  if (effect.categories.length > 0) {
-    container.addSeparatorComponents(
-      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
-    );
-    const categoriesTitle = new TextDisplayBuilder().setContent("## Categories");
-    container.addTextDisplayComponents(categoriesTitle);
-
-    for (const category of effect.categories as AbilityCategory[]) {
-      const catDesc = new TextDisplayBuilder().setContent(
-        `*${category.description || "No description available."}*`
-      );
-      container.addTextDisplayComponents(catDesc);
-      
-      const button = new ButtonBuilder()
-        .setCustomId(`glossary_category_${category.name}`)
-        .setLabel(category.name)
-        .setStyle(glossaryColors.buttons.category);
-      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
-      container.addActionRowComponents(row);
-
-    }
-  }
-
   if (effect.champions.length > 0) {
     container.addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
@@ -147,8 +124,8 @@ export async function handleEffect(
       const searchAbilitiesButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId(`glossary_search_ability_${effect.name}`)
-          .setLabel("Search for this ability")
-          .setStyle(ButtonStyle.Secondary)
+          .setLabel("🔍 Search for this ability")
+          .setStyle(glossaryColors.buttons.search)
       );
       container.addActionRowComponents(searchAbilitiesButton);
     }
@@ -168,12 +145,35 @@ export async function handleEffect(
       const searchImmunitiesButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId(`glossary_search_immunity_${effect.name}`)
-          .setLabel("Search for this immunity")
-          .setStyle(ButtonStyle.Secondary)
+          .setLabel("🔍 Search for this immunity")
+          .setStyle(glossaryColors.buttons.search)
       );
       container.addActionRowComponents(searchImmunitiesButton);
     }
   }
+
+  if (effect.categories.length > 0) {
+      container.addSeparatorComponents(
+        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+      );
+      const categoriesTitle = new TextDisplayBuilder().setContent("## Categories");
+      container.addTextDisplayComponents(categoriesTitle);
+
+      for (const category of effect.categories as AbilityCategory[]) {
+        const catDesc = new TextDisplayBuilder().setContent(
+          `*${category.description || "No description available."}*`
+        );
+        container.addTextDisplayComponents(catDesc);
+        
+        const button = new ButtonBuilder()
+          .setCustomId(`glossary_category_${category.name}`)
+          .setLabel(category.name)
+          .setStyle(glossaryColors.buttons.category);
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
+        container.addActionRowComponents(row);
+
+      }
+    }
 
   const backButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()

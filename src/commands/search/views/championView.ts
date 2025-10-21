@@ -31,6 +31,7 @@ export async function generateChampionResponse(
 ): Promise<CommandResult> {
   const resolveEmoji = createEmojiResolver(client);
   const container = new ContainerBuilder();
+  container.setAccentColor(0x323232);
 
   const parsedSearchCriteria = {
     abilities: parseAndOrConditions(searchCriteria.abilities).conditions.map(
