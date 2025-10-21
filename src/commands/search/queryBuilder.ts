@@ -180,6 +180,7 @@ export async function buildSearchWhereClause(
           (where.AND as Prisma.ChampionWhereInput[]).push({
             abilities: {
               some: {
+                type: "ABILITY",
                 ability: {
                   categories: {
                     some: {
@@ -198,6 +199,7 @@ export async function buildSearchWhereClause(
         (where.AND as Prisma.ChampionWhereInput[]).push({
           abilities: {
             some: {
+              type: "ABILITY",
               ability: {
                 categories: {
                   some: {
