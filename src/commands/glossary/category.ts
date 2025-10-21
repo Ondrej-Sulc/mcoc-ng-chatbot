@@ -89,7 +89,7 @@ export async function handleCategory(
 
   const backButton = new ButtonBuilder()
     .setCustomId("glossary_list_back")
-    .setLabel("Back to List")
+    .setLabel("Back to Category List")
     .setStyle(glossaryColors.buttons.navigation);
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(backButton);
   container.addSeparatorComponents(

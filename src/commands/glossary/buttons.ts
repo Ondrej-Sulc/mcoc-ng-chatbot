@@ -48,12 +48,17 @@ async function handleBackToCategoryButton(interaction: ButtonInteraction) {
 
 async function handleSearchButton(interaction: ButtonInteraction) {
     await interaction.deferReply({ ephemeral: true });
-    const effectName = interaction.customId.substring("glossary_search_".length);
+
+    const customIdContent = interaction.customId.substring(
+        "glossary_search_".length
+    );
+    const [searchType, ...effectNameParts] = customIdContent.split("_");
+    const effectName = effectNameParts.join("_");
 
     const searchId = crypto.randomUUID();
     const searchCriteria = {
-        abilities: effectName,
-        immunities: null,
+        abilities: searchType === "ability" ? effectName : null,
+        immunities: searchType === "immunity" ? effectName : null,
         tags: null,
         championClass: null,
         abilityCategory: null,
@@ -76,7 +81,9 @@ async function handleSearchButton(interaction: ButtonInteraction) {
     });
 
     if (allChampions.length === 0) {
-        await interaction.editReply(`No champions found with the effect "${effectName}".`);
+        await interaction.editReply(
+            `No champions found with the effect "${effectName}".`
+        );
         return;
     }
 
@@ -84,9 +91,9 @@ async function handleSearchButton(interaction: ButtonInteraction) {
         abilities: parseAndOrConditions(searchCriteria.abilities).conditions.map(
             (c) => c.toLowerCase()
         ),
-        immunities: parseAndOrConditions(searchCriteria.immunities).conditions.map(
-            (c) => c.toLowerCase()
-        ),
+        immunities: parseAndOrConditions(
+            searchCriteria.immunities
+        ).conditions.map((c) => c.toLowerCase()),
         tags: parseAndOrConditions(searchCriteria.tags).conditions.map((c) =>
             c.toLowerCase()
         ),
@@ -98,7 +105,9 @@ async function handleSearchButton(interaction: ButtonInteraction) {
         ),
     };
 
-    const pages = paginate(allChampions, (champion) => getChampionDisplayLength(champion, parsedSearchCriteria));
+    const pages = paginate(allChampions, (champion) =>
+        getChampionDisplayLength(champion, parsedSearchCriteria)
+    );
     searchCache.set(searchId, { criteria: searchCriteria, pages });
     setTimeout(() => searchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
 
