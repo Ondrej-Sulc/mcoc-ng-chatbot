@@ -17,14 +17,12 @@ class GcpStorageService {
     this.bucketName = process.env.GCS_BUCKET_NAME || "champion-images";
   }
 
-  async uploadFile(
-    sourcePath: string,
+  async uploadBuffer(
+    buffer: Buffer,
     destinationPath: string
   ): Promise<string> {
-    await this.storage.bucket(this.bucketName).upload(sourcePath, {
-      destination: destinationPath,
-    });
-
+    const file = this.storage.bucket(this.bucketName).file(destinationPath);
+    await file.save(buffer);
     const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${destinationPath}`;
     return publicUrl;
   }

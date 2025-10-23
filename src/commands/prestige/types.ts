@@ -1,8 +1,8 @@
 export type PrestigeResult = {
   success: boolean;
-  summonerPrestige?: number;
-  championPrestige?: number;
-  relicPrestige?: number;
+  summonerPrestige: number;
+  championPrestige: number;
+  relicPrestige: number;
   fallback?: boolean;
   error?: string;
   debugInfo?: {
@@ -11,11 +11,19 @@ export type PrestigeResult = {
       text?: string;
       detectedLabels?: { summoner: number; champion: number; relic: number };
       error?: string;
+      extracted?: {
+        labels: { text: string; bounds: any }[];
+        numbers: { value: number; bounds: any }[];
+      };
     };
     fullAttempt?: {
       text?: string;
       detectedLabels?: { summoner: number; champion: number; relic: number };
       error?: string;
+      extracted?: {
+        labels: { text: string; bounds: any }[];
+        numbers: { value: number; bounds: any }[];
+      };
     };
   };
 };

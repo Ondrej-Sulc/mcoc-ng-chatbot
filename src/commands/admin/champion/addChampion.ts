@@ -4,9 +4,6 @@ import {
   Routes,
   ModalSubmitInteraction,
 } from "discord.js";
-import { promises as fs } from "fs";
-import * as os from "os";
-import * as path from "path";
 import sharp from "sharp";
 import { gcpStorageService } from "../../../services/gcpStorageService";
 import {
@@ -39,19 +36,14 @@ export async function processAndUploadImages(
       .replace(/ /g, "_")
       .replace(/\(|\)|'|\./g, "")
       .toLowerCase();
-    const tempDir = path.join(os.tmpdir(), "mcoc-ng-chatbot-images");
-    await fs.mkdir(tempDir, { recursive: true });
-
     const imageUrls: any = {};
 
     // Process hero image
     if (heroUrl) {
       const heroImgBuffer = await downloadImage(heroUrl);
-      const heroPath = path.join(tempDir, `${formattedName}_hero.png`);
-      await fs.writeFile(heroPath, heroImgBuffer);
       const gcsHeroPath = `hero/${formattedName}.png`;
-      imageUrls.hero = await gcpStorageService.uploadFile(
-        heroPath,
+      imageUrls.hero = await gcpStorageService.uploadBuffer(
+        heroImgBuffer,
         gcsHeroPath
       );
       logger.info(`Uploaded ${gcsHeroPath}`);
@@ -64,17 +56,10 @@ export async function processAndUploadImages(
         const typePrefix = type.charAt(0);
 
         const originalSize = 256;
-        const originalPath = path.join(
-          tempDir,
-          `${formattedName}_${type}_${originalSize}.png`
-        );
-        await sharp(imgBuffer)
-          .resize(originalSize, originalSize)
-          .toFile(originalPath);
         const gcsOriginalPath = `${originalSize}/${formattedName}_${type}.png`;
         const key = `full_${type}`;
-        imageUrls[key] = await gcpStorageService.uploadFile(
-          originalPath,
+        imageUrls[key] = await gcpStorageService.uploadBuffer(
+          await sharp(imgBuffer).resize(originalSize, originalSize).toBuffer(),
           gcsOriginalPath
         );
         logger.info(`Uploaded ${gcsOriginalPath}`);
@@ -82,15 +67,10 @@ export async function processAndUploadImages(
         const blurredImg = sharp(imgBuffer).blur(0.5);
 
         for (const size of [128, 64, 32]) {
-          const resizedPath = path.join(
-            tempDir,
-            `${formattedName}_${type}_${size}.png`
-          );
-          await blurredImg.clone().resize(size, size).toFile(resizedPath);
           const gcsResizedPath = `${size}/${formattedName}_${type}.png`;
           const key = `${typePrefix}_${size}`;
-          imageUrls[key] = await gcpStorageService.uploadFile(
-            resizedPath,
+          imageUrls[key] = await gcpStorageService.uploadBuffer(
+            await blurredImg.clone().resize(size, size).toBuffer(),
             gcsResizedPath
           );
           logger.info(`Uploaded ${gcsResizedPath}`);
@@ -98,7 +78,6 @@ export async function processAndUploadImages(
       }
     }
 
-    await fs.rm(tempDir, { recursive: true, force: true });
     return imageUrls;
   }
 

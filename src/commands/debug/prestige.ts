@@ -20,10 +20,5 @@ export async function handlePrestigeDebug(interaction: ChatInputCommandInteracti
     interaction,
   });
 
-  await interaction.editReply({
-    content: result.content,
-    files: result.files,
-    embeds: result.embeds,
-    components: result.components,
-  });
+  await interaction.editReply(result);
 }

@@ -63,7 +63,6 @@ The bot should now be running and connected to Discord and the database.
 
 ### Other Useful Commands
 
-*   **Run tests:** `npm test`
 *   **Build the project:** `npm run build`
 *   **Generate Prisma client:** `npm run prisma:generate`
 *   **Run database migrations:** `npm run prisma:migrate`

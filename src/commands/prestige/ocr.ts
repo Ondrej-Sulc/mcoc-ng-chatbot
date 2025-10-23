@@ -1,233 +1,289 @@
-import sharp from "sharp";
-import Tesseract from "tesseract.js";
-import { PrestigeResult, OCRResult } from "./types";
+import sharp from 'sharp';
+import { google } from '@google-cloud/vision/build/protos/protos';
+import { PrestigeResult, OCRResult } from './types';
+import { googleVisionService } from '../../services/googleVisionService';
+import logger from '../../services/loggerService';
 
-export const recognizeWithTimeout = (
-  image: Tesseract.ImageLike,
-  lang: string,
-  timeoutMs = 60000
-) => {
-  const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(
-      () =>
-        reject(
-          new Error(`OCR recognition timed out after ${timeoutMs / 1000}s.`)
-        ),
-      timeoutMs
-    )
-  );
-  return Promise.race([Tesseract.recognize(image, lang), timeoutPromise]);
+type IEntityAnnotation = google.cloud.vision.v1.IEntityAnnotation;
+type IVertex = google.cloud.vision.v1.IVertex;
+
+interface OcrLabel {
+  text: string;
+  bounds: google.cloud.vision.v1.IBoundingPoly | null | undefined;
+}
+
+interface OcrNumber {
+  value: number;
+  bounds: google.cloud.vision.v1.IBoundingPoly | null | undefined;
+}
+
+const CROP_CONFIG = {
+  sideMultiplier: 0.3,
+  widthMultiplier: 0.85,
+  heightMultiplier: 0.9,
 };
 
-function parsePrestigesFromOcr(text: string): OCRResult {
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
+function extractLabelsAndNumbers(detections: IEntityAnnotation[]): {
+  labels: OcrLabel[];
+  numbers: OcrNumber[];
+} {
+  const labels: OcrLabel[] = [];
+  const numbers: OcrNumber[] = [];
+  const keywordPatterns = [/prestige/i, /^champion$/i, /relic/i];
 
-  // More specific keyword patterns
-  const patterns: Record<keyof OCRResult, RegExp> = {
-    summoner: /top\s+\d{2}\s+prestige/i,
-    champion: /champion/i,
-    relic: /relic/i,
-  };
+  if (detections.length < 2) {
+    return { labels, numbers };
+  }
 
-  // Clean a matched numeric token: remove non-digits and return integer
-  const normalizeNumber = (raw: string): number | null => {
-    if (!raw) return null;
-    // Keep only digits (remove dots, commas, spaces, currency, etc.)
-    const digits = raw.replace(/[^0-9]/g, "");
-    if (!digits) return null;
-    // parse as integer (these are prestige totals, not floats)
-    const n = parseInt(digits, 10);
-    return Number.isFinite(n) ? n : null;
-  };
+  for (let i = 1; i < detections.length; i++) {
+    const detection = detections[i];
+    const text = detection.description;
 
-  // Try to extract number from a line by looking for it AFTER the keyword
-  const extractFromLine = (line: string, keyRx: RegExp): number | null => {
-    const match = line.match(keyRx);
-    if (!match) return null;
-    const fromIndex = (match.index ?? 0) + match[0].length;
-    const restOfLine = line.substring(fromIndex);
+    if (!text || !detection.boundingPoly) continue;
 
-    const numMatches = restOfLine.match(/[0-9][0-9.,\s]*/g);
-    if (!numMatches || numMatches.length === 0) return null;
-
-    // Take the first valid number found after the keyword
-    for (const numCandidate of numMatches) {
-      const n = normalizeNumber(numCandidate);
-      if (n !== null) return n;
-    }
-    return null;
-  };
-
-  // If no matching line, try searching nearby the keyword index in the whole text
-  const extractNearKeyword = (keyRx: RegExp): number | null => {
-    // first try line-based extraction
-    for (const line of lines) {
-      if (keyRx.test(line)) {
-        const v = extractFromLine(line, keyRx);
-        if (v !== null) return v;
-        // sometimes number is on next line
-        const nextIdx = lines.indexOf(line) + 1;
-        if (nextIdx > 0 && nextIdx < lines.length) {
-          // For next line, we don't need the keyword logic
-          const lineMatches = lines[nextIdx].match(/[0-9][0-9.,\s]*/g);
-          if (lineMatches && lineMatches.length > 0) {
-            const v2 = normalizeNumber(lineMatches[0]);
-            if (v2 !== null) return v2;
-          }
-        }
+    if (keywordPatterns.some((p) => p.test(text))) {
+      labels.push({ text, bounds: detection.boundingPoly });
+    } else if (/^\d{3,}$/.test(text.replace(/[^0-9]/g, ''))) {
+      const numericValue = parseInt(text.replace(/[^0-9]/g, ''), 10);
+      if (!isNaN(numericValue)) {
+        numbers.push({ value: numericValue, bounds: detection.boundingPoly });
       }
     }
-    // fallback: look in full text near the keyword occurrence
-    const m = text.match(keyRx);
-    if (!m) return null;
-    const idx = (m.index ?? 0) + m[0].length;
-    const window = text.slice(idx, idx + 40); // Look forward from keyword
-    const numMatch = window.match(/[0-9][0-9.,\s]*/);
-    return numMatch ? normalizeNumber(numMatch[0]) : null;
-  };
-
-  return {
-    summoner: extractNearKeyword(patterns.summoner) || 0,
-    champion: extractNearKeyword(patterns.champion) || 0,
-    relic: extractNearKeyword(patterns.relic) || 0,
-  };
-}
-
-async function meanLuminance(buf: Buffer): Promise<number> {
-  // returns mean luminance [0..255]
-  const stats = await sharp(buf).stats();
-  // stats.channels is array of { mean, stdev, min, max } for R, G, B (maybe A)
-  const r = stats.channels[0].mean ?? 0;
-  const g = stats.channels[1].mean ?? 0;
-  const b = stats.channels[2].mean ?? 0;
-  // standard luminance weights
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-async function invertIfDark(buf: Buffer, threshold = 130): Promise<Buffer> {
-  // If mean luminance < threshold, invert colors (useful for light-on-dark text)
-  const lum = await meanLuminance(buf);
-  if (lum < threshold) {
-    // negate alpha? usually don't invert alpha channel
-    return sharp(buf).negate({ alpha: false }).toBuffer();
   }
-  return buf;
+
+  labels.sort(
+    (a, b) => (a.bounds?.vertices?.[0]?.y ?? 0) - (b.bounds?.vertices?.[0]?.y ?? 0)
+  );
+  numbers.sort(
+    (a, b) => (a.bounds?.vertices?.[0]?.y ?? 0) - (b.bounds?.vertices?.[0]?.y ?? 0)
+  );
+
+  return { labels, numbers };
+}
+
+function findBestMatch(
+  label: OcrLabel,
+  numbers: OcrNumber[]
+): OcrNumber | null {
+  let bestMatch: OcrNumber | null = null;
+  let minVerticalDistance = Infinity;
+
+  if (!label.bounds?.vertices) return null;
+
+  const labelCenterY =
+    ((label.bounds.vertices[0].y ?? 0) + (label.bounds.vertices[3].y ?? 0)) / 2;
+  const labelRightX = Math.max(
+    label.bounds.vertices[1]?.x ?? 0,
+    label.bounds.vertices[2]?.x ?? 0
+  );
+
+  for (const number of numbers) {
+    if (!number.bounds?.vertices) continue;
+
+    const numberCenterY =
+      ((number.bounds.vertices[0].y ?? 0) +
+        (number.bounds.vertices[3].y ?? 0)) /
+      2;
+    const verticalDistance = Math.abs(labelCenterY - numberCenterY);
+    const numberLeftX = Math.min(
+      number.bounds.vertices[0]?.x ?? 0,
+      number.bounds.vertices[3]?.x ?? 0
+    );
+
+    if (numberLeftX > labelRightX && verticalDistance < minVerticalDistance) {
+      minVerticalDistance = verticalDistance;
+      bestMatch = number;
+    }
+  }
+  return bestMatch;
+}
+
+function parsePrestigesFromOcr(
+  labels: OcrLabel[],
+  numbers: OcrNumber[]
+): OCRResult {
+
+  if (labels.length < 3 || numbers.length < 3) {
+    return { summoner: 0, champion: 0, relic: 0 };
+  }
+
+  const result: OCRResult = { summoner: 0, champion: 0, relic: 0 };
+  const availableNumbers = [...numbers];
+
+  for (const label of labels) {
+    const bestMatch = findBestMatch(label, availableNumbers);
+
+    if (bestMatch) {
+      if (/prestige/i.test(label.text)) {
+        result.summoner = bestMatch.value;
+      } else if (/champion/i.test(label.text)) {
+        result.champion = bestMatch.value;
+      } else if (/relic/i.test(label.text)) {
+        result.relic = bestMatch.value;
+      }
+      const index = availableNumbers.indexOf(bestMatch);
+      if (index > -1) {
+        availableNumbers.splice(index, 1);
+      }
+    }
+  }
+
+  return result;
+}
+
+async function processOcrAttempt(
+  imageBuffer: Buffer,
+  debug: boolean,
+  debugInfo: NonNullable<PrestigeResult['debugInfo']>,
+  isCropped: boolean
+): Promise<PrestigeResult> {
+  const attemptKey = isCropped ? 'cropAttempt' : 'fullAttempt';
+  try {
+    const detections = await googleVisionService.detectText(imageBuffer);
+    logger.info(
+      `Found ${detections.length} text detections in ${
+        isCropped ? 'cropped' : 'full'
+      } image.`
+    );
+    if (debug) {
+      debugInfo[attemptKey] = { text: detections[0]?.description };
+      logger.debug(
+        { detections },
+        `OCR detections from ${isCropped ? 'cropped' : 'full'} image:`
+      );
+    }
+
+    const { labels, numbers } = extractLabelsAndNumbers(detections);
+    const labelResult = parsePrestigesFromOcr(labels, numbers);
+
+    logger.info(
+      { result: labelResult },
+      `Parsed prestige values from ${isCropped ? 'cropped' : 'full'} image.`
+    );
+
+    if (debug && debugInfo[attemptKey]) {
+      (debugInfo[attemptKey] as any).detectedLabels = labelResult;
+      (debugInfo[attemptKey] as any).extracted = { labels, numbers };
+    }
+
+    const { summoner, champion, relic } = labelResult;
+    const success = summoner > 0 && summoner === champion + relic;
+
+    return {
+      success: success,
+      summonerPrestige: summoner,
+      championPrestige: champion,
+      relicPrestige: relic,
+      fallback: !isCropped,
+      debugInfo: debug ? debugInfo : undefined,
+    };
+  } catch (e) {
+    logger.error(
+      e,
+      `Error during prestige extraction from ${
+        isCropped ? 'cropped' : 'full'
+      } image.`
+    );
+    if (debug) {
+      if (!debugInfo[attemptKey]) (debugInfo as any)[attemptKey] = {};
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      (debugInfo[attemptKey] as any).error = errorMessage;
+    }
+    return {
+      success: false,
+      summonerPrestige: 0,
+      championPrestige: 0,
+      relicPrestige: 0,
+      error: e instanceof Error ? e.message : String(e),
+      debugInfo: debug ? debugInfo : undefined,
+    };
+  }
 }
 
 export async function extractPrestigeFromImage(
   imageBuffer: Buffer,
   debug = false
 ): Promise<PrestigeResult> {
+  logger.info('Starting prestige extraction from image.');
+  if (debug) {
+    logger.debug('Debug mode enabled for prestige extraction.');
+  }
+
   const meta = await sharp(imageBuffer).metadata();
   const W = meta.width ?? 0;
   const H = meta.height ?? 0;
+  logger.info(`Image dimensions: ${W}x${H}`);
 
-  const maybeInverted = await invertIfDark(imageBuffer, 130);
+  const debugInfo: NonNullable<PrestigeResult['debugInfo']> = {};
 
-  const processedImage = await sharp(maybeInverted)
-    .rotate()
-    .grayscale()
-    .normalize()
-    .sharpen()
-    .toBuffer();
+  // --- Cropped Image Attempt ---
+  const side = Math.min(W, H);
+  const squareLeft = Math.round((W - side) / 2);
+  const squareTop = Math.round((H - side) / 2);
+  const finalLeft =
+    squareLeft + Math.round(side * CROP_CONFIG.sideMultiplier);
+  const finalTop = squareTop;
+  const finalWidth = Math.round(side * CROP_CONFIG.widthMultiplier);
+  const finalHeight = Math.round(side * CROP_CONFIG.heightMultiplier);
 
-  const debugInfo: NonNullable<PrestigeResult["debugInfo"]> = {};
-
-  try {
-    const side = Math.min(W, H);
-    const squareLeft = Math.round((W - side) / 2);
-    const squareTop = Math.round((H - side) / 2);
-    const finalLeft = squareLeft + Math.round(side * 0.3);
-    const finalTop = squareTop;
-    const finalWidth = Math.round(side * 0.85);
-    const finalHeight = Math.round(side * 0.9);
-    const scale = Math.max(1, Math.floor(1400 / Math.max(1, W)));
-    const resizeOpt = scale > 1 ? { width: W * scale } : undefined;
-
-    const cropped = await sharp(processedImage)
-      .extract({
-        left: finalLeft,
-        top: finalTop,
-        width: finalWidth,
-        height: finalHeight,
-      })
-      .resize(resizeOpt)
-      .toBuffer();
-    if (debug) debugInfo.croppedImage = cropped;
-
-    const { data: cropData } = await recognizeWithTimeout(cropped, "eng");
-    if (debug) {
-      debugInfo.cropAttempt = { text: cropData?.text };
-    }
-
-    const labelResultCrop = parsePrestigesFromOcr(cropData?.text || "");
-
-    if (labelResultCrop) {
-      if (debug && debugInfo.cropAttempt)
-        debugInfo.cropAttempt.detectedLabels = labelResultCrop;
-      const { summoner, champion, relic } = labelResultCrop;
-      if (summoner > 0 && summoner === champion + relic) {
-        return {
-          success: true,
-          summonerPrestige: summoner,
-          championPrestige: champion,
-          relicPrestige: relic,
-          debugInfo: debug ? debugInfo : undefined,
-        };
-      }
-    }
-  } catch (e) {
-    if (debug) {
-      if (!debugInfo.cropAttempt) debugInfo.cropAttempt = {};
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      debugInfo.cropAttempt.error = errorMessage;
-    }
-    // Ignore crop errors and proceed to full image
-  }
-
-  try {
-    const { data: fullData } = await recognizeWithTimeout(
-      processedImage,
-      "eng"
+  // Add validation for crop area
+  if (finalWidth <= 0 || finalHeight <= 0 || finalLeft < 0 || finalTop < 0 ||
+      finalLeft + finalWidth > W || finalTop + finalHeight > H) {
+    logger.error(
+      `Invalid crop area calculated: left=${finalLeft}, top=${finalTop}, width=${finalWidth}, height=${finalHeight}, imageW=${W}, imageH=${H}`
     );
-    if (debug) {
-      debugInfo.fullAttempt = { text: fullData?.text };
-    }
-
-    const labelResultFull = parsePrestigesFromOcr(fullData?.text || "");
-
-    if (labelResultFull && labelResultFull.summoner > 0) {
-      if (debug && debugInfo.fullAttempt)
-        debugInfo.fullAttempt.detectedLabels = labelResultFull;
-      const { summoner, champion, relic } = labelResultFull;
-      return {
-        success: true,
-        summonerPrestige: summoner,
-        championPrestige: champion,
-        relicPrestige: relic,
-        fallback: true,
-        debugInfo: debug ? debugInfo : undefined,
-      };
-    }
-  } catch (e) {
-    if (debug) {
-      if (!debugInfo.fullAttempt) debugInfo.fullAttempt = {};
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      debugInfo.fullAttempt.error = errorMessage;
-    }
     return {
       success: false,
-      error: "OCR failed on both cropped and full image.",
+      summonerPrestige: 0,
+      championPrestige: 0,
+      relicPrestige: 0,
+      error: "Invalid crop area calculated.",
       debugInfo: debug ? debugInfo : undefined,
     };
   }
 
+  const croppedImageBuffer = await sharp(imageBuffer)
+    .extract({
+      left: finalLeft,
+      top: finalTop,
+      width: finalWidth,
+      height: finalHeight,
+    })
+    .toBuffer();
+  logger.info('Image cropped for initial OCR attempt.');
+  if (debug) {
+    debugInfo.croppedImage = croppedImageBuffer;
+  }
+
+  const croppedResult = await processOcrAttempt(
+    croppedImageBuffer,
+    debug,
+    debugInfo,
+    true
+  );
+  if (croppedResult.success) {
+    return croppedResult;
+  }
+
+  // --- Fallback to Full Image ---
+  logger.info('Falling back to full image for prestige extraction.');
+  const fullResult = await processOcrAttempt(
+    imageBuffer,
+    debug,
+    debugInfo,
+    false
+  );
+  if (fullResult.success) {
+    return fullResult;
+  }
+
+  logger.warn('Could not detect prestige values from image labels.');
   return {
     success: false,
-    error: "Could not detect prestige values from image labels.",
+    error: 'Could not detect prestige values from image labels.',
+    summonerPrestige: 0,
+    championPrestige: 0,
+    relicPrestige: 0,
     debugInfo: debug ? debugInfo : undefined,
   };
 }
