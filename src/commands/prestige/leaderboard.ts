@@ -69,7 +69,7 @@ function buildLeaderboardContainer(
       return new ButtonBuilder()
         .setCustomId(`prestige:leaderboard:${type}`)
         .setLabel(prestigeLabels[type])
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(prestigeType === type ? ButtonStyle.Secondary : ButtonStyle.Success)
         .setDisabled(prestigeType === type);
     })
   );
@@ -89,7 +89,7 @@ function buildLeaderboardContainer(
 export async function handleLeaderboard(
   interaction: ChatInputCommandInteraction
 ) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply();
   const guildId = interaction.guildId;
   if (!guildId) {
     await interaction.editReply("This command can only be used in a server.");
