@@ -1283,26 +1283,72 @@ async function isChampionAwakened(
     { x: stripX, y: stripY + stripHeight },
   ];
 
-  const strip = await sharp(imageBuffer)
-    .extract({
-      left: stripX,
-      top: stripY,
-      width: stripWidth,
-      height: stripHeight,
-    })
-    .raw()
-    .toBuffer();
+  let strip: Buffer;
+  try {
+    if (stripWidth <= 0 || stripHeight <= 0) {
+      if (debugMode) {
+        console.log(
+          `[DEBUG] Awakened check for champion at [${bounds[0].x.toFixed(
+            0
+          )}, ${bounds[0].y.toFixed(
+            0
+          )}]: Invalid strip dimensions (${stripWidth}x${stripHeight}), returning not awakened.`
+        );
+      }
+      return { isAwakened: false, awakenedCheckBounds };
+    }
+
+    strip = await sharp(imageBuffer)
+      .extract({
+        left: stripX,
+        top: stripY,
+        width: stripWidth,
+        height: stripHeight,
+      })
+      .raw()
+      .toBuffer();
+  } catch (error) {
+    if (debugMode) {
+      console.error(
+        `[DEBUG] Error extracting awakened strip for champion at [${bounds[0].x.toFixed(
+          0
+        )}, ${bounds[0].y.toFixed(0)}]:`,
+        error
+      );
+      const metadata = await sharp(imageBuffer).metadata();
+      console.log(
+        `[DEBUG] Image dimensions: ${metadata.width}x${metadata.height}`
+      );
+      console.log(
+        `[DEBUG] Extract params: { left: ${stripX}, top: ${stripY}, width: ${stripWidth}, height: ${stripHeight} }`
+      );
+    }
+    return { isAwakened: false, awakenedCheckBounds };
+  }
+
+  const numPixels = Math.floor(strip.length / 3);
+  if (numPixels === 0) {
+    if (debugMode) {
+      console.log(
+        `[DEBUG] Awakened check for champion at [${bounds[0].x.toFixed(
+          0
+        )}, ${bounds[0].y.toFixed(
+          0
+        )}]: Extracted strip has 0 pixels. Returning not awakened. Strip dimensions: ${stripWidth}x${stripHeight} at ${stripX},${stripY}`
+      );
+    }
+    return { isAwakened: false, awakenedCheckBounds };
+  }
 
   let r = 0,
     g = 0,
     b = 0;
-  for (let i = 0; i < strip.length; i += 3) {
-    r += strip[i];
-    g += strip[i + 1];
-    b += strip[i + 2];
+  for (let i = 0; i < numPixels; i++) {
+    r += strip[i * 3];
+    g += strip[i * 3 + 1];
+    b += strip[i * 3 + 2];
   }
 
-  const numPixels = strip.length / 3;
   const avgBlue = b / numPixels;
 
   if (debugMode) {
