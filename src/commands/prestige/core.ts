@@ -1,11 +1,6 @@
-import {
-  ChatInputCommandInteraction,
-  ComponentType,
-  MessageFlags,
-} from "discord.js";
+import { ChatInputCommandInteraction } from "discord.js";
 import { CommandResult } from "../../types/command";
 import { prisma } from "../../services/prismaService";
-import { buildPrestigeConfirmationContainer } from "./ui";
 import { updatePrestige } from "./updatePrestige";
 
 export async function core(params: {
@@ -42,53 +37,6 @@ export async function core(params: {
 /profile register
  first.`;
     return { content };
-  }
-
-  if (targetUserId && userId !== targetUserId) {
-    const confirmationButtons = buildPrestigeConfirmationContainer(
-      targetPlayer
-    );
-    const message = await interaction.editReply({
-      content: `Are you sure you want to update prestige for **${targetPlayer.ingameName}**?`,
-      components: [confirmationButtons],
-    });
-
-    const collector = message.createMessageComponentCollector({
-      componentType: ComponentType.Button,
-      time: 60000,
-    });
-
-    return new Promise((resolve) => {
-      collector.on("collect", async (i) => {
-        if (i.user.id !== userId) {
-          await i.reply({
-            content: "You cannot respond to this confirmation.",
-            flags: MessageFlags.Ephemeral,
-          });
-          return;
-        }
-
-        collector.stop();
-        if (i.customId.startsWith("prestige:confirm")) {
-          const result = await updatePrestige({
-            userId: params.userId,
-            imageUrl: params.imageUrl,
-            targetUserId: params.targetUserId,
-            player: targetPlayer,
-            debug: params.debug,
-          });
-          resolve(result);
-        } else {
-          resolve({ content: "Prestige update cancelled." });
-        }
-      });
-
-      collector.on("end", (collected) => {
-        if (collected.size === 0) {
-          resolve({ content: "Confirmation timed out." });
-        }
-      });
-    });
   }
 
   return await updatePrestige({ ...params, player: targetPlayer });

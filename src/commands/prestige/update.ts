@@ -1,6 +1,5 @@
-import { ChatInputCommandInteraction, Attachment, MessageFlags } from "discord.js";
-import { updatePrestige } from "./updatePrestige";
-import { prisma } from "../../services/prismaService";
+import { ChatInputCommandInteraction, Attachment } from "discord.js";
+import { core } from "./core";
 
 export async function handleUpdate(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply();
@@ -12,20 +11,11 @@ export async function handleUpdate(interaction: ChatInputCommandInteraction) {
     throw new Error("No image provided.");
   }
 
-  const player = await prisma.player.findUnique({
-    where: { discordId: interaction.user.id },
-  });
-
-  if (!player) {
-    await interaction.editReply("You are not registered. Please register with /profile register first.");
-    return;
-  }
-
-  const result = await updatePrestige({
+  const result = await core({
     userId: interaction.user.id,
     imageUrl: image.url,
     targetUserId,
-    player,
+    interaction,
     debug: false,
   });
 
