@@ -29,28 +29,38 @@ export interface FullAbilities {
   abilities_breakdown?: AbilityBlock[];
 }
 
-export function formatAttacks(attacks: AttackWithHits[]): string {
+export function formatAttacks(
+  attacks: AttackWithHits[],
+  formattingStyle: "detailed" | "compact" = "compact"
+): string {
   if (!attacks || attacks.length === 0) {
-    return "Sorry, Attack type values are missing for this champion.";
+    return formattingStyle === "compact"
+      ? "None"
+      : "Sorry, Attack type values are missing for this champion.";
   }
 
-  let attackStrings = "";
-
   const groupedAttacks: { [key: string]: AttackWithHits[] } = {};
+
   for (const attack of attacks) {
     const key = attack.type.replace(/\d/g, ""); // Group by L, M, S, H
+
     if (!groupedAttacks[key]) {
       groupedAttacks[key] = [];
     }
+
     groupedAttacks[key].push(attack);
   }
 
+  let attackStrings: string[] = [];
+
   for (const key in groupedAttacks) {
     const group = groupedAttacks[key];
+
     if (group.length > 1) {
       const firstAttackHits = JSON.stringify(
         group[0].hits.map((h: Hit) => h.properties).sort()
       );
+
       const allSame = group.every(
         (attack) =>
           JSON.stringify(attack.hits.map((h: Hit) => h.properties).sort()) ===
@@ -59,6 +69,7 @@ export function formatAttacks(attacks: AttackWithHits[]): string {
 
       if (allSame) {
         const attack = group[0];
+
         const hitCounts = attack.hits.reduce(
           (acc: Record<string, number>, hit: Hit) => {
             const key = hit.properties.join(" ");
@@ -67,12 +78,29 @@ export function formatAttacks(attacks: AttackWithHits[]): string {
           },
           {}
         );
+
         const types = Object.entries(hitCounts)
           .map(([detail, count]) => `${count}x ${detail}`)
           .join(", ");
-        attackStrings += `**${key.toUpperCase()}${
-          group.length > 1 ? ` 1-${group.length}` : ""
-        } Attack**: ${types}\n`;
+        if (formattingStyle === "compact") {
+          attackStrings.push(
+            `**${key.toUpperCase()}${
+              group.length > 1 ? ` 1-${group.length}` : ""
+            } Attack**: ${types}`
+          );
+        } else {
+          // Detailed formatting
+
+          attackStrings.push(
+            `### ${key.toUpperCase()}${
+              group.length > 1 ? ` 1-${group.length}` : ""
+            } Attack:`
+          );
+
+          Object.entries(hitCounts).forEach(([detail, count]) => {
+            attackStrings.push(`- ${count}x ${detail}`);
+          });
+        }
       } else {
         for (const attack of group) {
           const hitCounts = attack.hits.reduce(
@@ -83,10 +111,22 @@ export function formatAttacks(attacks: AttackWithHits[]): string {
             },
             {}
           );
+
           const types = Object.entries(hitCounts)
             .map(([detail, count]) => `${count}x ${detail}`)
             .join(", ");
-          attackStrings += `**${attack.type} Attack**: ${types}\n`;
+
+          if (formattingStyle === "compact") {
+            attackStrings.push(`**${attack.type} Attack**: ${types}`);
+          } else {
+            // Detailed formatting
+
+            attackStrings.push(`### ${attack.type} Attack:`);
+
+            Object.entries(hitCounts).forEach(([detail, count]) => {
+              attackStrings.push(`- ${count}x ${detail}`);
+            });
+          }
         }
       }
     } else {
@@ -99,23 +139,38 @@ export function formatAttacks(attacks: AttackWithHits[]): string {
         },
         {}
       );
+
       const types = Object.entries(hitCounts)
         .map(([detail, count]) => `${count}x ${detail}`)
         .join(", ");
-      attackStrings += `**${attack.type} Attack**: ${types}\n`;
+
+      if (formattingStyle === "compact") {
+        attackStrings.push(`**${attack.type} Attack**: ${types}`);
+      } else {
+        // Detailed formatting
+
+        attackStrings.push(`### ${attack.type} Attack:`);
+
+        Object.entries(hitCounts).forEach(([detail, count]) => {
+          attackStrings.push(`- ${count}x ${detail}`);
+        });
+      }
     }
   }
 
-  return attackStrings;
+  return attackStrings.join("\n");
 }
 
 export function formatLinkedAbilitySection(
   links: ChampionAbilityLinkWithAbility[],
   resolveEmoji: (text: string) => string,
-  sectionTitle: string
+  sectionTitle: string,
+  formattingStyle: "detailed" | "compact"
 ): string {
   if (!links || links.length === 0) {
-    return `No ${sectionTitle.toLowerCase()} found.`;
+    return formattingStyle === "compact"
+      ? "None"
+      : `No ${sectionTitle.toLowerCase()} found.`;
   }
 
   // Group by ability name; collect distinct sources per ability
@@ -155,41 +210,67 @@ export function formatLinkedAbilitySection(
     a.name.localeCompare(b.name)
   );
 
-  const lines: string[] = [];
+  if (formattingStyle === "compact") {
+    const formattedItems = items.map((item) => {
+      const emoji = item.emoji ? resolveEmoji(item.emoji) : "";
+      const base = `${emoji ? `${emoji} ` : ""}**${item.name}**`;
 
-  for (const item of items) {
-    const emoji = item.emoji ? resolveEmoji(item.emoji) : "";
-    const base = `### ${emoji ? `${emoji} ` : ""}${item.name}`;
+      if (item.sources.length === 0) {
+        return base;
+      } else {
+        // Sort sources for consistent ordering
+        item.sources.sort((a: string, b: string) => a.localeCompare(b));
+        return `${base} (${item.sources.join(" | ")})`;
+      }
+    });
+    return formattedItems.join("\n");
+  } else {
+    // 'detailed' style
+    const lines: string[] = [];
 
-    if (item.sources.length === 0) {
-      lines.push(base);
-    } else if (item.sources.length === 1) {
-      lines.push(`${base} \n> ${item.sources[0]}`);
-    } else {
-      lines.push(base);
-      // Sort sources for consistent ordering
-      item.sources.sort((a: string, b: string) => a.localeCompare(b));
-      for (const source of item.sources) {
-        lines.push(`> ${source}`);
+    for (const item of items) {
+      const emoji = item.emoji ? resolveEmoji(item.emoji) : "";
+      const base = `${emoji ? `${emoji} ` : ""}**${item.name}**`;
+
+      if (item.sources.length === 0) {
+        lines.push(base);
+      } else if (item.sources.length === 1) {
+        lines.push(`${base} (${item.sources[0]})`);
+      } else {
+        lines.push(base);
+        // Sort sources for consistent ordering
+        item.sources.sort((a: string, b: string) => a.localeCompare(b));
+        for (const source of item.sources) {
+          lines.push(`  - ${source}`);
+        }
       }
     }
+    return lines.join("\n");
   }
-
-  return lines.join("\n");
 }
 
 export function formatAbilities(
   abilities: ChampionAbilityLinkWithAbility[],
   resolveEmoji: (text: string) => string
 ): string {
-  return formatLinkedAbilitySection(abilities, resolveEmoji, "Abilities");
+  return formatLinkedAbilitySection(
+    abilities,
+    resolveEmoji,
+    "Abilities",
+    "detailed"
+  );
 }
 
 export function formatImmunities(
   immunities: ChampionAbilityLinkWithAbility[],
   resolveEmoji: (text: string) => string
 ): string {
-  return formatLinkedAbilitySection(immunities, resolveEmoji, "Immunities");
+  return formatLinkedAbilitySection(
+    immunities,
+    resolveEmoji,
+    "Immunities",
+    "detailed"
+  );
 }
 
 export function formatTags(tags: Tag[]): string {

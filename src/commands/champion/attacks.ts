@@ -9,7 +9,7 @@ export function handleAttacks(
   const container = new ContainerBuilder().setAccentColor(
     CLASS_COLOR[champion.class]
   );
-  const formattedAttacks = formatAttacks(champion.attacks);
+  const formattedAttacks = formatAttacks(champion.attacks, 'detailed');
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(formattedAttacks)
   );

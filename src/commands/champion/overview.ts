@@ -10,9 +10,8 @@ import {
 import { CommandResult } from "../../types/command";
 import {
   CLASS_COLOR,
-  formatAbilities,
+  formatLinkedAbilitySection,
   formatAttacks,
-  formatImmunities,
   formatTags,
 } from "./view";
 
@@ -36,14 +35,14 @@ export function handleOverview(
   if (abilities.length > 0) {
     sections.push({
       title: "Abilities",
-      content: formatAbilities(abilities, resolveEmoji),
+      content: formatLinkedAbilitySection(abilities, resolveEmoji, "Abilities", 'compact'),
     });
   }
 
   if (immunities.length > 0) {
     sections.push({
       title: "Immunities",
-      content: formatImmunities(immunities, resolveEmoji),
+      content: formatLinkedAbilitySection(immunities, resolveEmoji, "Immunities", 'compact'),
     });
   }
 
@@ -57,7 +56,7 @@ export function handleOverview(
   if (champion.attacks.length > 0) {
     sections.push({
       title: "Attacks",
-      content: formatAttacks(champion.attacks),
+      content: formatAttacks(champion.attacks, 'compact'),
     });
   }
 
