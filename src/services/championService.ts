@@ -7,6 +7,7 @@ import {
   Ability,
   Tag,
   ChampionAbilitySynergy,
+  Duel,
 } from "@prisma/client";
 import { normalizeChampionName } from "../utils/championHelper";
 
@@ -51,6 +52,7 @@ export type ChampionWithAllRelations = Champion & {
   attacks: AttackWithHits[];
   abilities: ChampionAbilityLinkWithRelations[];
   tags: Tag[];
+  duels: Duel[];
 };
 
 export async function getChampionData(
@@ -72,6 +74,7 @@ export async function getChampionData(
         },
       },
       tags: true,
+      duels: true,
     },
   }) as Promise<ChampionWithAllRelations | null>;
 }

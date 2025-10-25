@@ -77,9 +77,24 @@ model Champion {
   attacks            Attack[]
   roster             Roster[]
   synergyProviderFor ChampionAbilitySynergy[]
+  duels              Duel[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Duel {
+  id         Int      @id @default(autoincrement())
+  playerName String
+  rank       String?
+
+  championId Int
+  champion   Champion @relation(fields: [championId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([championId])
 }
 
 model Tag {

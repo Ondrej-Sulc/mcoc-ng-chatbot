@@ -81,6 +81,15 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             ],
           },
         ],
+          "duel",
+          {
+            description: "Admin commands for managing duel data.",
+            usage: "/admin duel upload",
+            examples: [
+              "/admin duel upload file:<duels.csv> - Uploads a CSV file with duel targets.",
+            ],
+          },
+        ],
       ]),
     },
   ],
@@ -218,6 +227,17 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             usage: "/champion overview <champion>",
             examples: [
               "/champion overview champion:Kitty Pryde - Get a complete summary for Kitty Pryde.",
+            ],
+          },
+        ],
+        [
+          "duel",
+          {
+            description:
+              "Get duel targets for a champion. This provides a list of players to duel against for practice.",
+            usage: "/champion duel <champion>",
+            examples: [
+              "/champion duel champion:Absorbing Man - Get duel targets for Absorbing Man.",
             ],
           },
         ],

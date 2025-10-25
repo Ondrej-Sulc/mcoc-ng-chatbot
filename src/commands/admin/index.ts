@@ -15,6 +15,7 @@ import { showAttackModal } from "./attack/add";
 import { championsByName } from "../../services/championService";
 import { AbilityLinkType } from "@prisma/client";
 import { handleGlossaryLink, handleGlossaryUnlink, handleGlossaryUpdateAbility, handleGlossaryUpdateCategory } from "./glossary/handlers";
+import { handleDuelUpload } from "./duel/upload";
 
 const authorizedUsers = config.DEV_USER_IDS || [];
 
@@ -294,6 +295,22 @@ export const command: Command = {
                 .setRequired(true)
             )
         )
+    )
+    .addSubcommandGroup((group) =>
+      group
+        .setName("duel")
+        .setDescription("Admin commands for managing duels.")
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("upload")
+            .setDescription("Uploads duel data from a CSV file.")
+            .addAttachmentOption((option) =>
+              option
+                .setName("csv")
+                .setDescription("The CSV file to upload.")
+                .setRequired(true)
+            )
+        )
     ),
   async execute(interaction) {
     if (!interaction.isChatInputCommand()) return;
@@ -345,6 +362,10 @@ export const command: Command = {
         } else if (subcommand === "update-category") {
             await handleGlossaryUpdateCategory(interaction);
         }
+    } else if (group === "duel") {
+      if (subcommand === "upload") {
+        await handleDuelUpload(interaction);
+      }
     }
   },
   async autocomplete(interaction) {

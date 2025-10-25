@@ -40,12 +40,12 @@ A personal, modular Discord bot built with TypeScript, designed for Marvel Conte
 
 | Command | Description |
 | --- | --- |
-| `/admin` | Administrative commands for managing champions, abilities, attacks, and the glossary. |
+| `/admin` | Administrative commands for managing champions, abilities, attacks, duels, and the glossary. |
 | `/aq` | Alliance Quest (AQ) utilities. |
 | `/aw` | Commands for Alliance War planning and details. |
 | `/debug` | Debugging commands, restricted to bot administrators. |
 | `/glossary` | Look up MCOC effects, buffs, and debuffs. |
-| `/champion` | Get detailed information about any champion in the game. |
+| `/champion` | Get detailed information about any champion in the game, including duel targets. |
 | `/prestige` | Extract prestige values from an MCOC screenshot or view the leaderboard. |
 | `/profile` | Manage your player profile. |
 | `/roster` | Manage your MCOC roster. |

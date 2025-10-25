@@ -17,6 +17,7 @@ import { handleAbilities } from "./abilities";
 import { handleImmunities } from "./immunities";
 import { handleTags } from "./tags";
 import { handleOverview } from "./overview";
+import { handleDuel } from "./duel";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -86,6 +87,18 @@ export const command: Command = {
       subcommand
         .setName("overview")
         .setDescription("Display a champion's abilities, immunities, and tags.")
+        .addStringOption((option) =>
+          option
+            .setName("champion")
+            .setDescription("The name of the champion.")
+            .setRequired(true)
+            .setAutocomplete(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("duel")
+        .setDescription("Get duel targets for a champion.")
         .addStringOption((option) =>
           option
             .setName("champion")
@@ -182,6 +195,9 @@ export const command: Command = {
         break;
       case "overview":
         result = handleOverview(champion, resolveEmoji);
+        break;
+      case "duel":
+        result = handleDuel(champion);
         break;
       default:
         await interaction.editReply({ content: "Invalid subcommand." });
