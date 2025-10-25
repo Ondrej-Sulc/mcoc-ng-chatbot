@@ -159,18 +159,18 @@ export function formatLinkedAbilitySection(
 
   for (const item of items) {
     const emoji = item.emoji ? resolveEmoji(item.emoji) : "";
-    const base = `${emoji ? `${emoji} ` : ""}**${item.name}**`;
+    const base = `### ${emoji ? `${emoji} ` : ""}${item.name}`;
 
     if (item.sources.length === 0) {
       lines.push(base);
     } else if (item.sources.length === 1) {
-      lines.push(`${base} — ${item.sources[0]}`);
+      lines.push(`${base} \n> ${item.sources[0]}`);
     } else {
       lines.push(base);
       // Sort sources for consistent ordering
       item.sources.sort((a: string, b: string) => a.localeCompare(b));
       for (const source of item.sources) {
-        lines.push(`  • ${source}`);
+        lines.push(`> ${source}`);
       }
     }
   }
