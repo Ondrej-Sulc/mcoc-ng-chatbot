@@ -58,17 +58,51 @@ export async function autocompleteSource(interaction: AutocompleteInteraction) {
         champion: { name: championName },
         ability: { name: abilityName },
         type: type,
-        source: { contains: focusedValue, mode: "insensitive" },
+        OR: [
+          { source: { contains: focusedValue, mode: "insensitive" } },
+          { synergyChampions: { some: { champion: { name: { contains: focusedValue, mode: "insensitive" } } } } }
+        ]
       },
-      distinct: ["source"],
+      include: {
+        synergyChampions: {
+          include: {
+            champion: true,
+          },
+        },
+      },
       take: 25,
     });
 
-    const sources = links.map((link) => link.source);
+    const sources = new Set<string>();
+    for (const link of links) {
+        let source = (link.source || "").trim();
+        if (link.synergyChampions && link.synergyChampions.length > 0) {
+            const synergyPart = link.synergyChampions
+                .map(synergy => synergy.champion.shortName)
+                .join(' & ');
+            source = `Synergy [${synergyPart}]${source && source !== 'Synergy' ? ` & ${source}` : ''}`;
+        }
+        if(source) {
+          sources.add(source);
+        }
+    }
+
+    const sourcesArray = Array.from(sources);
     await interaction.respond(
-      sources.map((source) => {
+      sourcesArray.map((source) => {
         const sourceValue = source === null ? "<None>" : source;
         return { name: sourceValue, value: sourceValue };
       })
+    );
+}
+
+export async function autocompleteSynergyChampions(interaction: AutocompleteInteraction) {
+    const focusedValue = interaction.options.getFocused();
+    const champions = await prisma.champion.findMany({
+      where: { name: { contains: focusedValue, mode: "insensitive" } },
+      take: 25,
+    });
+    await interaction.respond(
+      champions.map((champion) => ({ name: champion.name, value: champion.name }))
     );
 }

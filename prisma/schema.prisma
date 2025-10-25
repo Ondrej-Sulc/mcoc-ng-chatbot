@@ -72,10 +72,11 @@ model Champion {
   fullAbilities Json
 
   // --- Relations ---
-  tags      Tag[]
-  abilities ChampionAbilityLink[]
-  attacks   Attack[]
-  roster    Roster[]
+  tags               Tag[]
+  abilities          ChampionAbilityLink[]
+  attacks            Attack[]
+  roster             Roster[]
+  synergyProviderFor ChampionAbilitySynergy[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -102,9 +103,23 @@ model ChampionAbilityLink {
   abilityId Int
   ability   Ability @relation(fields: [abilityId], references: [id], onDelete: Cascade)
 
+  synergyChampions ChampionAbilitySynergy[]
+
   @@unique([championId, abilityId, type, source])
   @@index([championId])
   @@index([abilityId])
+}
+
+model ChampionAbilitySynergy {
+  id                    Int                 @id @default(autoincrement())
+  championAbilityLinkId Int
+  championAbilityLink   ChampionAbilityLink @relation(fields: [championAbilityLinkId], references: [id], onDelete: Cascade)
+  championId            Int
+  champion              Champion            @relation(fields: [championId], references: [id], onDelete: Cascade)
+
+  @@unique([championAbilityLinkId, championId])
+  @@index([championAbilityLinkId])
+  @@index([championId])
 }
 
 // --- New Models for Normalized Attacks ---

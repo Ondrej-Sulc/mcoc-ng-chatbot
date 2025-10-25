@@ -1,7 +1,7 @@
 import { ChampionClass, Hit, Tag } from "@prisma/client";
 import {
   AttackWithHits,
-  ChampionAbilityLinkWithAbility,
+  ChampionAbilityLinkWithRelations,
 } from "../../services/championService";
 
 export const CLASS_COLOR: Record<ChampionClass, number> = {
@@ -162,7 +162,7 @@ export function formatAttacks(
 }
 
 export function formatLinkedAbilitySection(
-  links: ChampionAbilityLinkWithAbility[],
+  links: ChampionAbilityLinkWithRelations[],
   resolveEmoji: (text: string) => string,
   sectionTitle: string,
   formattingStyle: "detailed" | "compact"
@@ -186,7 +186,21 @@ export function formatLinkedAbilitySection(
   for (const link of links) {
     const name = link.ability.name;
     const key = name.toLowerCase();
-    const source = (link.source || "").trim();
+    let source = (link.source || "").trim();
+
+    if (link.synergyChampions && link.synergyChampions.length > 0) {
+      const synergyPart = link.synergyChampions
+        .map((synergy) => {
+          const emoji = synergy.champion.discordEmoji
+            ? resolveEmoji(synergy.champion.discordEmoji)
+            : "";
+          return `${emoji}`.trim();
+        })
+        .join(" ");
+
+      source = `Synergy ${synergyPart}${source && source !== 'Synergy' ? ` & ${source}` : ''}`;
+    }
+
     if (!byName.has(key)) {
       byName.set(key, {
         name,
@@ -220,7 +234,7 @@ export function formatLinkedAbilitySection(
       } else {
         // Sort sources for consistent ordering
         item.sources.sort((a: string, b: string) => a.localeCompare(b));
-        return `${base} (${item.sources.join(" | ")})`;
+        return `${base} - ${item.sources.join(" | ")}`;
       }
     });
     return formattedItems.join("\n");
@@ -250,7 +264,7 @@ export function formatLinkedAbilitySection(
 }
 
 export function formatAbilities(
-  abilities: ChampionAbilityLinkWithAbility[],
+  abilities: ChampionAbilityLinkWithRelations[],
   resolveEmoji: (text: string) => string
 ): string {
   return formatLinkedAbilitySection(
@@ -262,7 +276,7 @@ export function formatAbilities(
 }
 
 export function formatImmunities(
-  immunities: ChampionAbilityLinkWithAbility[],
+  immunities: ChampionAbilityLinkWithRelations[],
   resolveEmoji: (text: string) => string
 ): string {
   return formatLinkedAbilitySection(

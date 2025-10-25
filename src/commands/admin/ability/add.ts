@@ -2,6 +2,8 @@ import { CommandInteraction } from "discord.js";
 import { AbilityLinkType } from "@prisma/client";
 import logger from "../../../services/loggerService";
 import { prisma } from "../../../services/prismaService";
+import { championList } from "../../../services/championService";
+import Fuse from "fuse.js";
 
 export async function handleAbilityAdd(interaction: CommandInteraction) {
     if (!interaction.isChatInputCommand()) return;
@@ -17,11 +19,15 @@ export async function handleAbilityAdd(interaction: CommandInteraction) {
         true
       ) as AbilityLinkType;
       const abilityName = interaction.options.getString("ability", true);
-      const source = interaction.options.getString("source") ?? null;
+      let source = interaction.options.getString("source") ?? null;
+      if (source === "<None>") {
+        source = null;
+      }
+      const synergyChampionsStr = interaction.options.getString("synergy-champions");
 
       await interaction.editReply(
         `Adding ${type.toLowerCase()} '${abilityName}' to **${championName}** from source '${
-          source || "Unknown"
+          source || "Unknown" 
         }'...`
       );
 
@@ -39,12 +45,32 @@ export async function handleAbilityAdd(interaction: CommandInteraction) {
         create: { name: abilityName, description: "" },
       });
 
+      const synergyChampionIds: number[] = [];
+      if (synergyChampionsStr) {
+        const fuse = new Fuse(championList, { keys: ['name', 'shortName'], threshold: 0.4 });
+        const synergyChampionNames = synergyChampionsStr.split(',').map(s => s.trim());
+        for (const name of synergyChampionNames) {
+            const result = fuse.search(name);
+            if (result.length > 0) {
+                synergyChampionIds.push(result[0].item.id);
+            } else {
+                await interaction.editReply(`Synergy champion **${name}** not found.`);
+                return;
+            }
+        }
+      }
+
       await prisma.championAbilityLink.create({
         data: {
           championId: champion.id,
           abilityId: ability.id,
           type,
           source,
+          synergyChampions: {
+            create: synergyChampionIds.map(id => ({
+                championId: id,
+            })),
+          },
         },
       });
 

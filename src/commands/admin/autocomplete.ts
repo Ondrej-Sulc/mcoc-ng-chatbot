@@ -1,6 +1,6 @@
 import { AutocompleteInteraction } from "discord.js";
 import { championsByName } from "../../services/championService";
-import { autocompleteChampionAbility, autocompleteAllAbilities, autocompleteSource } from "./ability/autocomplete";
+import { autocompleteChampionAbility, autocompleteAllAbilities, autocompleteSource, autocompleteSynergyChampions } from "./ability/autocomplete";
 import { autocompleteAbility, autocompleteCategory } from "./glossary/autocomplete";
 
 export async function handleAdminAutocomplete(interaction: AutocompleteInteraction) {
@@ -42,6 +42,8 @@ export async function handleAdminAutocomplete(interaction: AutocompleteInteracti
         }
       } else if (focused.name === "source") {
         await autocompleteSource(interaction);
+      } else if (focused.name === "synergy-champions") {
+        await autocompleteSynergyChampions(interaction);
       }
     } else if (group === "attack") {
       if (focused.name === "champion") {

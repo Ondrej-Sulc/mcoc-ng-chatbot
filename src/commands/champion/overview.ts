@@ -1,6 +1,6 @@
 import {
   ChampionWithAllRelations,
-  ChampionAbilityLinkWithAbility,
+  ChampionAbilityLinkWithRelations,
 } from "../../services/championService";
 import {
   ContainerBuilder,
@@ -24,10 +24,10 @@ export function handleOverview(
   );
 
   const abilities = champion.abilities.filter(
-    (a: ChampionAbilityLinkWithAbility) => a.type === "ABILITY"
+    (a: ChampionAbilityLinkWithRelations) => a.type === "ABILITY"
   );
   const immunities = champion.abilities.filter(
-    (a: ChampionAbilityLinkWithAbility) => a.type === "IMMUNITY"
+    (a: ChampionAbilityLinkWithRelations) => a.type === "IMMUNITY"
   );
 
   const sections = [];

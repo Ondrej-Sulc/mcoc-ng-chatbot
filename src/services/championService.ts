@@ -6,6 +6,7 @@ import {
   ChampionAbilityLink,
   Ability,
   Tag,
+  ChampionAbilitySynergy,
 } from "@prisma/client";
 import { normalizeChampionName } from "../utils/championHelper";
 
@@ -37,13 +38,18 @@ export type AttackWithHits = Attack & { hits: Hit[] };
 
 // This is derived from the Prisma query include statement.
 
-export type ChampionAbilityLinkWithAbility = ChampionAbilityLink & {
+export type ChampionAbilitySynergyWithChampion = ChampionAbilitySynergy & {
+  champion: Champion;
+};
+
+export type ChampionAbilityLinkWithRelations = ChampionAbilityLink & {
   ability: Ability;
+  synergyChampions: ChampionAbilitySynergyWithChampion[];
 };
 
 export type ChampionWithAllRelations = Champion & {
   attacks: AttackWithHits[];
-  abilities: ChampionAbilityLinkWithAbility[];
+  abilities: ChampionAbilityLinkWithRelations[];
   tags: Tag[];
 };
 
@@ -55,7 +61,16 @@ export async function getChampionData(
 
     include: {
       attacks: { include: { hits: true } },
-      abilities: { include: { ability: true } },
+      abilities: {
+        include: {
+          ability: true,
+          synergyChampions: {
+            include: {
+              champion: true,
+            },
+          },
+        },
+      },
       tags: true,
     },
   }) as Promise<ChampionWithAllRelations | null>;

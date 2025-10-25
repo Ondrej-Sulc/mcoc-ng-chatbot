@@ -1,4 +1,4 @@
-import { ChampionWithAllRelations, ChampionAbilityLinkWithAbility } from "../../services/championService";
+import { ChampionWithAllRelations, ChampionAbilityLinkWithRelations } from "../../services/championService";
 import { ContainerBuilder, TextDisplayBuilder } from "discord.js";
 import { CommandResult } from "../../types/command";
 import { CLASS_COLOR, formatImmunities } from "./view";
@@ -11,7 +11,7 @@ export function handleImmunities(
     CLASS_COLOR[champion.class]
   );
   const relevantAbilities = champion.abilities.filter(
-    (a: ChampionAbilityLinkWithAbility) => a.type === "IMMUNITY"
+    (a: ChampionAbilityLinkWithRelations) => a.type === "IMMUNITY"
   );
 
   const formattedImmunities = formatImmunities(relevantAbilities, resolveEmoji);

@@ -127,6 +127,13 @@ export const command: Command = {
                 .setRequired(false)
                 .setAutocomplete(true)
             )
+            .addStringOption((option) =>
+              option
+                .setName("synergy-champions")
+                .setDescription("Comma-separated list of synergy champion names.")
+                .setRequired(false)
+                .setAutocomplete(true)
+            )
         )
         .addSubcommand((subcommand) =>
           subcommand
@@ -160,6 +167,13 @@ export const command: Command = {
               option
                 .setName("source")
                 .setDescription("Source of the ability.")
+                .setRequired(false)
+                .setAutocomplete(true)
+            )
+            .addStringOption((option) =>
+              option
+                .setName("synergy-champions")
+                .setDescription("Comma-separated list of synergy champion names to remove.")
                 .setRequired(false)
                 .setAutocomplete(true)
             )
