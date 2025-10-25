@@ -8,7 +8,8 @@ import {
   MediaGalleryItemBuilder,
   MessageFlags,
 } from "discord.js";
-import { processRosterScreenshot, RosterDebugResult } from "../../services/rosterService";
+import { processRosterScreenshot } from "../roster/ocr/process";
+import { RosterDebugResult } from "../roster/ocr/types";
 import { createEmojiResolver } from "../../utils/emojiResolver";
 
 export async function handleRosterDebug(

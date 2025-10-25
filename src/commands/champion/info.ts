@@ -48,8 +48,6 @@ export function handleInfo(champion: ChampionWithAllRelations): CommandResult {
     }
   };
 
-  addTextToContainer(`**${champion.name}**\n*${champion.class}*`);
-
   if (fullAbilities.signature) {
     const sig = fullAbilities.signature;
     addBlock(

@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { prisma } from "../services/prismaService";
-import { RosterUpdateResult, RosterDebugResult, processRosterScreenshot } from "../services/rosterService";
+import { processRosterScreenshot } from "../commands/roster/ocr/process";
+import { RosterUpdateResult, RosterDebugResult } from "../commands/roster/ocr/types";
 import * as fs from "fs/promises";
 import * as path from "path";
 

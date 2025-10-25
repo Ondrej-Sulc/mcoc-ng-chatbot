@@ -8,11 +8,8 @@ import {
   MessageFlags,
 } from "discord.js";
 import { getPlayer } from "../../utils/playerHelper";
-import {
-  processRosterScreenshot,
-  RosterUpdateResult,
-  RosterWithChampion,
-} from "../../services/rosterService";
+import { processRosterScreenshot } from "./ocr/process";
+import { RosterUpdateResult, RosterWithChampion } from "./ocr/types";
 import { createEmojiResolver } from "../../utils/emojiResolver";
 
 export async function handleUpdate(
@@ -90,18 +87,20 @@ export async function handleUpdate(
   container.addTextDisplayComponents(summary);
 
   const resolveEmojis = createEmojiResolver(interaction.client);
-  let champList = "## " + allAddedChampions
-    .map((row) =>
-      row
-        .map((entry) => {
-          const awakened = entry.isAwakened ? "★" : "☆";
-          const ascended = entry.isAscended ? "🏆" : "";
-          const emoji = entry.champion.discordEmoji || "";
-          return `${emoji}${awakened}${ascended}`;
-        })
-        .join(" ")
-    )
-    .join("\n## ");
+  let champList =
+    "## " +
+    allAddedChampions
+      .map((row) =>
+        row
+          .map((entry) => {
+            const awakened = entry.isAwakened ? "★" : "☆";
+            const ascended = entry.isAscended ? "🏆" : "";
+            const emoji = entry.champion.discordEmoji || "";
+            return `${emoji}${awakened}${ascended}`;
+          })
+          .join(" ")
+      )
+      .join("\n## ");
 
   if (champList) {
     const content = new TextDisplayBuilder().setContent(

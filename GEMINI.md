@@ -77,6 +77,7 @@ The bot should now be running and connected to Discord and the database.
 *   **Database:** Prisma is used to manage the PostgreSQL database. The schema is defined in `prisma/schema.prisma`.
 *   **Code Style:** The project follows standard TypeScript and Prettier conventions.
 *   **Logging:** For consistency and performance, all logging should be done using the `pino` logger, which is available through the `loggerService`. This provides structured, leveled logging. Avoid using `console.log` for any persistent or important logging.
+*   **Documentation Maintenance:** The `README.md` and the in-bot `/help` command documentation (`src/commands/help/descriptions.ts`) must be kept up-to-date. Whenever new commands are added, existing commands are modified (e.g., new options, changed descriptions, updated usage), or any significant changes occur in the bot's functionality, these documentation sources should be updated accordingly to ensure users and developers have accurate information.
 *   **Services vs. Utils:**
     *   `src/services`: For modules that connect to external APIs or manage stateful business logic.
 *   **`src/utils`: For generic, stateless helper functions and internal application logic handlers.

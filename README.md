@@ -7,23 +7,24 @@ A personal, modular Discord bot built with TypeScript, designed for Marvel Conte
 ## Key Features
 
 - **Dynamic Command Loading:** Commands in the `src/commands` directory are automatically registered on startup.
-- **Champion Administration:** A powerful admin command to add or update champions in the database. The champion creation process is handled through a user-friendly, two-part interactive modal, and the image update command features autocomplete for champion names. This command automates the entire process, including:
+- **Champion Administration:** A powerful admin command to add or update champions, abilities, attacks, and glossary entries in the database. The champion creation process is handled through a user-friendly, two-part interactive modal, and the image update command features autocomplete for champion names. This command automates the entire process, including:
     - **Image Processing:** Downloads champion images, resizes them to multiple dimensions (256, 128, 64, 32), and applies a subtle blur to smaller sizes.
     - **Cloud Storage:** Uploads the processed images to a Google Cloud Storage bucket.
     - **AI Tag Extraction:** Uses an AI model (via OpenRouter) to analyze a provided image and extract a champion's tags.
+    - **AI Ability Drafting:** Leverages AI to draft abilities and immunities for champions based on their full abilities JSON.
     - **Application Emoji Creation:** Automatically creates a new application emoji for the champion.
     - **Database Integration:** Upserts the champion data into the PostgreSQL database, ensuring no duplicates are created.
-- **Roster Management:** A comprehensive `/roster` command that allows users to manage their personal champion rosters. It includes subcommands to `add`, `update`, `view`, and `delete` champions, providing a full suite of tools for roster maintenance.
+- **Roster Management:** A comprehensive `/roster` command that allows users to manage their personal champion rosters. It includes subcommands to `update` (via OCR from screenshots), `view`, `delete`, `summary`, and `export` champions, providing a full suite of tools for roster maintenance.
 - **Advanced Search:** A powerful `/search` command with two main subcommands:
-    - `/search all`: Performs a global search across all champions in the database based on a wide range of criteria, including abilities, immunities, tags, and more.
+    - `/search all`: Performs a global search across all champions in the database based on a wide range of criteria, including abilities, immunities, tags, classes, ability categories, and attack types.
     - `/search roster`: Allows users to search within their own personal roster, making it easy to find specific champions they own.
 - **AQ Management:** An interactive `/aq` command to manage Alliance Quest (AQ) trackers. Users can `start` and `end` trackers, and progress is updated through interactive buttons, providing a real-time view of the AQ status.
 - **PostgreSQL Database:** Uses a robust PostgreSQL database managed with Prisma for persistent data storage.
 - **Google Sheets Integration:** Utilizes Google Sheets for data storage and retrieval (e.g., for scheduling).
-- **Advanced Scheduling:** Schedule commands or custom messages with flexible timing (daily, weekly, custom cron, etc.) via `/schedule`.
+- **Advanced Scheduling:** Schedule commands or custom messages with flexible timing (daily, weekly, monthly, custom cron, etc.) via `/schedule`.
 - **Centralized Error Handling:** A robust system that provides users with a unique error ID while logging detailed context for debugging.
 - **Dockerized Environment:** Fully containerized with Docker Compose for consistent development and easy deployment, including a PostgreSQL database service.
-- **AI Capabilities:** Integration with OpenRouter for advanced AI features.
+- **AI Capabilities:** Integration with OpenRouter for advanced AI features, including champion ability drafting and tag extraction.
 - **Dynamic Thumbnail Generation:** A sophisticated service (`src/utils/thumbnailGenerator.ts`) that generates custom, visually rich thumbnails for champion-related commands. It uses a champion's class to theme the image with unique colors and intricate SVG background patterns. These patterns are highly configurable, allowing for easy adjustments to their scale and opacity to fine-tune the final look.
 
 ## Technology Stack
@@ -39,18 +40,19 @@ A personal, modular Discord bot built with TypeScript, designed for Marvel Conte
 
 | Command | Description |
 | --- | --- |
-| `/admin` | Administrative commands for managing champions. |
-| `/aq` | Alliance Quest utilities. |
-| `/aw` | Alliance War utilities. |
-| `/debug` | Debugging commands. |
-| `/glossary` | Glossary of MCOC terms. |
-| `/champion` | Champion information. |
-| `/prestige` | Prestige tracking. |
-| `/profile` | User profile management. |
-| `/roster` | Roster management. |
-| `/schedule` | Schedule reminders and other events. |
-| `/search` | Advanced search for champions. |
-| `/summarize` | Summarize text. |
+| `/admin` | Administrative commands for managing champions, abilities, attacks, and the glossary. |
+| `/aq` | Alliance Quest (AQ) utilities. |
+| `/aw` | Commands for Alliance War planning and details. |
+| `/debug` | Debugging commands, restricted to bot administrators. |
+| `/glossary` | Look up MCOC effects, buffs, and debuffs. |
+| `/champion` | Get detailed information about any champion in the game. |
+| `/prestige` | Extract prestige values from an MCOC screenshot or view the leaderboard. |
+| `/profile` | Manage your player profile. |
+| `/roster` | Manage your MCOC roster. |
+| `/schedule` | Manage scheduled tasks. |
+| `/search` | Powerful search for champions based on various criteria. |
+| `/summarize` | Summarizes recent messages in a channel or thread using AI. |
+| `/help` | Displays an interactive help guide for all bot commands. |
 
 ---
 
