@@ -81,6 +81,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             ],
           },
         ],
+        [
           "duel",
           {
             description: "Admin commands for managing duel data.",
