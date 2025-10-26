@@ -9,7 +9,7 @@ import {
 import { getChampionData, championList } from "../../services/championService";
 import { Command, CommandResult } from "../../types/command";
 import { createEmojiResolver } from "../../utils/emojiResolver";
-import { generateChampionThumbnail } from "../../utils/thumbnailGenerator";
+import { generateChampionThumbnail } from "./thumbnail";
 import { getChampionImageUrl } from "../../utils/championHelper";
 import { handleInfo } from "./info";
 import { handleAttacks } from "./attacks";
