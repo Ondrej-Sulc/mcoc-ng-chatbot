@@ -12,6 +12,7 @@ import {
 } from "discord.js";
 import { config } from "../config";
 import { commands } from "../utils/commandHandler";
+import posthogClient from "./posthogService";
 
 const jobs: Record<string, ScheduledTask[]> = {};
 
@@ -267,6 +268,26 @@ export async function startScheduler(client: Client) {
           console.log(
             `[Scheduler] Triggering schedule: ${schedule.name} (${schedule.id})`
           );
+
+          try {
+            if (posthogClient) {
+              posthogClient.capture({
+                distinctId: `schedule_${schedule.id}`,
+                event: 'schedule_triggered',
+                properties: {
+                  schedule_id: schedule.id,
+                  schedule_name: schedule.name,
+                  schedule_frequency: schedule.frequency,
+                  schedule_type: schedule.command ? 'command' : 'message',
+                  schedule_target_channel_id: schedule.target_channel_id,
+                  schedule_target_user_id: schedule.target_user_id,
+                  command: schedule.command,
+                },
+              });
+            }
+          } catch (e) {
+            console.error("Error capturing PostHog event for schedule trigger:", e);
+          }
 
           if (schedule.frequency === "every" && schedule.unit === "weeks") {
             const interval = parseInt(schedule.interval || "1", 10);

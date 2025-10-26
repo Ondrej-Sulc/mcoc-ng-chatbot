@@ -11,3 +11,4 @@ services:
       - DATABASE_URL=${DATABASE_URL}
     env_file:
       - ./.env
+    command: npm run dev

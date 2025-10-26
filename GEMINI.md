@@ -18,7 +18,7 @@ The bot is built with a modern tech stack, including:
 *   **Language:** TypeScript
 *   **Framework:** Discord.js v14
 *   **Database:** PostgreSQL with Prisma ORM
-*   **APIs:** Google Sheets, OpenRouter, Google Cloud Storage
+*   **APIs:** Google Sheets, OpenRouter, Google Cloud Storage, PostHog
 *   **Containerization:** Docker and Docker Compose
 
 The project is well-structured, with a clear separation of concerns. Commands are organized into their own directories, each containing sub-files for subcommands, handlers, and other related logic. This modular approach is demonstrated in the `roster`, `search`, and `aq` commands. The bot also includes a robust error handling system and a dynamic command loading mechanism.
@@ -39,7 +39,7 @@ The project is fully containerized with Docker, so the easiest way to get starte
 *   Node.js v18+
 *   Docker and Docker Compose
 *   A Discord Bot application
-*   API keys for Google and OpenRouter
+*   API keys for Google, OpenRouter, and PostHog
 
 ### 1. Set Up Environment Variables
 
@@ -49,7 +49,7 @@ Create a `.env` file by copying the example:
 cp .env.example .env
 ```
 
-Fill in the values in the `.env` file. This includes your Discord bot token, API keys, the connection details for your PostgreSQL database, and the `GCS_BUCKET_NAME` for champion image uploads.
+Fill in the values in the `.env` file. This includes your Discord bot token, API keys, the connection details for your PostgreSQL database, the `GCS_BUCKET_NAME` for champion image uploads, and the `POSTHOG_API_KEY` and `POSTHOG_HOST` for product analytics.
 
 ### 2. Run the Bot
 

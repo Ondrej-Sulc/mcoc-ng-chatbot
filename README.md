@@ -26,13 +26,14 @@ A personal, modular Discord bot built with TypeScript, designed for Marvel Conte
 - **Dockerized Environment:** Fully containerized with Docker Compose for consistent development and easy deployment, including a PostgreSQL database service.
 - **AI Capabilities:** Integration with OpenRouter for advanced AI features, including champion ability drafting and tag extraction.
 - **Dynamic Thumbnail Generation:** A sophisticated service (`src/utils/thumbnailGenerator.ts`) that generates custom, visually rich thumbnails for champion-related commands. It uses a champion's class to theme the image with unique colors and intricate SVG background patterns. These patterns are highly configurable, allowing for easy adjustments to their scale and opacity to fine-tune the final look.
+- **Product Analytics:** Deep integration with PostHog for detailed, user-centric analytics. Captures events for all command executions, button clicks, and modal submissions to provide insights into feature usage and user engagement.
 
 ## Technology Stack
 
 - **Language:** TypeScript (Strict Mode)
 - **Framework:** Discord.js v14
 - **Database:** PostgreSQL with Prisma ORM
-- **APIs:** Google Sheets, OpenRouter, Google Cloud Storage
+- **APIs:** Google Sheets, OpenRouter, Google Cloud Storage, PostHog
 - **Scheduling:** `node-cron`
 - **Containerization:** Docker & Docker Compose
 

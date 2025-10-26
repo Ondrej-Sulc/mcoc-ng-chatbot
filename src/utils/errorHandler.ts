@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import { randomBytes } from "crypto";
 import logger from "../services/loggerService";
+import posthogClient from "../services/posthogService";
 
 export type RepliableInteraction =
   | ChatInputCommandInteraction
@@ -50,16 +51,37 @@ export function handleError(error: unknown, context: ErrorContext = {}) {
    * @returns An object containing the user-friendly error message and the error ID.
    */
   const errorId = generateErrorId();
-  const errorMsg = error instanceof Error ? error.message : String(error);
+  const errorObj = error instanceof Error ? error : new Error(String(error));
 
   const logContext = {
     errorId,
     ...context,
-    error: errorMsg,
-    rawError: getErrorProperties(error), // Log the full error object for more details
+    error: errorObj.message,
+    rawError: getErrorProperties(errorObj), // Log the full error object for more details
   };
 
   logger.error(logContext, `[Error:${errorId}]`);
+
+  // --- PostHog Event Capture ---
+  try {
+    if (posthogClient && context.userId) {
+      posthogClient.capture({
+        distinctId: context.userId,
+        event: "error_occurred",
+        properties: {
+          error_id: errorId,
+          error_name: errorObj.name,
+          error_message: errorObj.message,
+          error_stack: errorObj.stack,
+          location: context.location,
+          ...context.extra,
+        },
+      });
+    }
+  } catch (e) {
+    logger.error({ err: e }, "Failed to capture PostHog error event");
+  }
+  // -----------------------------
 
   // More professional user-facing message
   const userMessage =
