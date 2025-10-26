@@ -16,7 +16,7 @@ import { loadApplicationEmojis } from "./services/applicationEmojiService";
 import { loadChampions } from "./services/championService";
 import { initializeAqReminders } from "./services/aqReminderService.js";
 import { getModalHandler } from "./utils/modalHandlerRegistry";
-import { posthogService } from "./services/posthogService";
+import posthogClient from "./services/posthogService";
 
 declare module "discord.js" {
   interface Client {
@@ -152,37 +152,43 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   try {
-    const subcommand = interaction.options.getSubcommand(false);
-    const subcommandGroup = interaction.options.getSubcommandGroup(false);
+    if (posthogClient) {
+      const subcommand = interaction.options.getSubcommand(false);
+      const subcommandGroup = interaction.options.getSubcommandGroup(false);
 
-    const properties: Record<string, any> = {
+      const properties: Record<string, any> = {
+          user_tag: interaction.user.tag,
+          guild_id: interaction.guild?.id,
+          command: interaction.commandName,
+      };
+      if (subcommand) properties.subcommand = subcommand;
+      if (subcommandGroup) properties.subcommandGroup = subcommandGroup;
+
+      const allOptions = [...interaction.options.data];
+      const flatOptions: any[] = [];
+      
+      function flatten(opts: any[]) {
+          for (const opt of opts) {
+              if (opt.options) {
+                  flatten(opt.options);
+              }
+              else {
+                  flatOptions.push(opt);
+              }
+          }
+      }
+      flatten(allOptions);
+
+      for (const opt of flatOptions) {
+          properties[`option_${opt.name}`] = opt.value;
+      }
+
+      posthogClient.capture({
         distinctId: interaction.user.id,
-        user_tag: interaction.user.tag,
-        guild_id: interaction.guild?.id,
-        command: interaction.commandName,
-    };
-    if (subcommand) properties.subcommand = subcommand;
-    if (subcommandGroup) properties.subcommandGroup = subcommandGroup;
-
-    const allOptions = [...interaction.options.data];
-    const flatOptions: any[] = [];
-    
-    function flatten(opts: any[]) {
-        for (const opt of opts) {
-            if (opt.options) {
-                flatten(opt.options);
-            } else {
-                flatOptions.push(opt);
-            }
-        }
+        event: 'command_executed',
+        properties,
+      });
     }
-    flatten(allOptions);
-
-    for (const opt of flatOptions) {
-        properties[`option_${opt.name}`] = opt.value;
-    }
-
-    posthogService.capture(interaction.user.id, 'command_executed', properties);
   } catch (e) {
     console.error("Error capturing PostHog event:", e);
   }
@@ -199,7 +205,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 
 client.on('destroy', async () => {
-    await posthogService.shutdown();
+    if (posthogClient) {
+        await posthogClient.shutdown();
+    }
 });
 
 if (!config.BOT_TOKEN) {
