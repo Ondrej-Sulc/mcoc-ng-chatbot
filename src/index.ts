@@ -182,7 +182,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         properties[`option_${opt.name}`] = opt.value;
     }
 
-    posthogService.capture('command_executed', properties);
+    posthogService.capture(interaction.user.id, 'command_executed', properties);
   } catch (e) {
     console.error("Error capturing PostHog event:", e);
   }

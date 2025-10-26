@@ -10,13 +10,16 @@ if (config.POSTHOG_API_KEY && config.POSTHOG_HOST) {
 }
 
 export const posthogService = {
-    capture(event: string, properties: Record<string, any>) {
+    capture(distinctId: string, event: string, properties: Record<string, any>) {
         if (posthogClient) {
             posthogClient.capture({
-                distinctId: properties.distinctId, // Expecting distinctId to be passed in properties
+                distinctId,
                 event,
                 properties,
             });
+            // Flush events immediately to ensure they are sent, especially in a serverless environment
+            // or when debugging. For a long-running bot, events are otherwise sent in batches.
+            posthogClient.flush();
         }
     },
 
