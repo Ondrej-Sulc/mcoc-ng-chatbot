@@ -84,6 +84,24 @@ client.once(Events.ClientReady, async (readyClient) => {
 client.on(Events.InteractionCreate, async (interaction) => {
   // Handle button interactions generically
   if (interaction.isButton()) {
+    try {
+      if (posthogClient) {
+        posthogClient.capture({
+          distinctId: interaction.user.id,
+          event: 'button_clicked',
+          properties: {
+            custom_id: interaction.customId,
+            user_tag: interaction.user.tag,
+            guild_id: interaction.guild?.id,
+            channel_id: interaction.channel?.id,
+            message_id: interaction.message.id,
+          },
+        });
+      }
+    } catch (e) {
+      console.error("Error capturing PostHog event for button click:", e);
+    }
+
     const handler = getButtonHandler(interaction.customId);
     if (handler) {
       try {
@@ -102,6 +120,29 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   if (interaction.isModalSubmit()) {
+    try {
+      if (posthogClient) {
+        const fields = interaction.fields.fields.map((field) => ({
+          customId: field.customId,
+          value: field.value,
+        }));
+
+        posthogClient.capture({
+          distinctId: interaction.user.id,
+          event: 'modal_submitted',
+          properties: {
+            custom_id: interaction.customId,
+            user_tag: interaction.user.tag,
+            guild_id: interaction.guild?.id,
+            channel_id: interaction.channel?.id,
+            fields: fields,
+          },
+        });
+      }
+    } catch (e) {
+      console.error("Error capturing PostHog event for modal submission:", e);
+    }
+
     const handler = getModalHandler(interaction.customId);
     if (handler) {
       try {
