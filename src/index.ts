@@ -16,6 +16,7 @@ import { loadApplicationEmojis } from "./services/applicationEmojiService";
 import { loadChampions } from "./services/championService";
 import { initializeAqReminders } from "./services/aqReminderService.js";
 import { getModalHandler } from "./utils/modalHandlerRegistry";
+import { posthogService } from "./services/posthogService";
 
 declare module "discord.js" {
   interface Client {
@@ -151,6 +152,42 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   try {
+    const subcommand = interaction.options.getSubcommand(false);
+    const subcommandGroup = interaction.options.getSubcommandGroup(false);
+
+    const properties: Record<string, any> = {
+        distinctId: interaction.user.id,
+        user_tag: interaction.user.tag,
+        guild_id: interaction.guild?.id,
+        command: interaction.commandName,
+    };
+    if (subcommand) properties.subcommand = subcommand;
+    if (subcommandGroup) properties.subcommandGroup = subcommandGroup;
+
+    const allOptions = [...interaction.options.data];
+    const flatOptions: any[] = [];
+    
+    function flatten(opts: any[]) {
+        for (const opt of opts) {
+            if (opt.options) {
+                flatten(opt.options);
+            } else {
+                flatOptions.push(opt);
+            }
+        }
+    }
+    flatten(allOptions);
+
+    for (const opt of flatOptions) {
+        properties[`option_${opt.name}`] = opt.value;
+    }
+
+    posthogService.capture('command_executed', properties);
+  } catch (e) {
+    console.error("Error capturing PostHog event:", e);
+  }
+
+  try {
     await command.execute(interaction);
   } catch (error) {
     const { userMessage, errorId } = handleError(error, {
@@ -159,6 +196,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
     });
     await safeReply(interaction, userMessage, errorId);
   }
+});
+
+client.on(Events.Destroy, async () => {
+    await posthogService.shutdown();
 });
 
 if (!config.BOT_TOKEN) {

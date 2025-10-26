@@ -21,6 +21,8 @@ export interface Config {
   AQ_FINAL_PING_HOURS_BEFORE_END: number;
   DEV_USER_IDS: string[];
   GCS_BUCKET_NAME: string;
+  POSTHOG_API_KEY?: string;
+  POSTHOG_HOST?: string;
 
   // Alliance War Settings
   allianceWar: {
@@ -127,6 +129,8 @@ const createConfig = (): Config => {
       10
     ),
     DEV_USER_IDS: getEnv("DEV_USER_IDS", "").split(",").filter(Boolean),
+    POSTHOG_API_KEY: getEnv("POSTHOG_API_KEY", ""),
+    POSTHOG_HOST: getEnv("POSTHOG_HOST", ""),
 
     // Alliance War Settings
     allianceWar: {
