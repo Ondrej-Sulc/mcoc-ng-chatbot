@@ -198,7 +198,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-client.on(Events.Destroy, async () => {
+client.on('destroy', async () => {
     await posthogService.shutdown();
 });
 
