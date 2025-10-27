@@ -28,7 +28,7 @@ export async function solveShortNames(
   // The ratio of the cell width to crop from the sides to isolate the portrait.
   const PORTRAIT_CROP_HORIZONTAL_RATIO = 0.1;
   // The ratio to crop from the sides of the extracted portrait for the inner hash.
-  const INNER_PORTRAIT_CROP_RATIO = 0.3;
+  const INNER_PORTRAIT_CROP_RATIO = 0.275;
   // The width ratio for the inner portrait hash.
   const INNER_PORTRAIT_WIDTH_RATIO = 1 - INNER_PORTRAIT_CROP_RATIO * 2;
 
