@@ -28,9 +28,9 @@ export async function solveShortNames(
   // The ratio of the cell width to crop from the sides to isolate the portrait.
   const PORTRAIT_CROP_HORIZONTAL_RATIO = 0.1;
   // The ratio to crop from the sides of the extracted portrait for the inner hash.
-  const INNER_PORTRAIT_CROP_RATIO = 0.15;
+  const INNER_PORTRAIT_CROP_RATIO = 0.3;
   // The width ratio for the inner portrait hash.
-  const INNER_PORTRAIT_WIDTH_RATIO = 0.7;
+  const INNER_PORTRAIT_WIDTH_RATIO = 1 - INNER_PORTRAIT_CROP_RATIO * 2;
 
   const allChampions = await prisma.champion.findMany();
   const championsByShortName = allChampions.reduce((acc, champ) => {
@@ -206,7 +206,7 @@ export async function solveShortNames(
 
             // Combine scores (lower is better). Give more weight to hash score.
             const combinedScore =
-              0.8 * normalizedHashScore + 0.2 * normalizedColorScore;
+              1 * normalizedHashScore + 0 * normalizedColorScore;
 
             if (combinedScore < bestMatchScore) {
               bestMatchScore = combinedScore;

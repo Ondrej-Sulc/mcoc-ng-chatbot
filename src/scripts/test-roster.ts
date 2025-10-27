@@ -7,7 +7,7 @@ import * as path from "path";
 
 // URL from the user
 const imageUrl =
-  "https://media.discordapp.net/attachments/1282672011654725742/1419446680524423308/Screenshot_20250922-001313.png?ex=68e0f37c&is=68dfa1fc&hm=9e93911ce5c11ceadd6e9efe9eedace93e1f663d4fe442845086ccea8571b44c&=&format=webp&quality=lossless&width=1329&height=613";
+  "https://media.discordapp.net/attachments/1282672011654725742/1432304131229356053/image.png?ex=690090ab&is=68ff3f2b&hm=7627b9745f9ea9a55c19035d93263aac0bd2a7d2c349bc91ecedabe0bc2e59dc&=&format=webp&quality=lossless&width=2054&height=593";
 const stars = 6;
 const rank = 5;
 
