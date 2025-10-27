@@ -17,6 +17,7 @@ import { loadChampions } from "./services/championService";
 import { initializeAqReminders } from "./services/aqReminderService.js";
 import { getModalHandler } from "./utils/modalHandlerRegistry";
 import posthogClient from "./services/posthogService";
+import { prisma } from "./services/prismaService";
 
 declare module "discord.js" {
   interface Client {
@@ -178,6 +179,22 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   if (!interaction.isChatInputCommand()) return;
+
+  // Check if the command is disabled for this alliance
+  if (interaction.guildId) {
+    const alliance = await prisma.alliance.findUnique({
+      where: { guildId: interaction.guildId },
+      select: { disabledCommands: true },
+    });
+
+    if (alliance && alliance.disabledCommands.includes(interaction.commandName)) {
+      await safeReply(
+        interaction,
+        "This command has been disabled by an administrator for this server."
+      );
+      return;
+    }
+  }
 
   const command = client.commands.get(interaction.commandName);
 

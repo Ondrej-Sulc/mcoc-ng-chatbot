@@ -8,17 +8,24 @@ export async function handleProfileRegister(
 ): Promise<void> {
   const ingameName = interaction.options.getString("name", true);
   const discordId = interaction.user.id;
-  const guildId = interaction.guildId;
+  const guild = interaction.guild;
 
-  if (!guildId) {
+  if (!guild) {
     await safeReply(interaction, "This command can only be used in a server.");
     return;
   }
 
+  // Find or create the alliance
+  const alliance = await prisma.alliance.upsert({
+    where: { guildId: guild.id },
+    update: { name: guild.name },
+    create: { guildId: guild.id, name: guild.name },
+  });
+
   const player = await prisma.player.upsert({
     where: { discordId },
-    update: { ingameName, guildId },
-    create: { discordId, ingameName, guildId },
+    update: { ingameName, allianceId: alliance.id },
+    create: { discordId, ingameName, allianceId: alliance.id },
   });
 
   // Import roster from sheet after registration

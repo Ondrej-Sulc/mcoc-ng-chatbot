@@ -96,7 +96,7 @@ export async function handleUpdate(
             const awakened = entry.isAwakened ? "★" : "☆";
             const ascended = entry.isAscended ? "🏆" : "";
             const emoji = entry.champion.discordEmoji || "";
-            return `${emoji}${awakened}${ascended}`;
+            return `${awakened}${emoji}${ascended}`;
           })
           .join(" ")
       )

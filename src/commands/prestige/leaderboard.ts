@@ -96,9 +96,19 @@ export async function handleLeaderboard(
     return;
   }
 
+  const alliance = await prisma.alliance.findUnique({
+    where: { guildId },
+    select: { id: true },
+  });
+
+  if (!alliance) {
+    await interaction.editReply("No players found in this server.");
+    return;
+  }
+
   const players = await prisma.player.findMany({
     where: {
-      guildId,
+      allianceId: alliance.id,
     },
   });
 
@@ -122,9 +132,19 @@ async function handleLeaderboardButton(interaction: ButtonInteraction) {
   const customIdParts = interaction.customId.split(":");
   const prestigeType = customIdParts[2] as PrestigeType;
 
+  const alliance = await prisma.alliance.findUnique({
+    where: { guildId },
+    select: { id: true },
+  });
+
+  if (!alliance) {
+    // Alliance should exist if the button is being clicked
+    return;
+  }
+
   const players = await prisma.player.findMany({
     where: {
-      guildId,
+      allianceId: alliance.id,
     },
   });
 

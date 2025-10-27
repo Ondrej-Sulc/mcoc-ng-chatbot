@@ -27,7 +27,7 @@ function formatRosterEntry(entry: RosterWithChampion, includeMarkdownHeader: boo
   const ascended = entry.isAscended ? "🏆" : "";
   const emoji = entry.champion.discordEmoji || "";
   const prefix = includeMarkdownHeader ? "### " : "";
-  return `${prefix}${emoji} **${entry.champion.name}** \`${entry.stars}* R${entry.rank}${ascended} ${awakened}\`\n`;
+  return `${prefix}${emoji} **${entry.champion.name}** \`${awakened}${entry.stars}*R${entry.rank}${ascended}\`\n`;
 }
 
 function paginateRoster(roster: RosterWithChampion[]): RosterWithChampion[][] {

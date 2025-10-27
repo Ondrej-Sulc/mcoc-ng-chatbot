@@ -2,7 +2,7 @@
 
 *This bot is an unofficial fan-made tool and is not affiliated with, endorsed, or sponsored by Marvel or Kabam. All game content and materials are trademarks and copyrights of their respective owners.*
 
-A personal, modular Discord bot built with TypeScript, designed for Marvel Contest of Champions (MCOC) related tasks. This bot integrates with Google Sheets for data logging and OpenRouter for AI capabilities, all running on Discord.js v14.
+A modular Discord bot built with TypeScript, designed for Marvel Contest of Champions (MCOC) related tasks. This bot integrates with Google Sheets for data logging and OpenRouter for AI capabilities, all running on Discord.js v14.
 
 ## Key Features
 
