@@ -33,7 +33,7 @@ export async function handleScheduleAutocomplete(interaction: AutocompleteIntera
     let choices: string[] = [];
     switch (focusedOption.name) {
       case "frequency":
-        choices = Object.keys(ScheduleFrequency);
+        choices = Object.keys(ScheduleFrequency).filter(f => f !== 'custom');
         break;
       case "unit":
         choices = ["days", "weeks"];

@@ -17,7 +17,6 @@ export type NewSchedulePayload = {
   day?: string | null;
   interval?: string | null;
   unit?: string | null;
-  cron_expression?: string | null;
 };
 
 /**

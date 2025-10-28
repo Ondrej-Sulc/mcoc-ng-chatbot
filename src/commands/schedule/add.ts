@@ -20,8 +20,6 @@ export async function handleScheduleAdd(interaction: ChatInputCommandInteraction
     const interval = interaction.options.getString("interval") || null;
     const rawUnit = interaction.options.getString("unit");
     const unit = rawUnit === "days" || rawUnit === "weeks" ? rawUnit : null;
-    const cron_expression =
-      interaction.options.getString("cron_expression") || null;
 
     // Require at least one of command or message
     if (!command && !message) {
@@ -56,7 +54,6 @@ export async function handleScheduleAdd(interaction: ChatInputCommandInteraction
       day,
       interval,
       unit,
-      cron_expression,
     });
     await startScheduler(interaction.client);
     await safeReply(
@@ -81,27 +78,19 @@ ${
 }${ 
         interval
           ? `- Interval: ${interval}\n`
-          : ""
-      }${ 
+          : "" 
+}${ 
         unit
           ? `- Unit: ${unit}\n`
-          : ""
-      }${ 
-        cron_expression
-          ? `- Cron: 
-
-${cron_expression}`
-          : ""
-      }${ 
+          : "" 
+}${ 
         target_channel_id
-          ? `- Channel: <#${target_channel_id}>
-`
-          : ""
-      }${ 
+          ? `- Channel: <#${target_channel_id}>\n`
+          : "" 
+}${ 
         target_user_id
-          ? `- User: <@${target_user_id}>
-`
-          : ""
-      }`
+          ? `- User: <@${target_user_id}>\n`
+          : "" 
+}`
     );
 }

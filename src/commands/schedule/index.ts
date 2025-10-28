@@ -24,7 +24,7 @@ export const command: Command = {
         .addStringOption((option) =>
           option
             .setName("frequency")
-            .setDescription("Frequency: daily, weekly, monthly, every, custom")
+            .setDescription("Frequency: daily, weekly, monthly, every")
             .setRequired(true)
             .setAutocomplete(true)
         )
@@ -84,12 +84,6 @@ export const command: Command = {
             .setDescription("Unit for 'every' frequency: days, weeks")
             .setRequired(false)
             .setAutocomplete(true)
-        )
-        .addStringOption((option) =>
-          option
-            .setName("cron_expression")
-            .setDescription("Custom cron expression (for custom frequency)")
-            .setRequired(false)
         )
     )
     .addSubcommand((sub) =>

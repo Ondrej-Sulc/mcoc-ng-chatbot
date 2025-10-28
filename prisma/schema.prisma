@@ -169,7 +169,6 @@ enum ScheduleFrequency {
   weekly
   monthly
   every
-  custom
 }
 
 model Schedule {
@@ -185,7 +184,6 @@ model Schedule {
   day               String?
   interval          String?
   unit              String?
-  cron_expression   String?
   last_run          DateTime?
 
   createdAt DateTime @default(now())
