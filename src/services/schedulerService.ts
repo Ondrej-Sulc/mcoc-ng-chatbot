@@ -17,10 +17,6 @@ import posthogClient from "./posthogService";
 const jobs: Record<string, ScheduledTask[]> = {};
 
 function getCronExpressions(schedule: Schedule): string[] {
-  if (schedule.frequency === "custom" && schedule.cron_expression) {
-    return [schedule.cron_expression];
-  }
-
   const times = (schedule.time || "")
     .split(",")
     .map((t) => t.trim())

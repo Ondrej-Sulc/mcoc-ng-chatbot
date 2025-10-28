@@ -44,6 +44,10 @@ A modular Discord bot built with TypeScript, designed for Marvel Contest of Cham
 - **Scheduling:** `node-cron`
 - **Containerization:** Docker & Docker Compose
 
+## Hosting
+
+The production instance of the bot and its PostgreSQL database are hosted on [Railway](https://railway.app/).
+
 ## Commands
 
 | Command | Description |

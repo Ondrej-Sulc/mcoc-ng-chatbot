@@ -23,6 +23,10 @@ The bot is built with a modern tech stack, including:
 
 The project is well-structured, with a clear separation of concerns. Commands are organized into their own directories, each containing sub-files for subcommands, handlers, and other related logic. This modular approach is demonstrated in the `roster`, `search`, and `aq` commands. The bot also includes a robust error handling system and a dynamic command loading mechanism.
 
+## Hosting
+
+The production environment for both the bot and its PostgreSQL database is hosted on [Railway](https://railway.app/). This provides a seamless deployment and scaling solution.
+
 ## Guiding Principles
 
 *   **Code Quality:** The highest priority is to maintain a clean, readable, and well-organized codebase.
