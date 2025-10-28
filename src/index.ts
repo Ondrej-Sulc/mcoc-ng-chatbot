@@ -7,7 +7,8 @@ import {
 } from "discord.js";
 import { config } from "./config";
 import { loadCommands, commands } from "./utils/commandHandler";
-import { Command } from "./types/command";
+import { Command, CommandAccess } from "./types/command";
+import { getPlayer } from "./utils/playerHelper";
 import { getButtonHandler } from "./utils/buttonHandlerRegistry";
 import { startScheduler } from "./services/schedulerService";
 import http from "http";
@@ -180,22 +181,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   if (!interaction.isChatInputCommand()) return;
 
-  // Check if the command is disabled for this alliance
-  if (interaction.guildId) {
-    const alliance = await prisma.alliance.findUnique({
-      where: { guildId: interaction.guildId },
-      select: { disabledCommands: true },
-    });
-
-    if (alliance && alliance.disabledCommands.includes(interaction.commandName)) {
-      await safeReply(
-        interaction,
-        "This command has been disabled by an administrator for this server."
-      );
-      return;
-    }
-  }
-
   const command = client.commands.get(interaction.commandName);
 
   if (!command) {
@@ -208,6 +193,76 @@ client.on(Events.InteractionCreate, async (interaction) => {
     );
     return;
   }
+
+  // Check command access
+  switch (command.access) {
+    case CommandAccess.PUBLIC:
+      // No checks needed
+      break;
+    case CommandAccess.USER: {
+      const player = await getPlayer(interaction);
+      if (!player) {
+        await safeReply(
+          interaction,
+          "You must be registered to use this command. Use `/register` to get started."
+        );
+        return;
+      }
+      break;
+    }
+    case CommandAccess.ALLIANCE_ADMIN: {
+      if (!interaction.inGuild()) {
+        await safeReply(
+          interaction,
+          "This command can only be used in a server."
+        );
+        return;
+      }
+      if (!interaction.memberPermissions?.has("Administrator")) {
+        await safeReply(
+          interaction,
+          "You must be an administrator to use this command."
+        );
+        return;
+      }
+      break;
+    }
+    case CommandAccess.BOT_ADMIN: {
+      const player = await prisma.player.findUnique({
+        where: { discordId: interaction.user.id },
+      });
+      if (!player || !player.isBotAdmin) {
+        await safeReply(
+          interaction,
+          "You are not authorized to use this command."
+        );
+        return;
+      }
+      break;
+    }
+    case CommandAccess.FEATURE: {
+      if (!interaction.inGuild()) {
+        await safeReply(
+          interaction,
+          "This command can only be used in a server."
+        );
+        return;
+      }
+      const alliance = await prisma.alliance.findUnique({
+        where: { guildId: interaction.guildId },
+        select: { enabledFeatureCommands: true },
+      });
+      if (!alliance || !alliance.enabledFeatureCommands.includes(interaction.commandName)) {
+        await safeReply(
+          interaction,
+          "This feature is not enabled for this alliance."
+        );
+        return;
+      }
+      break;
+    }
+  }
+
 
   try {
     if (posthogClient) {

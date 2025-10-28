@@ -1,7 +1,6 @@
-
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
-import { Command } from '../../types/command';
-import { handleAllianceConfig } from './config';
+import { Command, CommandAccess } from '../../types/command';
+import { handleAllianceToggleFeature } from './toggle-feature';
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -9,29 +8,30 @@ export const command: Command = {
     .setDescription('Manage your alliance settings.')
     .addSubcommand((subcommand) =>
       subcommand
-        .setName('config')
-        .setDescription('Enable or disable commands for your alliance.')
+        .setName('toggle-feature')
+        .setDescription('Enable or disable a feature for your alliance.')
         .addStringOption((option) =>
           option
-            .setName('command')
-            .setDescription('The command to configure.')
+            .setName('feature')
+            .setDescription('The feature to toggle.')
             .setRequired(true)
         )
         .addBooleanOption((option) =>
           option
             .setName('enabled')
-            .setDescription('Whether the command should be enabled or disabled.')
+            .setDescription('Whether the feature should be enabled or disabled.')
             .setRequired(true)
         )
     ),
+  access: CommandAccess.ALLIANCE_ADMIN,
 
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ ephemeral: true });
     const subcommand = interaction.options.getSubcommand(true);
 
     switch (subcommand) {
-      case 'config':
-        await handleAllianceConfig(interaction);
+      case 'toggle-feature':
+        await handleAllianceToggleFeature(interaction);
         break;
     }
   },

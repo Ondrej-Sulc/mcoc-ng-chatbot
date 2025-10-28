@@ -9,9 +9,24 @@ import {
   MediaGalleryBuilder, // Import MediaGalleryBuilder
   MediaGalleryItemBuilder, // Import MediaGalleryItemBuilder
 } from "discord.js";
-import { CommandResult } from "../../types/command";
+import { CommandAccess, CommandResult } from "../../types/command";
 import { commandDescriptions, SubcommandInfo } from "./descriptions";
 import { helpColors } from "./home";
+
+function getAccessLevelString(access: CommandAccess): string {
+  switch (access) {
+    case CommandAccess.PUBLIC:
+      return "Public";
+    case CommandAccess.USER:
+      return "Registered User";
+    case CommandAccess.ALLIANCE_ADMIN:
+      return "Alliance Admin";
+    case CommandAccess.BOT_ADMIN:
+      return "Bot Admin";
+    case CommandAccess.FEATURE:
+      return "Alliance Feature";
+  }
+}
 
 export async function handleDetail(name: string): Promise<CommandResult> {
   const commandInfo = commandDescriptions.get(name);
@@ -32,6 +47,11 @@ export async function handleDetail(name: string): Promise<CommandResult> {
 
   const title = new TextDisplayBuilder().setContent(`# /${name}`);
   container.addTextDisplayComponents(title);
+
+  const accessLevel = new TextDisplayBuilder().setContent(
+    `**Access:** ${getAccessLevelString(commandInfo.access)}`
+  );
+  container.addTextDisplayComponents(accessLevel);
 
   const description = new TextDisplayBuilder().setContent(
     `*${commandInfo.description}*`

@@ -2,7 +2,7 @@ import {
   SlashCommandBuilder,
   ChatInputCommandInteraction,
 } from "discord.js";
-import { Command } from "../../types/command";
+import { Command, CommandAccess } from "../../types/command";
 import { handlePlan } from "./plan";
 import { handleDetails } from "./details";
 
@@ -46,6 +46,7 @@ export const command: Command = {
             .setRequired(false)
         )
     ),
+  access: CommandAccess.FEATURE,
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.isChatInputCommand()) return;
 

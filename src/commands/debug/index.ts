@@ -5,7 +5,7 @@ import {
   PermissionFlagsBits,
   AutocompleteInteraction,
 } from "discord.js";
-import { Command } from "../../types/command";
+import { Command, CommandAccess } from "../../types/command";
 import { config } from "../../config";
 import { autocomplete as prestigeAutocomplete } from "../prestige";
 import { handleRosterDebug } from "./roster";
@@ -75,7 +75,7 @@ export const command: Command = {
             .setAutocomplete(true)
         )
     ),
-
+  access: CommandAccess.BOT_ADMIN,
   async execute(interaction: ChatInputCommandInteraction) {
     if (
       authorizedUsers.length === 0 ||

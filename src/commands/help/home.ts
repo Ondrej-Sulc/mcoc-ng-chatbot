@@ -1,112 +1,116 @@
 import {
-  ContainerBuilder,
-  TextDisplayBuilder,
   ActionRowBuilder,
   ButtonBuilder,
-  SeparatorBuilder,
-  SeparatorSpacingSize,
-  MessageFlags,
   ButtonStyle,
-} from "discord.js";
-import { CommandResult } from "../../types/command";
-import { commandDescriptions, CommandInfo } from "./descriptions";
+  ChatInputCommandInteraction,
+  ContainerBuilder,
+  SeparatorBuilder,
+  TextDisplayBuilder,
+  MessageFlags,
+} from 'discord.js';
+import { commands } from '../../utils/commandHandler';
+import { Command, CommandAccess } from '../../types/command';
+import { prisma } from '../../services/prismaService';
 
 export const helpColors = {
   buttons: {
-    command: ButtonStyle.Secondary,
     navigation: ButtonStyle.Primary,
   },
   containers: {
-    home: 0x5865f2, // Discord Blue
-    detail: 0x4f545c, // Discord Dark Grey
+    detail: 0x5865F2, // Discord Blue
   },
 };
 
-function buildButtonRows(
-  commandNames: string[]
-): ActionRowBuilder<ButtonBuilder>[] {
-  const components: ActionRowBuilder<ButtonBuilder>[] = [];
-  if (commandNames.length === 0) return components;
-
-  let actionRow = new ActionRowBuilder<ButtonBuilder>();
-  commandNames.forEach((name) => {
-    if (actionRow.components.length === 4) {
-      components.push(actionRow);
-      actionRow = new ActionRowBuilder<ButtonBuilder>();
-    }
-    actionRow.addComponents(
-      new ButtonBuilder()
-        .setCustomId(`help_command_${name}`)
-        .setLabel(name.charAt(0).toUpperCase() + name.slice(1))
-        .setStyle(helpColors.buttons.command)
-    );
-  });
-  if (actionRow.components.length > 0) {
-    components.push(actionRow);
-  }
-  return components;
+interface UserAccess {
+  isBotAdmin: boolean;
+  isAllianceAdmin: boolean;
+  isRegistered: boolean;
+  enabledFeatureCommands: string[];
 }
 
-export async function handleHome(): Promise<CommandResult> {
-  const container = new ContainerBuilder();
-  container.setAccentColor(helpColors.containers.home);
+async function getUserAccess(interaction: ChatInputCommandInteraction): Promise<UserAccess> {
+  const player = await prisma.player.findUnique({ where: { discordId: interaction.user.id } });
+  const member = await interaction.guild?.members.fetch(interaction.user.id);
+  const alliance = interaction.guild ? await prisma.alliance.findUnique({ where: { guildId: interaction.guild.id } }) : null;
 
-  const title = new TextDisplayBuilder().setContent(
-    "## MCOC NG Bot Help Center"
-  );
-  const description = new TextDisplayBuilder().setContent(
-    "Welcome! This bot provides a variety of tools for Marvel Contest of Champions. Select a command group below to learn more about its features and subcommands."
-  );
-  container.addTextDisplayComponents(title, description);
-
-  const groupedCommands: Record<string, string[]> = {
-    "Information & Search": [],
-    "User Management": [],
-    "Alliance Tools": [],
-    Utilities: [],
+  return {
+    isBotAdmin: player?.isBotAdmin || false,
+    isAllianceAdmin: member?.permissions.has('Administrator') || false,
+    isRegistered: !!player,
+    enabledFeatureCommands: alliance?.enabledFeatureCommands || [],
   };
-  const adminCommands: string[] = [];
+}
 
-  for (const [name, info] of commandDescriptions.entries()) {
-    if (info.category === "Admin") {
-      adminCommands.push(name);
-    } else if (info.group) {
-      groupedCommands[info.group].push(name);
+function hasAccess(command: Command, access: UserAccess): boolean {
+  switch (command.access) {
+    case CommandAccess.PUBLIC:
+      return true;
+    case CommandAccess.USER:
+      return access.isRegistered;
+    case CommandAccess.ALLIANCE_ADMIN:
+      return access.isAllianceAdmin;
+    case CommandAccess.BOT_ADMIN:
+      return access.isBotAdmin;
+    case CommandAccess.FEATURE:
+      return access.enabledFeatureCommands.includes(command.data.name);
+    default:
+      return false;
+  }
+}
+
+export async function handleHome(interaction: ChatInputCommandInteraction) {
+  const userAccess = await getUserAccess(interaction);
+
+  const applicationCommands = await interaction.client.application.commands.fetch();
+  const commandIds = new Map<string, string>();
+  applicationCommands.forEach(cmd => {
+    commandIds.set(cmd.name, cmd.id);
+  });
+
+  const commandList = Array.from(commands.values());
+
+  const categories: Record<string, Command[]> = {
+    'Public': commandList.filter(c => c.access === CommandAccess.PUBLIC),
+    'User': commandList.filter(c => c.access === CommandAccess.USER),
+    'Alliance Admin': commandList.filter(c => c.access === CommandAccess.ALLIANCE_ADMIN),
+    'Bot Admin': commandList.filter(c => c.access === CommandAccess.BOT_ADMIN),
+    'Features': commandList.filter(c => c.access === CommandAccess.FEATURE),
+  };
+
+  const container = new ContainerBuilder();
+
+  for (const category in categories) {
+    if (categories[category].length > 0) {
+      const title = new TextDisplayBuilder().setContent(`# ${category} Commands`);
+      container.addTextDisplayComponents(title);
+
+      const description = new TextDisplayBuilder().setContent(
+        categories[category].map(c => `</${c.data.name}:${commandIds.get(c.data.name)}> - ${c.data.description}`).join('\n')
+      );
+      container.addTextDisplayComponents(description);
+
+      // Create action rows with a maximum of 5 buttons per row
+      const categoryCommands = categories[category];
+      for (let i = 0; i < categoryCommands.length; i += 5) {
+        const row = new ActionRowBuilder<ButtonBuilder>();
+        const rowCommands = categoryCommands.slice(i, i + 5);
+
+        rowCommands.forEach(command => {
+          const button = new ButtonBuilder()
+            .setCustomId(`help:${command.data.name}`)
+            .setLabel(command.data.name)
+            .setStyle(ButtonStyle.Secondary)
+            .setDisabled(!hasAccess(command, userAccess));
+          row.addComponents(button);
+        });
+        container.addActionRowComponents(row);
+      }
+      container.addSeparatorComponents(new SeparatorBuilder());
     }
   }
 
-  // General Commands Grouped
-  container.addSeparatorComponents(
-    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Large)
-  );
-  const generalHeader = new TextDisplayBuilder().setContent(
-    "## General Commands"
-  );
-  container.addTextDisplayComponents(generalHeader);
-
-  for (const groupName of Object.keys(groupedCommands)) {
-    const commandsInGroup = groupedCommands[groupName].sort();
-    if (commandsInGroup.length > 0) {
-      container.addSeparatorComponents(
-        new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
-      );
-      const groupHeader = new TextDisplayBuilder().setContent(
-        `### ${groupName}`
-      );
-      container.addTextDisplayComponents(groupHeader);
-      const buttonRows = buildButtonRows(commandsInGroup);
-      buttonRows.forEach((row) => container.addActionRowComponents(row));
-    }
-  }
-
-  // Admin Commands
-  container.addSeparatorComponents(
-    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Large)
-  );
-  const adminHeader = new TextDisplayBuilder().setContent("## Admin Commands");
-  container.addTextDisplayComponents(adminHeader);
-  const adminButtonRows = buildButtonRows(adminCommands.sort());
-  adminButtonRows.forEach((row) => container.addActionRowComponents(row));
-
-  return { components: [container], flags: MessageFlags.IsComponentsV2 };
+  return {
+    components: [container],
+    flags: [MessageFlags.IsComponentsV2],
+  };
 }

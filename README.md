@@ -7,6 +7,13 @@ A modular Discord bot built with TypeScript, designed for Marvel Contest of Cham
 ## Key Features
 
 - **Dynamic Command Loading:** Commands in the `src/commands` directory are automatically registered on startup.
+- **Tiered Command Access:** The bot now implements a granular command access system, categorizing commands into different tiers:
+    - **Public:** Accessible to all users by default (e.g., `/champion`, `/glossary`, `/search all`).
+    - **User:** Requires users to be registered with the bot (via `/register`) to access (e.g., `/roster`, `/prestige`, `/search roster`).
+    - **Alliance Admin:** Commands for managing server-specific bot settings, accessible by Discord administrators within an alliance (e.g., `/alliance toggle-feature`).
+    - **Bot Admin:** Restricted to designated bot administrators for managing global bot data and configurations (e.g., `/admin`, `/debug`).
+    - **Feature:** Commands that are disabled by default and must be explicitly enabled by an Alliance Admin for their server (e.g., `/aw`).
+
 - **Champion Administration:** A powerful admin command to add or update champions, abilities, attacks, and glossary entries in the database. The champion creation process is handled through a user-friendly, two-part interactive modal, and the image update command features autocomplete for champion names. This command automates the entire process, including:
     - **Image Processing:** Downloads champion images, resizes them to multiple dimensions (256, 128, 64, 32), and applies a subtle blur to smaller sizes.
     - **Cloud Storage:** Uploads the processed images to a Google Cloud Storage bucket.
@@ -41,19 +48,21 @@ A modular Discord bot built with TypeScript, designed for Marvel Contest of Cham
 
 | Command | Description |
 | --- | --- |
-| `/admin` | Administrative commands for managing champions, abilities, attacks, duels, and the glossary. |
-| `/aq` | Alliance Quest (AQ) utilities. |
-| `/aw` | Commands for Alliance War planning and details. |
-| `/debug` | Debugging commands, restricted to bot administrators. |
-| `/glossary` | Look up MCOC effects, buffs, and debuffs. |
-| `/champion` | Get detailed information about any champion in the game, including duel targets. |
-| `/prestige` | Extract prestige values from an MCOC screenshot or view the leaderboard. |
-| `/profile` | Manage your player profile. |
-| `/roster` | Manage your MCOC roster. |
-| `/schedule` | Manage scheduled tasks. |
-| `/search` | Powerful search for champions based on various criteria. |
-| `/summarize` | Summarizes recent messages in a channel or thread using AI. |
-| `/help` | Displays an interactive help guide for all bot commands. |
+| `/admin` | Administrative commands for managing bot data and administrators. (Bot Admin) |
+| `/alliance` | Manage your alliance settings, including enabling/disabling features. (Alliance Admin) |
+| `/aq` | Alliance Quest (AQ) utilities. (User) |
+| `/aw` | Commands for Alliance War planning and details. (Feature) |
+| `/debug` | Debugging commands, restricted to bot administrators. (Bot Admin) |
+| `/glossary` | Look up MCOC effects, buffs, and debuffs. (Public) |
+| `/champion` | Get detailed information about any champion in the game, including duel targets. (Public) |
+| `/prestige` | Extract prestige values from an MCOC screenshot or view the leaderboard. (User) |
+| `/profile` | Manage your player profile. (User) |
+| `/register` | Register your in-game name with the bot. (Public) |
+| `/roster` | Manage your MCOC roster. (User) |
+| `/schedule` | Manage scheduled tasks. (Public) |
+| `/search` | Powerful search for champions based on various criteria. (Public) |
+| `/summarize` | Summarizes recent messages in a channel or thread using AI. (Public) |
+| `/help` | Displays an interactive help guide for all bot commands. (Public) |
 
 ---
 

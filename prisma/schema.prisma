@@ -208,6 +208,7 @@ model Player {
   summonerPrestige Int?
   championPrestige Int?
   relicPrestige    Int?
+  isBotAdmin       Boolean   @default(false)
 
   roster Roster[]
 
@@ -224,7 +225,7 @@ model Alliance {
   id               String   @id @default(cuid())
   guildId          String   @unique
   name             String
-  disabledCommands String[] @default([])
+  enabledFeatureCommands  String[] @default([])
 
   members Player[]
 

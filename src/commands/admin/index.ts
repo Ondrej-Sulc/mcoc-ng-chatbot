@@ -4,7 +4,7 @@ import {
   MessageFlags,
   AutocompleteInteraction,
 } from "discord.js";
-import { Command } from "../../types/command";
+import { Command, CommandAccess } from "../../types/command";
 import { handleAdminAutocomplete } from "./autocomplete";
 import { handleChampionAdd, handleChampionUpdateImages, handleChampionUpdateTags, handleChampionSyncSheet } from "./champion/handlers";
 import "./champion/init";
@@ -16,6 +16,7 @@ import { championsByName } from "../../services/championService";
 import { AbilityLinkType } from "@prisma/client";
 import { handleGlossaryLink, handleGlossaryUnlink, handleGlossaryUpdateAbility, handleGlossaryUpdateCategory } from "./glossary/handlers";
 import { handleDuelUpload } from "./duel/upload";
+import { handleBotAdminAdd, handleBotAdminRemove } from "./bot-admin/handlers";
 
 const authorizedUsers = config.DEV_USER_IDS || [];
 
@@ -298,6 +299,33 @@ export const command: Command = {
     )
     .addSubcommandGroup((group) =>
       group
+        .setName("bot-admin")
+        .setDescription("Manage bot administrators.")
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("add")
+            .setDescription("Adds a bot administrator.")
+            .addUserOption((option) =>
+              option
+                .setName("user")
+                .setDescription("The user to add as a bot administrator.")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("remove")
+            .setDescription("Removes a bot administrator.")
+            .addUserOption((option) =>
+              option
+                .setName("user")
+                .setDescription("The user to remove as a bot administrator.")
+                .setRequired(true)
+            )
+        )
+    )
+    .addSubcommandGroup((group) =>
+      group
         .setName("duel")
         .setDescription("Admin commands for managing duels.")
         .addSubcommand((subcommand) =>
@@ -312,6 +340,7 @@ export const command: Command = {
             )
         )
     ),
+  access: CommandAccess.BOT_ADMIN,
   async execute(interaction) {
     if (!interaction.isChatInputCommand()) return;
 
@@ -365,6 +394,12 @@ export const command: Command = {
     } else if (group === "duel") {
       if (subcommand === "upload") {
         await handleDuelUpload(interaction);
+      }
+    } else if (group === "bot-admin") {
+      if (subcommand === "add") {
+        await handleBotAdminAdd(interaction);
+      } else if (subcommand === "remove") {
+        await handleBotAdminRemove(interaction);
       }
     }
   },

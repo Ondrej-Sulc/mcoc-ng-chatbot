@@ -7,7 +7,7 @@ import {
   ThreadChannel,
   MessageFlags,
 } from "discord.js";
-import { Command } from "../../types/command";
+import { Command, CommandAccess } from "../../types/command";
 import { handleSummarize } from "./handlers";
 import { handleError, safeReply } from "../../utils/errorHandler";
 
@@ -52,6 +52,7 @@ export const command: Command = {
         )
         .setRequired(false)
     ),
+  access: CommandAccess.PUBLIC,
 
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });

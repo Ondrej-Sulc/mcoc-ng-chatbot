@@ -3,7 +3,7 @@ import {
   ChatInputCommandInteraction,
   AutocompleteInteraction,
 } from "discord.js";
-import { Command } from "../../types/command";
+import { Command, CommandAccess } from "../../types/command";
 import { prisma } from "../../services/prismaService";
 import { handleUpdate } from "./update";
 import { handleView } from "./view";
@@ -185,7 +185,7 @@ export const command: Command = {
             .setRequired(false)
         )
     ),
-
+  access: CommandAccess.USER,
   async autocomplete(interaction: AutocompleteInteraction) {
     const focusedValue = interaction.options.getFocused();
     const player = await prisma.player.findUnique({

@@ -3,7 +3,7 @@ import { ChatInputCommandInteraction, PermissionsBitField } from 'discord.js';
 import { prisma } from '../../services/prismaService';
 import { safeReply } from '../../utils/errorHandler';
 
-export async function handleAllianceConfig(
+export async function handleAllianceToggleFeature(
   interaction: ChatInputCommandInteraction
 ): Promise<void> {
   if (!interaction.guild) {
@@ -16,7 +16,7 @@ export async function handleAllianceConfig(
     return;
   }
 
-  const commandName = interaction.options.getString('command', true);
+  const featureName = interaction.options.getString('feature', true);
   const enabled = interaction.options.getBoolean('enabled', true);
 
   const alliance = await prisma.alliance.findUnique({
@@ -28,28 +28,28 @@ export async function handleAllianceConfig(
     return;
   }
 
-  const currentlyDisabled = alliance.disabledCommands;
-  let updatedDisabled: string[];
+  const currentlyEnabled = alliance.enabledFeatureCommands;
+  let updatedEnabled: string[];
 
   if (enabled) {
-    // Remove the command from the disabled list
-    updatedDisabled = currentlyDisabled.filter((cmd) => cmd !== commandName);
-  } else {
-    // Add the command to the disabled list if it's not already there
-    if (!currentlyDisabled.includes(commandName)) {
-      updatedDisabled = [...currentlyDisabled, commandName];
+    // Add the feature to the enabled list if it's not already there
+    if (!currentlyEnabled.includes(featureName)) {
+      updatedEnabled = [...currentlyEnabled, featureName];
     } else {
-      updatedDisabled = currentlyDisabled;
+      updatedEnabled = currentlyEnabled;
     }
+  } else {
+    // Remove the feature from the enabled list
+    updatedEnabled = currentlyEnabled.filter((cmd) => cmd !== featureName);
   }
 
   await prisma.alliance.update({
     where: { id: alliance.id },
-    data: { disabledCommands: updatedDisabled },
+    data: { enabledFeatureCommands: updatedEnabled },
   });
 
   await safeReply(
     interaction,
-    `✅ Command **${commandName}** has been **${enabled ? 'enabled' : 'disabled'}** for this alliance.`
+    `✅ Feature **${featureName}** has been **${enabled ? 'enabled' : 'disabled'}** for this alliance.`
   );
 }

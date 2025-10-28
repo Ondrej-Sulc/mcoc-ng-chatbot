@@ -3,7 +3,7 @@ import {
   ChatInputCommandInteraction,
   AutocompleteInteraction,
 } from "discord.js";
-import { Command } from "../../types/command";
+import { Command, CommandAccess } from "../../types/command";
 import { registerButtonHandler } from "../../utils/buttonHandlerRegistry";
 import { handleGlobalSearch, handleSearchPagination } from "./all";
 import { handleRosterSearch, handleRosterSearchPagination } from "./roster";
@@ -12,7 +12,7 @@ import { handleAutocomplete } from "./autocomplete";
 export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("search")
-    .setDescription("Search for champions using multiple criteria.")
+    .setDescription("Powerful search for champions based on various criteria.")
     .addSubcommand((subcommand) =>
       subcommand
         .setName("all")
@@ -105,6 +105,7 @@ export const command: Command = {
             .setRequired(false)
         )
     ),
+  access: CommandAccess.PUBLIC,
   async autocomplete(interaction: AutocompleteInteraction) {
     await handleAutocomplete(interaction);
   },

@@ -7,7 +7,7 @@ import {
   MediaGalleryItemBuilder,
 } from "discord.js";
 import { getChampionData, championList } from "../../services/championService";
-import { Command, CommandResult } from "../../types/command";
+import { Command, CommandAccess, CommandResult } from "../../types/command";
 import { createEmojiResolver } from "../../utils/emojiResolver";
 import { generateChampionThumbnail } from "./thumbnail";
 import { getChampionImageUrl } from "../../utils/championHelper";
@@ -107,6 +107,7 @@ export const command: Command = {
             .setAutocomplete(true)
         )
     ),
+  access: CommandAccess.PUBLIC,
   async autocomplete(interaction) {
     const focusedValue = interaction.options.getFocused().toLowerCase();
     const filtered = championList.filter((champion) =>

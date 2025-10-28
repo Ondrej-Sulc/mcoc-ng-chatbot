@@ -7,6 +7,14 @@ import {
   AttachmentBuilder,
 } from "discord.js";
 
+export enum CommandAccess {
+  PUBLIC,
+  USER,
+  ALLIANCE_ADMIN,
+  BOT_ADMIN,
+  FEATURE,
+}
+
 export interface CommandExecuteParams {
   interaction: ChatInputCommandInteraction;
   userId: string;
@@ -27,6 +35,7 @@ export interface Command {
     | SlashCommandBuilder
     | SlashCommandSubcommandsOnlyBuilder
     | SlashCommandOptionsOnlyBuilder;
+  access: CommandAccess;
   execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
   autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
   cooldown?: number;

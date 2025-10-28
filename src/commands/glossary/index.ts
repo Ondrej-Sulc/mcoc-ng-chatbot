@@ -4,7 +4,7 @@ import {
   MessageFlags,
   ButtonStyle,
 } from "discord.js";
-import { Command } from "../../types/command";
+import { Command, CommandAccess } from "../../types/command";
 import { handleAutocomplete } from "./autocomplete";
 import { handleEffect } from "./effect";
 import { handleCategory } from "./category";
@@ -61,6 +61,7 @@ export const command: Command = {
         .setName("list")
         .setDescription("List all effect categories.")
     ),
+  access: CommandAccess.PUBLIC,
   autocomplete: handleAutocomplete,
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });

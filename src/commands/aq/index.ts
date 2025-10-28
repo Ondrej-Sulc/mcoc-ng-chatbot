@@ -6,7 +6,7 @@ import {
   AutocompleteInteraction,
   GuildBasedChannel,
 } from "discord.js";
-import { Command } from "../../types/command";
+import { Command, CommandAccess } from "../../types/command";
 import { handleStart } from "./start";
 import { handleEnd } from "./end";
 import "./handlers";
@@ -65,7 +65,7 @@ export const command: Command = {
             )
         )
     ),
-
+  access: CommandAccess.USER,
   async autocomplete(interaction: AutocompleteInteraction) {
     const focused = interaction.options.getFocused(true);
     if (focused.name !== "role") return;

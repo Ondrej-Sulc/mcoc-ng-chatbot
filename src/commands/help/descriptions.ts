@@ -1,3 +1,5 @@
+import { CommandAccess } from "../../types/command";
+
 export interface SubcommandInfo {
   description: string;
   usage?: string;
@@ -9,7 +11,7 @@ export interface SubcommandInfo {
 
 export interface CommandInfo {
   description: string;
-  category: "General" | "Admin";
+  access: CommandAccess;
   group?:
     | "Information & Search"
     | "User Management"
@@ -24,7 +26,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
     {
       description:
         "Administrative commands for managing champions, abilities, attacks, and the glossary. These commands are typically restricted to bot administrators and are used for data management and bot configuration.",
-      category: "Admin",
+      access: CommandAccess.BOT_ADMIN,
       subcommands: new Map([
         [
           "champion",
@@ -99,7 +101,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
     {
       description:
         "Alliance Quest (AQ) utilities. These commands help alliances coordinate and track their progress in Alliance Quests.",
-      category: "General",
+      access: CommandAccess.USER,
       group: "Alliance Tools",
       subcommands: new Map([
         [
@@ -133,7 +135,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
     "aw",
     {
       description: "Commands for Alliance War planning and details.",
-      category: "General",
+      access: CommandAccess.FEATURE,
       group: "Alliance Tools",
       subcommands: new Map([
         [
@@ -168,7 +170,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
     {
       description:
         "Get detailed information about any champion in the game. This acts as a comprehensive in-game encyclopedia for all champions.",
-      category: "General",
+      access: CommandAccess.PUBLIC,
       group: "Information & Search",
       subcommands: new Map([
         [
@@ -250,7 +252,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
     {
       description:
         "Debugging commands, restricted to bot administrators. These commands are used for testing and troubleshooting bot features.",
-      category: "Admin",
+      access: CommandAccess.BOT_ADMIN,
       subcommands: new Map([
         [
           "roster",
@@ -284,7 +286,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
     {
       description:
         "Look up MCOC effects, buffs, and debuffs. This acts as an in-game dictionary for various terms.",
-      category: "General",
+      access: CommandAccess.PUBLIC,
       group: "Information & Search",
       subcommands: new Map([
         [
@@ -322,7 +324,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
     {
       description:
         "Extract prestige values from an MCOC screenshot or view the leaderboard.",
-      category: "General",
+      access: CommandAccess.USER,
       group: "User Management",
       subcommands: new Map([
         [
@@ -356,7 +358,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
     {
       description:
         "Manage your player profile. This command allows you to register your in-game name with the bot.",
-      category: "General",
+      access: CommandAccess.USER,
       group: "User Management",
       subcommands: new Map([
         [
@@ -378,7 +380,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
     {
       description:
         "Manage your MCOC roster. Keep track of your champions, their ranks, awakened status, and ascension levels.",
-      category: "General",
+      access: CommandAccess.USER,
       group: "User Management",
       subcommands: new Map([
         [
@@ -454,7 +456,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
     {
       description:
         "Manage scheduled tasks. You can add, list, and remove scheduled messages or command executions.",
-      category: "General",
+      access: CommandAccess.PUBLIC,
       group: "Utilities",
       subcommands: new Map([
         [
@@ -502,7 +504,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
     {
       description:
         "Powerful search for champions based on various criteria, acting as a comprehensive in-game wiki. Filters are case-insensitive.",
-      category: "General",
+      access: CommandAccess.PUBLIC,
       group: "Information & Search",
       subcommands: new Map([
         [
@@ -585,7 +587,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
     {
       description:
         "Summarizes recent messages in a channel or thread using AI. You can specify a timeframe, target channel, language, and even a custom prompt for the summarization.",
-      category: "General",
+      access: CommandAccess.PUBLIC,
       group: "Utilities",
       subcommands: new Map([
         [

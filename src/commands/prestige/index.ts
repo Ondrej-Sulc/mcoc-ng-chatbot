@@ -3,7 +3,7 @@ import {
   ChatInputCommandInteraction,
   AutocompleteInteraction,
 } from "discord.js";
-import { Command } from "../../types/command";
+import { Command, CommandAccess } from "../../types/command";
 import { handleUpdate } from "./update";
 import { handleLeaderboard } from "./leaderboard";
 import { prisma } from "../../services/prismaService";
@@ -73,7 +73,7 @@ export const command: Command = {
         .setName("leaderboard")
         .setDescription("Shows the server prestige leaderboard.")
     ),
-
+  access: CommandAccess.USER,
   async execute(interaction: ChatInputCommandInteraction) {
     const subcommand = interaction.options.getSubcommand();
     if (subcommand === "update") {

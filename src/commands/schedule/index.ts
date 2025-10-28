@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { Command } from "../../types/command";
+import { Command, CommandAccess } from "../../types/command";
 import { handleScheduleAdd } from "./add";
 import { handleScheduleList } from "./list";
 import { handleScheduleRemove } from "./remove";
@@ -114,7 +114,7 @@ export const command: Command = {
             .setRequired(false)
         )
     ),
-
+  access: CommandAccess.PUBLIC,
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ ephemeral: true });
     const subcommand = interaction.options.getSubcommand(true);
