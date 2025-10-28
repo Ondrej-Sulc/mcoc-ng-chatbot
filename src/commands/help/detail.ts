@@ -8,6 +8,7 @@ import {
   ButtonBuilder,
   MediaGalleryBuilder, // Import MediaGalleryBuilder
   MediaGalleryItemBuilder, // Import MediaGalleryItemBuilder
+  ButtonInteraction,
 } from "discord.js";
 import { CommandAccess, CommandResult } from "../../types/command";
 import { commandDescriptions, SubcommandInfo } from "./descriptions";
@@ -28,8 +29,14 @@ function getAccessLevelString(access: CommandAccess): string {
   }
 }
 
-export async function handleDetail(name: string): Promise<CommandResult> {
+export async function handleDetail(
+  name: string,
+  interaction: ButtonInteraction
+): Promise<CommandResult> {
   const commandInfo = commandDescriptions.get(name);
+
+  const applicationCommands = await interaction.client.application.commands.fetch();
+  const commandId = applicationCommands.find((cmd) => cmd.name === name)?.id;
 
   const container = new ContainerBuilder();
   container.setAccentColor(helpColors.containers.detail);
@@ -70,7 +77,10 @@ export async function handleDetail(name: string): Promise<CommandResult> {
       }
       isFirstSubcommand = false;
 
-      let subcommandContent = `## \`/${name} ${subName}\`\n*${subInfo.description}*`; // Changed to H3 and added description here
+      const subCommandMention = commandId
+        ? `</${name} ${subName}:${commandId}>`
+        : `\`/${name} ${subName}\``;
+      let subcommandContent = `## ${subCommandMention}\n*${subInfo.description}*`; // Changed to H3 and added description here
 
       if (subInfo.usage) {
         subcommandContent += `\n- **Usage:** \`${subInfo.usage}\``; // Bullet point and code block for usage

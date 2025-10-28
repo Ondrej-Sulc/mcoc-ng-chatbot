@@ -61,12 +61,6 @@ function hasAccess(command: Command, access: UserAccess): boolean {
 export async function handleHome(interaction: ChatInputCommandInteraction) {
   const userAccess = await getUserAccess(interaction);
 
-  const applicationCommands = await interaction.client.application.commands.fetch();
-  const commandIds = new Map<string, string>();
-  applicationCommands.forEach(cmd => {
-    commandIds.set(cmd.name, cmd.id);
-  });
-
   const commandList = Array.from(commands.values());
 
   const categories: Record<string, Command[]> = {
@@ -85,7 +79,7 @@ export async function handleHome(interaction: ChatInputCommandInteraction) {
       container.addTextDisplayComponents(title);
 
       const description = new TextDisplayBuilder().setContent(
-        categories[category].map(c => `</${c.data.name}:${commandIds.get(c.data.name)}> - ${c.data.description}`).join('\n')
+        categories[category].map(c => `\`/${c.data.name}\` - ${c.data.description}`).join('\n')
       );
       container.addTextDisplayComponents(description);
 

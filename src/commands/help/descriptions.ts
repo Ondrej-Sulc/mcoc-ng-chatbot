@@ -34,13 +34,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             description:
               "Admin commands for managing champions, including adding new champions, updating their images and tags, and syncing data from external sources.",
             usage: "/admin champion <subcommand>",
-            examples: [
-              "/admin champion add - Initiates a multi-step process to add a new champion to the database. This involves providing basic champion information, image URLs, and prestige data.",
-              "/admin champion update_images name:Hercules primary_image:https://example.com/herc_primary.png - Updates Hercules' primary image.",
-              "/admin champion update_images name:Iron Man (Infinity War) hero_image:https://example.com/im_iw_hero.png - Updates Iron Man (Infinity War)'s hero image.",
-              "/admin champion update_tags name:Captain America (WWII) tags_image:https://example.com/cap_wwii_tags.png - Updates Captain America (WWII)'s tags.",
-              "/admin champion sync-sheet - Exports all champion data to the Google Sheet.",
-            ],
           },
         ],
         [
@@ -49,14 +42,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             description:
               "Admin commands for managing champion abilities and immunities, including adding, removing, and drafting them using AI.",
             usage: "/admin ability <subcommand>",
-            examples: [
-              "/admin ability add champion:Hercules type:Ability ability:Immortal Will source:Signature Ability - Adds Immortal Will ability to Hercules.",
-              "/admin ability add champion:Colossus type:Immunity ability:Bleed - Adds Bleed immunity to Colossus.",
-              "/admin ability remove champion:Hercules type:Ability ability:Immortal Will source:Signature Ability - Removes Immortal Will ability from Hercules.",
-              "/admin ability remove champion:Colossus type:Immunity ability:Bleed - Removes Bleed immunity from Colossus.",
-              "/admin ability draft champion:Doctor Doom - Drafts abilities for Doctor Doom using the default AI model.",
-              "/admin ability draft champion:Kitty Pryde model:google/gemini-2.5-pro - Drafts abilities for Kitty Pryde using a specific AI model.",
-            ],
           },
         ],
         [
@@ -64,9 +49,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
           {
             description: "Admin commands for managing champion attack data.",
             usage: "/admin attack add <champion>",
-            examples: [
-              "/admin attack add champion:Human Torch - Opens a modal to add/update Human Torch's attack data.",
-            ],
           },
         ],
         [
@@ -75,12 +57,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             description:
               "Admin commands for managing glossary entries, including linking abilities to categories, unlinking them, and updating descriptions for abilities and categories.",
             usage: "/admin glossary <subcommand>",
-            examples: [
-              "/admin glossary link ability:Bleed category:Debuffs - Links the Bleed ability to the Debuffs category.",
-              "/admin glossary unlink ability:Bleed category:Debuffs - Unlinks the Bleed ability from the Debuffs category.",
-              "/admin glossary update-ability ability:Stun description:Prevents the opponent from acting for a short duration. - Updates the description for Stun.",
-              "/admin glossary update-category category:Buffs description:Positive effects that enhance a champion's abilities. - Updates the description for Buffs category.",
-            ],
           },
         ],
         [
@@ -88,9 +64,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
           {
             description: "Admin commands for managing duel data.",
             usage: "/admin duel upload",
-            examples: [
-              "/admin duel upload file:<duels.csv> - Uploads a CSV file with duel targets.",
-            ],
           },
         ],
       ]),
@@ -144,10 +117,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             description:
               "Sends Alliance War plan details from a Google Sheet to player threads. You can specify a battlegroup, a target player, and an optional image to include with the plan.",
             usage: "/aw plan <battlegroup> [player] [image]",
-            examples: [
-              "/aw plan battlegroup:1 - Sends the plan for Battlegroup 1 to all relevant player threads.",
-              "/aw plan battlegroup:2 player:@User image:<attachment> - Sends the plan for Battlegroup 2 to @User's thread with an attached image.",
-            ],
           },
         ],
         [
@@ -179,9 +148,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             description:
               "Display a champion's core details and full abilities, including their signature ability and detailed ability breakdowns.",
             usage: "/champion info <champion>",
-            examples: [
-              "/champion info champion:Spider-Man (Stark Enhanced) - Get basic info and full abilities for Stark Spider-Man.",
-            ],
           },
         ],
         [
@@ -190,9 +156,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             description:
               "Display a champion's attack types and properties, showing details for basic, special, and heavy attacks.",
             usage: "/champion attacks <champion>",
-            examples: [
-              "/champion attacks champion:Human Torch - View Human Torch's attack types and properties.",
-            ],
           },
         ],
         [
@@ -228,9 +191,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             description:
               "Display a comprehensive overview of a champion, combining their abilities, immunities, attacks, and tags in a single view.",
             usage: "/champion overview <champion>",
-            examples: [
-              "/champion overview champion:Kitty Pryde - Get a complete summary for Kitty Pryde.",
-            ],
           },
         ],
         [
@@ -239,9 +199,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             description:
               "Get duel targets for a champion. This provides a list of players to duel against for practice.",
             usage: "/champion duel <champion>",
-            examples: [
-              "/champion duel champion:Absorbing Man - Get duel targets for Absorbing Man.",
-            ],
           },
         ],
       ]),
@@ -260,10 +217,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             description:
               "Debugs the roster processing from one or more screenshots. This command will attempt to extract champion data from the provided images and display the debug output.",
             usage: "/debug roster <image1> [image2] [image3] [image4] [image5]",
-            examples: [
-              "/debug roster image1:<screenshot.png> - Processes a single roster screenshot in debug mode.",
-              "/debug roster image1:<ss1.png> image2:<ss2.png> - Processes multiple roster screenshots in debug mode.",
-            ],
           },
         ],
         [
@@ -272,10 +225,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             description:
               "Debugs prestige extraction from a screenshot. This command will attempt to extract prestige values from the provided image and display detailed OCR debug information.",
             usage: "/debug prestige <image> [player]",
-            examples: [
-              "/debug prestige image:<profile.png> - Processes a prestige screenshot in debug mode.",
-              "/debug prestige image:<profile.png> player:@User - Processes a prestige screenshot for a specific player in debug mode.",
-            ],
           },
         ],
       ]),
@@ -333,10 +282,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             description:
               "Update your prestige values by uploading a screenshot of your in-game profile. The bot will use OCR to extract Summoner, Champion, and Relic prestige. You can optionally specify a player to update for (admin/moderator only).",
             usage: "/prestige update <image> [player]",
-            examples: [
-              "/prestige update image:<my_profile.png> - Updates your own prestige using the provided screenshot.",
-              "/prestige update image:<ally_profile.png> player:@Ally - Updates @Ally's prestige using the provided screenshot (if authorized).",
-            ],
           },
         ],
         [
@@ -345,9 +290,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             description:
               "View the server prestige leaderboard. You can switch between Summoner, Champion, and Relic prestige leaderboards using interactive buttons.",
             usage: "/prestige leaderboard",
-            examples: [
-              "/prestige leaderboard - Shows the current server prestige leaderboard.",
-            ],
           },
         ],
       ]),
@@ -356,19 +298,50 @@ export const commandDescriptions = new Map<string, CommandInfo>([
   [
     "profile",
     {
-      description:
-        "Manage your player profile. This command allows you to register your in-game name with the bot.",
+      description: "Manage your player profile.",
       access: CommandAccess.USER,
       group: "User Management",
       subcommands: new Map([
         [
-          "register",
+          "name",
+          {
+            description: "Change your in-game name.",
+            usage: "/profile name <new_name>",
+            examples: [
+              '/profile name new_name:MyNewIGN - Changes your in-game name to "MyNewIGN".',
+            ],
+          },
+        ],
+        [
+          "view",
+          {
+            description: "View a player\'s profile, including prestige and roster summary.",
+            usage: "/profile view [user]",
+            examples: [
+              "/profile view - Displays your own profile.",
+              "/profile view user:@Player - Displays the profile for @Player.",
+            ],
+          },
+        ],
+      ]),
+    },
+  ],
+  [
+    "register",
+    {
+      description:
+        "Register your in-game name with the bot. This is required to use many of the bot's features, such as roster management and prestige tracking.",
+      access: CommandAccess.USER,
+      group: "User Management",
+      subcommands: new Map([
+        [
+          "default",
           {
             description:
               "Register your in-game name with the bot. This is required to use many of the bot's features, such as roster management and prestige tracking.",
-            usage: "/profile register <name>",
+            usage: "/register <name>",
             examples: [
-              '/profile register name:MyIGN - Registers your in-game name as "MyIGN".',
+              '/register name:MyIGN - Registers your in-game name as "MyIGN".',
             ],
           },
         ],
@@ -390,11 +363,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
               "Update your roster by uploading one or more screenshots of your champion list. The bot will use OCR to detect champions, their star level, and awakened status. You must specify the star level and rank of the champions in the screenshot(s).",
             usage:
               "/roster update <stars> <rank> <image1> [is_ascended] [image2] [image3] [image4] [image5] [player]",
-            examples: [
-              "/roster update stars:6 rank:5 image1:<screenshot.png> - Updates your 6-star, Rank 5 champions from the screenshot.",
-              "/roster update stars:7 rank:1 image1:<screenshot.png> is_ascended:true - Updates your 7-star, Rank 1 ascended champions.",
-              "/roster update stars:5 rank:5 image1:<ss1.png> image2:<ss2.png> player:@Ally - Updates @Ally's 5-star, Rank 5 champions from multiple screenshots.",
-            ],
           },
         ],
         [
@@ -417,11 +385,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
               "Delete champions from a player's roster. You can delete specific champions by name, or filter by star level, rank, or ascended status. If no options are provided, it will prompt to delete the entire roster.",
             usage:
               "/roster delete [champion] [stars] [rank] [is_ascended] [player]",
-            examples: [
-              "/roster delete champion:Iron Man - Deletes Iron Man from your roster.",
-              "/roster delete stars:2 - Deletes all 2-star champions from your roster.",
-              "/roster delete player:@Ally - Prompts to delete @Ally's entire roster.",
-            ],
           },
         ],
         [
@@ -469,7 +432,6 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             examples: [
               "/schedule add name:DailyAQ frequency:daily time:08:00 message:AQ starts soon! target_channel_id:#alliance-chat - Schedules a daily reminder in #alliance-chat.",
               "/schedule add name:AWReminder frequency:weekly time:19:00 day:monday command:/aw plan battlegroup:1 - Schedules a weekly AW plan command on Mondays.",
-              "/schedule add name:CustomPing frequency:custom time:00:00 cron_expression:0 0 1 * * message:Monthly ping! - Schedules a monthly ping using a cron expression.",
             ],
           },
         ],
