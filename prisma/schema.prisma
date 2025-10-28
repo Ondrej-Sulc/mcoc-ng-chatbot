@@ -209,6 +209,7 @@ model Player {
   isBotAdmin       Boolean   @default(false)
 
   roster Roster[]
+  prestigeHistory PrestigeLog[]
 
   alliance   Alliance? @relation(fields: [allianceId], references: [id], onDelete: SetNull)
   allianceId String?
@@ -217,6 +218,19 @@ model Player {
   updatedAt DateTime @updatedAt
 
   @@index([allianceId])
+}
+
+model PrestigeLog {
+  id               Int      @id @default(autoincrement())
+  summonerPrestige Int
+  championPrestige Int
+  relicPrestige    Int
+  createdAt        DateTime @default(now())
+
+  player   Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  playerId String
+
+  @@index([playerId])
 }
 
 model Alliance {

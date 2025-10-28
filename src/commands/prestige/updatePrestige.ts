@@ -126,14 +126,24 @@ export async function updatePrestige(params: {
   if (isValid) {
     const oldPrestige = player.summonerPrestige;
 
-    await prisma.player.update({
-      where: { id: player.id },
-      data: {
-        summonerPrestige: finalSummonerPrestige,
-        championPrestige: finalChampionPrestige,
-        relicPrestige: finalRelicPrestige,
-      },
-    });
+    await prisma.$transaction([
+      prisma.player.update({
+        where: { id: player.id },
+        data: {
+          summonerPrestige: finalSummonerPrestige,
+          championPrestige: finalChampionPrestige,
+          relicPrestige: finalRelicPrestige,
+        },
+      }),
+      prisma.prestigeLog.create({
+        data: {
+          playerId: player.id,
+          summonerPrestige: finalSummonerPrestige,
+          championPrestige: finalChampionPrestige,
+          relicPrestige: finalRelicPrestige,
+        },
+      }),
+    ]);
 
     const prestigeChange =
       oldPrestige && oldPrestige > 0 ? summonerPrestige! - oldPrestige : 0;
