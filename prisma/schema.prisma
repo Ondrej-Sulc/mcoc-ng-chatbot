@@ -199,16 +199,18 @@ model AQState {
 // --- Player and Prestige Logging ---
 
 model Player {
-  id         String @id @default(cuid())
-  discordId  String @unique
+  id         String  @id @default(cuid())
+  discordId  String
   ingameName String
+  isActive   Boolean @default(false)
+  timezone   String?
 
   summonerPrestige Int?
   championPrestige Int?
   relicPrestige    Int?
-  isBotAdmin       Boolean   @default(false)
+  isBotAdmin       Boolean @default(false)
 
-  roster Roster[]
+  roster          Roster[]
   prestigeHistory PrestigeLog[]
 
   alliance   Alliance? @relation(fields: [allianceId], references: [id], onDelete: SetNull)
@@ -217,6 +219,8 @@ model Player {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([discordId, ingameName])
+  @@index([discordId])
   @@index([allianceId])
 }
 
@@ -241,6 +245,8 @@ model Alliance {
 
   members Player[]
   config  AllianceConfig?
+  aqSchedules AQSchedule[]
+  aqSkip      AQSkip?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -252,6 +258,27 @@ model AllianceConfig {
 
   alliance   Alliance @relation(fields: [allianceId], references: [id], onDelete: Cascade)
   allianceId String   @unique
+}
+
+model AQSchedule {
+  id          String   @id @default(cuid())
+  alliance   Alliance @relation(fields: [allianceId], references: [id], onDelete: Cascade)
+  allianceId String
+  battlegroup Int
+  dayOfWeek   Int // 0 = Sunday, 6 = Saturday
+  time        String // "HH:mm"
+  aqDay       Int
+  channelId   String
+  roleId      String
+
+  @@unique([allianceId, battlegroup, dayOfWeek])
+}
+
+model AQSkip {
+  id         String   @id @default(cuid())
+  alliance   Alliance @relation(fields: [allianceId], references: [id], onDelete: Cascade)
+  allianceId String   @unique
+  skipUntil  DateTime
 }
 
 model Roster {

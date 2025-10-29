@@ -70,6 +70,64 @@ export const commandDescriptions = new Map<string, CommandInfo>([
     },
   ],
   [
+    "alliance",
+    {
+      description: "Manage your alliance, its features, and AQ schedule.",
+      access: CommandAccess.USER,
+      group: "Alliance Tools",
+      subcommands: new Map([
+        [
+          "join",
+          {
+            description: "Join an alliance and optionally register your in-game name. If you're new to the server and your alliance uses this bot, this is the best way to get started.",
+            usage: "/alliance join <role> [name]",
+            examples: [
+              "/alliance join role:@BG1 MyIGN - Joins the alliance with the BG1 role and sets your name to MyIGN.",
+              "/alliance join role:@Member - Joins the alliance with the Member role if you\'re already registered.",
+            ],
+          },
+        ],
+        [
+          "toggle-feature",
+          {
+            description: "Enable or disable a feature for your alliance (Alliance Admin only).",
+            usage: "/alliance toggle-feature <feature> <enabled>",
+            examples: [
+              "/alliance toggle-feature feature:AW_PLANNING enabled:true - Enables the Alliance War planning feature.",
+            ],
+          },
+        ],
+        [
+          "aq_schedule",
+          {
+            description: "View or manage the automated AQ schedule for your alliance (Alliance Admin only). Includes subcommands to add, remove, and view schedule entries.",
+            usage: "/alliance aq_schedule <subcommand>",
+          },
+        ],
+        [
+          "aq_skip",
+          {
+            description: "Skip the next scheduled AQ for a specific day (e.g., for off-season) (Alliance Admin only).",
+            usage: "/alliance aq_skip <day>",
+            examples: [
+              "/alliance aq_skip day:1 - Skips the next scheduled AQ for Day 1.",
+            ],
+          },
+        ],
+        [
+          "name",
+          {
+            description: "Update your alliance\'s name (Alliance Admin only).",
+            usage: "/alliance name <name>",
+            examples: [
+              "/alliance name name:My Awesome Alliance",
+            ],
+          },
+        ],
+      ]),
+    },
+  ],
+  [
     "aq",
     {
       description:
@@ -323,6 +381,23 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             ],
           },
         ],
+        [
+          "delete",
+          {
+            description: "Delete your user profile and all associated data from the bot.",
+            usage: "/profile delete",
+          },
+        ],
+        [
+          "timezone",
+          {
+            description: "Set your timezone to get localized dates and times.",
+            usage: "/profile timezone <timezone>",
+            examples: [
+              "/profile timezone timezone:America/New_York - Sets your timezone to Eastern Time.",
+            ],
+          },
+        ],
       ]),
     },
   ],
@@ -330,7 +405,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
     "register",
     {
       description:
-        "Register your in-game name with the bot. This is required to use many of the bot's features, such as roster management and prestige tracking.",
+        "For new users to register their in-game name with the bot. This is the first step to unlock features like roster management and prestige tracking. If you are part of an alliance, use '/alliance join' instead to register and join your alliance simultaneously.",
       access: CommandAccess.USER,
       group: "User Management",
       subcommands: new Map([
@@ -338,7 +413,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
           "default",
           {
             description:
-              "Register your in-game name with the bot. This is required to use many of the bot's features, such as roster management and prestige tracking.",
+              "Registers your in-game name, which is required for most features.",
             usage: "/register <name>",
             examples: [
               '/register name:MyIGN - Registers your in-game name as "MyIGN".',
@@ -426,9 +501,9 @@ export const commandDescriptions = new Map<string, CommandInfo>([
           "add",
           {
             description:
-              "Add a new scheduled task. You can schedule a custom message or a bot command to be sent to a specific channel or user at a defined frequency and time. Supports daily, weekly, monthly, and custom cron frequencies.",
+              "Add a new scheduled task. You can schedule a custom message or a bot command to be sent to a specific channel or user at a defined frequency and time. Supports daily, weekly, and monthly frequencies.",
             usage:
-              "/schedule add <name> <frequency> <time> [command] [message] [target_channel_id] [target_user_id] [day] [interval] [unit] [cron_expression]",
+              "/schedule add <name> <frequency> <time> [command] [message] [target_channel_id] [target_user_id] [day] [interval] [unit]",
             examples: [
               "/schedule add name:DailyAQ frequency:daily time:08:00 message:AQ starts soon! target_channel_id:#alliance-chat - Schedules a daily reminder in #alliance-chat.",
               "/schedule add name:AWReminder frequency:weekly time:19:00 day:monday command:/aw plan battlegroup:1 - Schedules a weekly AW plan command on Mondays.",

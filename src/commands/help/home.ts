@@ -29,14 +29,17 @@ interface UserAccess {
 }
 
 async function getUserAccess(interaction: ChatInputCommandInteraction): Promise<UserAccess> {
-  const player = await prisma.player.findUnique({ where: { discordId: interaction.user.id } });
+  const players = await prisma.player.findMany({ where: { discordId: interaction.user.id } });
   const member = await interaction.guild?.members.fetch(interaction.user.id);
   const alliance = interaction.guild ? await prisma.alliance.findUnique({ where: { guildId: interaction.guild.id } }) : null;
 
+  const isBotAdmin = players.some(p => p.isBotAdmin);
+  const isRegistered = players.length > 0;
+
   return {
-    isBotAdmin: player?.isBotAdmin || false,
+    isBotAdmin,
     isAllianceAdmin: member?.permissions.has('Administrator') || false,
-    isRegistered: !!player,
+    isRegistered,
     enabledFeatureCommands: alliance?.enabledFeatureCommands || [],
   };
 }

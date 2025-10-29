@@ -220,24 +220,28 @@ export async function extractPrestigeFromImage(
   const side = Math.min(W, H);
   const squareLeft = Math.round((W - side) / 2);
   const squareTop = Math.round((H - side) / 2);
-  const finalLeft =
-    squareLeft + Math.round(side * CROP_CONFIG.sideMultiplier);
-  const finalTop = squareTop;
-  const finalWidth = Math.round(side * CROP_CONFIG.widthMultiplier);
-  const finalHeight = Math.round(side * CROP_CONFIG.heightMultiplier);
+  let finalLeft = squareLeft + Math.round(side * CROP_CONFIG.sideMultiplier);
+  let finalTop = squareTop;
+  let finalWidth = Math.round(side * CROP_CONFIG.widthMultiplier);
+  let finalHeight = Math.round(side * CROP_CONFIG.heightMultiplier);
 
-  // Add validation for crop area
-  if (finalWidth <= 0 || finalHeight <= 0 || finalLeft < 0 || finalTop < 0 ||
-      finalLeft + finalWidth > W || finalTop + finalHeight > H) {
+  // Ensure crop area is within image bounds
+  finalLeft = Math.max(0, finalLeft);
+  finalTop = Math.max(0, finalTop);
+  finalWidth = Math.min(finalWidth, W - finalLeft);
+  finalHeight = Math.min(finalHeight, H - finalTop);
+
+  // Ensure crop dimensions are at least 1x1
+  if (finalWidth <= 0 || finalHeight <= 0) {
     logger.error(
-      `Invalid crop area calculated: left=${finalLeft}, top=${finalTop}, width=${finalWidth}, height=${finalHeight}, imageW=${W}, imageH=${H}`
+      `Calculated crop area is too small or invalid after adjustments: left=${finalLeft}, top=${finalTop}, width=${finalWidth}, height=${finalHeight}, imageW=${W}, imageH=${H}`
     );
     return {
       success: false,
       summonerPrestige: 0,
       championPrestige: 0,
       relicPrestige: 0,
-      error: "Invalid crop area calculated.",
+      error: "Calculated crop area is too small or invalid.",
       debugInfo: debug ? debugInfo : undefined,
     };
   }

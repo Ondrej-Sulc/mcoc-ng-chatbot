@@ -1,13 +1,12 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { Command, CommandAccess } from "../../types/command";
 import { prisma } from "../../services/prismaService";
-import { importRosterFromSheet } from "../../services/rosterService";
 import { safeReply } from "../../utils/errorHandler";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
     .setName("register")
-    .setDescription("Register your in-game name.")
+    .setDescription("Register your first in-game profile with the bot.")
     .addStringOption((option) =>
       option
         .setName("name")
@@ -21,47 +20,37 @@ export const command: Command = {
     const ingameName = interaction.options.getString("name", true);
     const discordId = interaction.user.id;
 
-    const existingPlayer = await prisma.player.findUnique({
+    const anyProfile = await prisma.player.findFirst({
       where: { discordId },
     });
 
-    if (existingPlayer) {
-      await safeReply(
-        interaction,
-        "You are already registered. To change your name, please use the `/profile name` command."
-      );
+    if (anyProfile) {
+      await safeReply(interaction, "You are already registered. Use `/profile add` to add another account, or `/profile rename` to change an existing profile's name.");
       return;
     }
 
+    // This is the user's first registration.
     const guild = interaction.guild;
     let allianceId: string | null = null;
 
     if (guild) {
-      const alliance = await prisma.alliance.upsert({
-        where: { guildId: guild.id },
-        update: { name: guild.name },
-        create: { guildId: guild.id, name: guild.name },
+      const alliance = await prisma.alliance.findUnique({
+          where: { guildId: guild.id },
       });
-      allianceId = alliance.id;
+      if(alliance) {
+          allianceId = alliance.id;
+      }
     }
 
-    const player = await prisma.player.create({
+    await prisma.player.create({
       data: {
         discordId,
         ingameName,
         allianceId,
+        isActive: true, // First profile is active
       },
     });
 
-    // Import roster from sheet after registration
-    await importRosterFromSheet(player.id);
-
-    let replyMessage = `✅ Successfully registered **${player.ingameName}**.`;
-    if (!guild) {
-      replyMessage +=
-        "\n\nYou can join an alliance by using the `/alliance join` command in your alliance's server.";
-    }
-
-    await safeReply(interaction, replyMessage);
+    await safeReply(interaction, `✅ Successfully registered **${ingameName}**. It has been set as your active profile.`);
   },
 };

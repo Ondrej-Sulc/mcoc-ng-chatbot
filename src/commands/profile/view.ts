@@ -70,7 +70,6 @@ function buildRosterSummary(
 }
 
 export async function handleView(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply();
 
   const player = await getPlayer(interaction);
   if (!player) {

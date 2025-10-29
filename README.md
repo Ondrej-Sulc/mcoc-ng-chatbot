@@ -9,8 +9,8 @@ A modular Discord bot built with TypeScript, designed for Marvel Contest of Cham
 - **Dynamic Command Loading:** Commands in the `src/commands` directory are automatically registered on startup.
 - **Tiered Command Access:** The bot now implements a granular command access system, categorizing commands into different tiers:
     - **Public:** Accessible to all users by default (e.g., `/champion`, `/glossary`, `/search all`).
-    - **User:** Requires users to be registered with the bot (via `/register`) to access (e.g., `/roster`, `/prestige`, `/search roster`).
-    - **Alliance Admin:** Commands for managing server-specific bot settings, accessible by Discord administrators within an alliance (e.g., `/alliance toggle-feature`).
+    - **User:** Requires users to be registered with the bot (via `/register` or `/alliance join`) to access (e.g., `/roster`, `/prestige`, `/search roster`).
+    - **Alliance Admin:** Commands for managing server-specific bot settings, accessible by Discord administrators within an alliance (e.g., `/alliance toggle-feature`, `/alliance name`).
     - **Bot Admin:** Restricted to designated bot administrators for managing global bot data and configurations (e.g., `/admin`, `/debug`).
     - **Feature:** Commands that are disabled by default and must be explicitly enabled by an Alliance Admin for their server (e.g., `/aw`).
 
@@ -21,6 +21,17 @@ A modular Discord bot built with TypeScript, designed for Marvel Contest of Cham
     - **AI Ability Drafting:** Leverages AI to draft abilities and immunities for champions based on their full abilities JSON.
     - **Application Emoji Creation:** Automatically creates a new application emoji for the champion.
     - **Database Integration:** Upserts the champion data into the PostgreSQL database, ensuring no duplicates are created.
+- **Alliance Management:** A suite of commands to manage alliance settings and activities.
+    - `/alliance join`: Allows new members to join the alliance on Discord and register with the bot in one step.
+    - `/alliance name`: Alliance Admins can update the alliance's name.
+    - `/alliance toggle-feature`: Enables or disables features like `/aw` for the alliance.
+    - `/alliance aq_schedule`: Manage the automated AQ schedule.
+    - `/alliance aq_skip`: Skip upcoming scheduled AQs.
+- **Profile Management:** The `/profile` command allows users to manage their identity within the bot. Subcommands include:
+    - `view`: View a player's profile.
+    - `name`: Change your in-game name.
+    - `timezone`: Set your local timezone for accurate event timing.
+    - `delete`: Delete your profile and all associated data.
 - **Roster Management:** A comprehensive `/roster` command that allows users to manage their personal champion rosters. It includes subcommands to `update` (via OCR from screenshots), `view`, `delete`, `summary`, and `export` champions, providing a full suite of tools for roster maintenance.
 - **Advanced Search:** A powerful `/search` command with two main subcommands:
     - `/search all`: Performs a global search across all champions in the database based on a wide range of criteria, including abilities, immunities, tags, classes, ability categories, and attack types.
@@ -28,7 +39,7 @@ A modular Discord bot built with TypeScript, designed for Marvel Contest of Cham
 - **AQ Management:** An interactive `/aq` command to manage Alliance Quest (AQ) trackers. Users can `start` and `end` trackers, and progress is updated through interactive buttons, providing a real-time view of the AQ status.
 - **PostgreSQL Database:** Uses a robust PostgreSQL database managed with Prisma for persistent data storage.
 - **Google Sheets Integration:** Utilizes Google Sheets for data storage and retrieval (e.g., for scheduling).
-- **Advanced Scheduling:** Schedule commands or custom messages with flexible timing (daily, weekly, monthly, custom cron, etc.) via `/schedule`.
+- **Advanced Scheduling:** Schedule commands or custom messages with flexible timing (e.g., daily, weekly, monthly) via `/schedule`.
 - **Centralized Error Handling:** A robust system that provides users with a unique error ID while logging detailed context for debugging.
 - **Dockerized Environment:** Fully containerized with Docker Compose for consistent development and easy deployment, including a PostgreSQL database service.
 - **AI Capabilities:** Integration with OpenRouter for advanced AI features, including champion ability drafting and tag extraction.
@@ -50,23 +61,24 @@ The production instance of the bot and its PostgreSQL database are hosted on [Ra
 
 ## Commands
 
-| Command | Description |
-| --- | --- |
-| `/admin` | Administrative commands for managing bot data and administrators. (Bot Admin) |
-| `/alliance` | Manage your alliance settings, including enabling/disabling features. (Alliance Admin) |
-| `/aq` | Alliance Quest (AQ) utilities. (User) |
-| `/aw` | Commands for Alliance War planning and details. (Feature) |
-| `/debug` | Debugging commands, restricted to bot administrators. (Bot Admin) |
-| `/glossary` | Look up MCOC effects, buffs, and debuffs. (Public) |
-| `/champion` | Get detailed information about any champion in the game, including duel targets. (Public) |
-| `/prestige` | Extract prestige values from an MCOC screenshot or view the leaderboard. (User) |
-| `/profile` | Manage your player profile. (User) |
-| `/register` | Register your in-game name with the bot. (Public) |
-| `/roster` | Manage your MCOC roster. (User) |
-| `/schedule` | Manage scheduled tasks. (Public) |
-| `/search` | Powerful search for champions based on various criteria. (Public) |
-| `/summarize` | Summarizes recent messages in a channel or thread using AI. (Public) |
-| `/help` | Displays an interactive help guide for all bot commands. (Public) |
+| Command | Description | Access |
+| --- | --- | --- |
+| `/admin` | Administrative commands for managing champions, abilities, attacks, and the glossary. | Bot Admin |
+| `/alliance` | Manage alliance settings. Subcommands for joining, managing features, and scheduling. | User / Admin |
+| `/aq` | Alliance Quest (AQ) utilities. | User |
+| `/aw` | Commands for Alliance War planning and details. | Feature |
+| `/debug` | Debugging commands, restricted to bot administrators. | Bot Admin |
+| `/glossary` | Look up MCOC effects, buffs, and debuffs. | Public |
+| `/champion` | Get detailed information about any champion in the game, including duel targets. | Public |
+| `/prestige` | Extract prestige values from an MCOC screenshot or view the leaderboard. | User |
+| `/profile` | Manage your player profile (`view`, `name`, `timezone`, `delete`). | User |
+| `/register` | Register your in-game name. Use `/alliance join` if in an alliance. | Public |
+| `/roster` | Manage your MCOC roster. | User |
+| `/schedule` | Manage scheduled tasks with daily, weekly, or monthly frequencies. | Public |
+| `/search` | Powerful search for champions based on various criteria. | Public |
+| `/summarize` | Summarizes recent messages in a channel or thread using AI. | Public |
+| `/help` | Displays an interactive help guide for all bot commands. | Public |
+
 
 ---
 
@@ -98,6 +110,7 @@ The bot is designed to be run in a Dockerized environment. The `docker-compose.y
 
 ## Project Structure
 
+```
 mcoc-ng-chatbot/
 ├── prisma/ # Prisma schema and migration files
 │ └── schema.prisma
@@ -117,6 +130,7 @@ mcoc-ng-chatbot/
 ├── Dockerfile # Multi-stage build for lean production images
 ├── docker-compose.yaml # Development environment setup
 └── README.md # You are here
+```
 
 ### Directory Distinction
 

@@ -8,14 +8,24 @@ export async function handleBotAdminAdd(
 ): Promise<void> {
   const user = interaction.options.getUser("user", true);
 
-  const player = await prisma.player.update({
+  // We need to check if the user has any profiles first
+  const anyProfile = await prisma.player.findFirst({
+    where: { discordId: user.id },
+  });
+
+  if (!anyProfile) {
+    await safeReply(interaction, `User ${user.username} has no registered profiles.`);
+    return;
+  }
+
+  await prisma.player.updateMany({
     where: { discordId: user.id },
     data: { isBotAdmin: true },
   });
 
   await safeReply(
     interaction,
-    `✅ **${player.ingameName}** has been added as a bot administrator.`
+    `✅ **${user.username}**'s profiles have been granted bot administrator privileges.`
   );
 }
 
@@ -24,13 +34,23 @@ export async function handleBotAdminRemove(
 ): Promise<void> {
   const user = interaction.options.getUser("user", true);
 
-  const player = await prisma.player.update({
+  const anyProfile = await prisma.player.findFirst({
+    where: { discordId: user.id },
+  });
+
+  if (!anyProfile) {
+    // This is unlikely to happen but good to have
+    await safeReply(interaction, `User ${user.username} has no registered profiles.`);
+    return;
+  }
+
+  await prisma.player.updateMany({
     where: { discordId: user.id },
     data: { isBotAdmin: false },
   });
 
   await safeReply(
     interaction,
-    `✅ **${player.ingameName}** has been removed as a bot administrator.`
+    `✅ Bot administrator privileges have been revoked from all of **${user.username}**'s profiles.`
   );
 }

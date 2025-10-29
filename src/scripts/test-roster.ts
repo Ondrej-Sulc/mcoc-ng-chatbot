@@ -15,7 +15,6 @@ const rank = 5;
 const testPlayerData = {
   discordId: "test-discord-id",
   ingameName: "TestPlayer",
-  guildId: "test-guild-id",
 };
 
 async function testRoster() {
@@ -34,7 +33,12 @@ async function testRoster() {
     } else {
       // Ensure the test player exists
       const player = await prisma.player.upsert({
-        where: { discordId: testPlayerData.discordId },
+        where: { 
+          discordId_ingameName: {
+            discordId: testPlayerData.discordId,
+            ingameName: testPlayerData.ingameName,
+          }
+        },
         update: {},
         create: testPlayerData,
       });

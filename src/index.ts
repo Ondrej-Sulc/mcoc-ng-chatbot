@@ -11,6 +11,7 @@ import { Command, CommandAccess } from "./types/command";
 import { getPlayer } from "./utils/playerHelper";
 import { getButtonHandler } from "./utils/buttonHandlerRegistry";
 import { startScheduler } from "./services/schedulerService";
+import { startAQScheduler } from "./services/aqSchedulerService";
 import http from "http";
 import { handleError, safeReply } from "./utils/errorHandler";
 import { loadApplicationEmojis } from "./services/applicationEmojiService";
@@ -80,6 +81,7 @@ client.once(Events.ClientReady, async (readyClient) => {
   }
   // Start scheduler after bot is ready
   await startScheduler(client);
+  startAQScheduler(client);
   initializeAqReminders(client);
 });
 
@@ -202,10 +204,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
     case CommandAccess.USER: {
       const player = await getPlayer(interaction);
       if (!player) {
-        await safeReply(
-          interaction,
-          "You must be registered to use this command. Use `/register` to get started."
-        );
         return;
       }
       break;
@@ -228,10 +226,11 @@ client.on(Events.InteractionCreate, async (interaction) => {
       break;
     }
     case CommandAccess.BOT_ADMIN: {
-      const player = await prisma.player.findUnique({
+      const players = await prisma.player.findMany({
         where: { discordId: interaction.user.id },
       });
-      if (!player || !player.isBotAdmin) {
+      const isBotAdmin = players.some(p => p.isBotAdmin);
+      if (!isBotAdmin) {
         await safeReply(
           interaction,
           "You are not authorized to use this command."

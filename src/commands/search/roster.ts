@@ -13,6 +13,7 @@ import { rosterSearchCache } from "./cache";
 import { paginate } from "./pagination";
 import { rosterCore } from "./searchService";
 import { getRosterEntryDisplayLength } from "./views/common";
+import { getPlayer } from "../../utils/playerHelper";
 
 
 
@@ -34,15 +35,9 @@ async function handleRosterSearch(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const targetUser = interaction.options.getUser("player") || interaction.user;
-  const player = await prisma.player.findUnique({
-    where: { discordId: targetUser.id },
-  });
+  const player = await getPlayer(interaction);
 
   if (!player) {
-    await interaction.editReply({
-      content: `Player ${targetUser.username} is not registered.`, 
-    });
     return;
   }
 

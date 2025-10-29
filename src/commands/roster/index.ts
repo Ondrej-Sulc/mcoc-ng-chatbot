@@ -10,6 +10,7 @@ import { handleView } from "./view";
 import { handleDelete } from "./delete";
 import { handleSummary } from "./summary";
 import { handleExport } from "./export";
+import { getActivePlayer } from "../../utils/playerHelper";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -188,9 +189,7 @@ export const command: Command = {
   access: CommandAccess.USER,
   async autocomplete(interaction: AutocompleteInteraction) {
     const focusedValue = interaction.options.getFocused();
-    const player = await prisma.player.findUnique({
-      where: { discordId: interaction.user.id },
-    });
+    const player = await getActivePlayer(interaction.user.id);
 
     if (!player) {
       await interaction.respond([]);

@@ -13,6 +13,7 @@ import { config } from "../../config";
 import { prisma } from "../../services/prismaService";
 import { getMergedData, getTeamData } from "./handlers";
 import { capitalize, formatAssignment, getEmoji } from "./utils";
+import { getPlayer } from "../../utils/playerHelper";
 
 export async function handlePlan(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -224,13 +225,8 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
   };
 
   if (targetUser) {
-    const player = await prisma.player.findUnique({
-      where: { discordId: targetUser.id },
-    });
-    if (!player || !player.ingameName) {
-      await interaction.editReply(
-        `Player ${targetUser.username} is not registered or has no in-game name set.`
-      );
+    const player = await getPlayer(interaction);
+    if (!player) {
       return;
     }
     const playerName = player.ingameName.toLowerCase();
