@@ -1,6 +1,7 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, PermissionsBitField } from 'discord.js';
 import { Command, CommandAccess } from '../../types/command';
 import { handleAllianceToggleFeature } from './toggle-feature';
+import { handleAllianceJoin } from './join';
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -22,8 +23,13 @@ export const command: Command = {
             .setDescription('Whether the feature should be enabled or disabled.')
             .setRequired(true)
         )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('join')
+        .setDescription('Join the alliance associated with this server.')
     ),
-  access: CommandAccess.ALLIANCE_ADMIN,
+  access: CommandAccess.USER, // Set base access to USER
 
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ ephemeral: true });
@@ -31,7 +37,16 @@ export const command: Command = {
 
     switch (subcommand) {
       case 'toggle-feature':
+        // Manual permission check for ALLIANCE_ADMIN
+        const member = interaction.member;
+        if (!member || typeof member.permissions === 'string' || !member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+          await interaction.editReply({ content: 'You must be an administrator to use this command.' });
+          return;
+        }
         await handleAllianceToggleFeature(interaction);
+        break;
+      case 'join':
+        await handleAllianceJoin(interaction);
         break;
     }
   },

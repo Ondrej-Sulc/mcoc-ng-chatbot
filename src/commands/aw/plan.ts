@@ -17,6 +17,24 @@ import { capitalize, formatAssignment, getEmoji } from "./utils";
 export async function handlePlan(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
+  if (!interaction.guild) {
+    await interaction.editReply("This command can only be used in a server.");
+    return;
+  }
+
+  const alliance = await prisma.alliance.findUnique({
+    where: { guildId: interaction.guild.id },
+    include: { config: true },
+  });
+
+  if (!alliance?.config?.sheetId) {
+    await interaction.editReply(
+      "This command is not configured for this server. Please set a Google Sheet ID."
+    );
+    return;
+  }
+  const sheetId = alliance.config.sheetId;
+
   const battlegroup = interaction.options.getInteger("battlegroup", true);
   const targetUser = interaction.options.getUser("player");
   const image = interaction.options.getAttachment("image");
@@ -54,8 +72,8 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
   );
   const threadMap = new Map(allThreads.map((t) => [t.name.toLowerCase(), t]));
 
-  const mergedData = await getMergedData(bgConfig.sheet);
-  const teamData = await getTeamData(bgConfig.sheet);
+  const mergedData = await getMergedData(sheetId, bgConfig.sheet);
+  const teamData = await getTeamData(sheetId, bgConfig.sheet);
 
   const playerDataMap = new Map<string, {
       assignments: { node: string; formatted: string }[];

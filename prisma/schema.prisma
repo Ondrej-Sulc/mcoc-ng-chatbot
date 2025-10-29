@@ -240,9 +240,18 @@ model Alliance {
   enabledFeatureCommands  String[] @default([])
 
   members Player[]
+  config  AllianceConfig?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model AllianceConfig {
+  id          String  @id @default(cuid())
+  sheetId     String?
+
+  alliance   Alliance @relation(fields: [allianceId], references: [id], onDelete: Cascade)
+  allianceId String   @unique
 }
 
 model Roster {

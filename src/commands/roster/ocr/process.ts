@@ -217,7 +217,22 @@ async function saveRoster(
     }
   }
 
-  await updateRosterInSheet(playerId, stars, rank, isAscended, savedChampions);
+  // Fetch player with alliance and alliance config to check for sheet integration
+  const player = await prisma.player.findUnique({
+    where: { id: playerId },
+    include: { alliance: { include: { config: true } } },
+  });
+
+  if (player?.alliance?.config?.sheetId) {
+    await updateRosterInSheet(
+      playerId,
+      stars,
+      rank,
+      isAscended,
+      savedChampions,
+      player.alliance.config.sheetId
+    );
+  }
 
   return savedChampions;
 }
@@ -227,7 +242,8 @@ async function updateRosterInSheet(
   stars: number,
   rank: number,
   isAscended: boolean,
-  updatedChampions: RosterWithChampion[][]
+  updatedChampions: RosterWithChampion[][],
+  sheetId: string
 ) {
   if (stars !== 6 && stars !== 7) {
     console.log(`Skipping sheet update for ${stars}* champions.`);
@@ -245,7 +261,7 @@ async function updateRosterInSheet(
   const championNamesRange = `${sheetName}!A5:A`;
 
   const [playerNames, championNames] = await sheetsService.readSheets(
-    config.MCOC_SHEET_ID,
+    sheetId,
     [headerRange, championNamesRange]
   );
 
@@ -274,7 +290,7 @@ async function updateRosterInSheet(
   const targetRange = `${sheetName}!${targetColumn}5:${targetColumn}`;
 
   const existingRosterData = await sheetsService.readSheet(
-    config.MCOC_SHEET_ID,
+    sheetId,
     targetRange
   );
   const newRosterData = existingRosterData ? [...existingRosterData] : [];
@@ -304,7 +320,7 @@ async function updateRosterInSheet(
   }
 
   await sheetsService.writeSheet(
-    config.MCOC_SHEET_ID,
+    sheetId,
     targetRange,
     newRosterData
   );

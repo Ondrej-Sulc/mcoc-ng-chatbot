@@ -2,6 +2,7 @@ import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { Command, CommandAccess } from "../../types/command";
 import { handleName } from "./name";
 import { handleView } from "./view";
+import { handleDelete } from "./delete";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -26,6 +27,11 @@ export const command: Command = {
             .setDescription("The user to view.")
             .setRequired(false)
         )
+    )
+    .addSubcommand(subcommand =>
+      subcommand
+        .setName("delete")
+        .setDescription("Delete your profile and all associated data.")
     ),
   access: CommandAccess.USER,
 
@@ -36,6 +42,8 @@ export const command: Command = {
       await handleName(interaction);
     } else if (subcommand === "view") {
       await handleView(interaction);
+    } else if (subcommand === "delete") {
+      await handleDelete(interaction);
     }
   },
 };

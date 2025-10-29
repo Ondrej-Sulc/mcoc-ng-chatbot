@@ -245,7 +245,7 @@ export async function estimateGrid(
   const avgRowDist =
     numRows > 1
       ? (rowStarts[numRows - 1] - rowStarts[0]) / (numRows - 1)
-      : avgColDist * 0.95;
+      : avgColDist * 0.98;
 
   const cellWidth = avgColDist * COL_WIDTH_RATIO;
   const cellHeight = avgRowDist * ROW_HEIGHT_RATIO;

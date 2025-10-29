@@ -3,13 +3,14 @@ import { sheetsService } from "../../services/sheetsService";
 import { MergedAssignment } from "./types";
 
 export async function getMergedData(
+  sheetId: string,
   sheetTabName: string
 ): Promise<MergedAssignment[]> {
   const assignmentsRange = `'${sheetTabName}'!${config.allianceWar.dataRange}`;
   const tacticsAndPrefightsRange = `'${sheetTabName}'!${config.allianceWar.PreFightTacticDataRange}`;
 
   const [assignmentsData, tacticsAndPrefightsData] =
-    await sheetsService.readSheets(config.MCOC_SHEET_ID, [
+    await sheetsService.readSheets(sheetId, [
       assignmentsRange,
       tacticsAndPrefightsRange,
     ]);
@@ -63,10 +64,11 @@ export async function getMergedData(
 }
 
 export async function getTeamData(
+  sheetId: string,
   sheetTabName: string
 ): Promise<Map<string, string[]>> {
   const teamRange = `'${sheetTabName}'!${config.allianceWar.teamRange}`;
-  const [teamData] = await sheetsService.readSheets(config.MCOC_SHEET_ID, [
+  const [teamData] = await sheetsService.readSheets(sheetId, [
     teamRange,
   ]);
 
@@ -91,10 +93,11 @@ export async function getTeamData(
 }
 
 export async function getNodesData(
+  sheetId: string,
   sheetTabName: string
 ): Promise<Record<string, string>> {
   const nodesRange = `'${sheetTabName}'!${config.allianceWar.nodesRange}`;
-  const [nodesData] = await sheetsService.readSheets(config.MCOC_SHEET_ID, [
+  const [nodesData] = await sheetsService.readSheets(sheetId, [
     nodesRange,
   ]);
 

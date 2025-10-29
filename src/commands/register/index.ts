@@ -20,29 +20,48 @@ export const command: Command = {
     await interaction.deferReply({ ephemeral: true });
     const ingameName = interaction.options.getString("name", true);
     const discordId = interaction.user.id;
-    const guild = interaction.guild;
 
-    if (!guild) {
-      await safeReply(interaction, "This command can only be used in a server.");
+    const existingPlayer = await prisma.player.findUnique({
+      where: { discordId },
+    });
+
+    if (existingPlayer) {
+      await safeReply(
+        interaction,
+        "You are already registered. To change your name, please use the `/profile name` command."
+      );
       return;
     }
 
-    // Find or create the alliance
-    const alliance = await prisma.alliance.upsert({
-      where: { guildId: guild.id },
-      update: { name: guild.name },
-      create: { guildId: guild.id, name: guild.name },
-    });
+    const guild = interaction.guild;
+    let allianceId: string | null = null;
 
-    const player = await prisma.player.upsert({
-      where: { discordId },
-      update: { ingameName, allianceId: alliance.id },
-      create: { discordId, ingameName, allianceId: alliance.id },
+    if (guild) {
+      const alliance = await prisma.alliance.upsert({
+        where: { guildId: guild.id },
+        update: { name: guild.name },
+        create: { guildId: guild.id, name: guild.name },
+      });
+      allianceId = alliance.id;
+    }
+
+    const player = await prisma.player.create({
+      data: {
+        discordId,
+        ingameName,
+        allianceId,
+      },
     });
 
     // Import roster from sheet after registration
     await importRosterFromSheet(player.id);
 
-    await safeReply(interaction, `✅ Successfully registered **${player.ingameName}**.`);
+    let replyMessage = `✅ Successfully registered **${player.ingameName}**.`;
+    if (!guild) {
+      replyMessage +=
+        "\n\nYou can join an alliance by using the `/alliance join` command in your alliance's server.";
+    }
+
+    await safeReply(interaction, replyMessage);
   },
 };

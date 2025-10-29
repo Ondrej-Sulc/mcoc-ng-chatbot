@@ -7,13 +7,32 @@ import {
 import { config } from "../../config";
 import { getMergedData, getNodesData } from "./handlers";
 import { capitalize, formatAssignment, getEmoji } from "./utils";
+import { prisma } from "../../services/prismaService";
 
 export async function handleDetails(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply();
 
+  if (!interaction.guild) {
+    await interaction.editReply("This command can only be used in a server.");
+    return;
+  }
+
+  const alliance = await prisma.alliance.findUnique({
+    where: { guildId: interaction.guild.id },
+    include: { config: true },
+  });
+
+  if (!alliance?.config?.sheetId) {
+    await interaction.editReply(
+      "This command is not configured for this server. Please set a Google Sheet ID."
+    );
+    return;
+  }
+  const sheetId = alliance.config.sheetId;
+
   if (!interaction.channel || !interaction.channel.isThread()) {
     await interaction.editReply(
-      "This command can only be used in a player\'s war thread."
+      "This command can only be used in a player's war thread."
     );
     return;
   }
@@ -35,8 +54,8 @@ export async function handleDetails(interaction: ChatInputCommandInteraction) {
     return;
   }
 
-  const nodeLookup = await getNodesData(bgConfig.sheet);
-  const mergedData = await getMergedData(bgConfig.sheet);
+  const nodeLookup = await getNodesData(sheetId, bgConfig.sheet);
+  const mergedData = await getMergedData(sheetId, bgConfig.sheet);
 
   const assignmentPromises = mergedData.map(async (assignment) => {
     const { node, prefightPlayer, prefightChampion } = assignment;
