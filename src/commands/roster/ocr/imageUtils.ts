@@ -5,6 +5,7 @@ import { tmpdir } from "os";
 // @ts-ignore
 import { imageHash } from "image-hash";
 import { ChampionGridCell, Vertex } from "./types";
+import logger from "../../../services/loggerService";
 
 export async function downloadImage(url: string): Promise<Buffer> {
   const response = await fetch(url);
@@ -47,13 +48,27 @@ export async function getImageHash(imageBuffer: Buffer): Promise<string> {
     try {
       await fs.writeFile(tempPath, pngBuffer);
       imageHash(tempPath, 16, true, (error: any, data: string) => {
-        fs.unlink(tempPath).catch((err: any) =>
-          console.error(`Failed to delete temp file: ${tempPath}`, err)
-        );
-        if (error) return reject(error);
+        // Check if the file exists before trying to delete it
+        fs.access(tempPath)
+          .then(() =>
+            fs
+              .unlink(tempPath)
+              .catch((err: any) =>
+                logger.error(`Failed to delete temp file: ${tempPath}`, err)
+              )
+          )
+          .catch(() => {
+            /* File doesn't exist, no need to delete */
+          });
+
+        if (error) {
+          logger.error({ err: error }, `Failed to generate image hash for ${tempPath}`);
+          return reject(error);
+        }
         resolve(data);
       });
     } catch (error) {
+      logger.error({ err: error }, `Failed to write temporary image file: ${tempPath}`);
       reject(error);
     }
   });
