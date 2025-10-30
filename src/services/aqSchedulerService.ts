@@ -57,7 +57,6 @@ export function startAQScheduler(client: Client) {
             roleId: roleId,
             channel: channel,
             guild: guild,
-            createThread: false,
             channelName: channel.name,
             roleName: role.name,
           });

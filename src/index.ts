@@ -88,6 +88,9 @@ client.once(Events.ClientReady, async (readyClient) => {
 client.on(Events.InteractionCreate, async (interaction) => {
   // Handle button interactions generically
   if (interaction.isButton()) {
+    if (interaction.customId.startsWith("interactive:")) {
+      return;
+    }
     try {
       if (posthogClient) {
         posthogClient.capture({
@@ -124,6 +127,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 
   if (interaction.isModalSubmit()) {
+    if (interaction.customId.startsWith("interactive:")) {
+      return;
+    }
     try {
       if (posthogClient) {
         const fields = interaction.fields.fields.map((field) => ({

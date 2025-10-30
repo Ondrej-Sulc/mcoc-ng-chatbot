@@ -12,3 +12,4 @@
 - improve profile view visually
 - schedule view handle pagination for 40+ components
 - aq schedule add only list text channels
+- AQ thread create option to AQ config

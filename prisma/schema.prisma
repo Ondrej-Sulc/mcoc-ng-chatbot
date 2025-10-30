@@ -242,6 +242,7 @@ model Alliance {
   guildId          String   @unique
   name             String
   enabledFeatureCommands  String[] @default([])
+  createAqThread   Boolean  @default(false)
 
   members Player[]
   config  AllianceConfig?
@@ -271,7 +272,7 @@ model AQSchedule {
   channelId   String
   roleId      String
 
-  @@unique([allianceId, battlegroup, dayOfWeek])
+  @@unique([allianceId, battlegroup, aqDay])
 }
 
 model AQSkip {

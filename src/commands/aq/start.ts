@@ -8,13 +8,13 @@ import { CommandResult } from "../../types/command";
 import { AQState, getState, setState } from "./state";
 import { generateAQHeader } from "./header";
 import { buildAQContainer } from "./view";
+import { prisma } from "../../services/prismaService";
 
 interface AQCoreStartParams {
   day: number;
   roleId: string;
   channel: GuildBasedChannel;
   guild: Guild;
-  createThread: boolean;
   channelName: string;
   roleName: string;
 }
@@ -22,11 +22,20 @@ interface AQCoreStartParams {
 export async function handleStart(
   params: AQCoreStartParams
 ): Promise<CommandResult> {
-  const { day, roleId, channel, guild, createThread, channelName, roleName } =
-    params;
+  const { day, roleId, channel, guild, channelName, roleName } = params;
 
   if (!("send" in channel)) {
     return {
+      flags: MessageFlags.Ephemeral,
+    };
+  }
+
+  const alliance = await prisma.alliance.findUnique({
+    where: { guildId: guild.id },
+  });
+  if (!alliance) {
+    return {
+      content: "This server is not registered as an alliance.",
       flags: MessageFlags.Ephemeral,
     };
   }
@@ -88,7 +97,7 @@ export async function handleStart(
   });
   state.messageId = sent.id;
 
-  if (createThread) {
+  if (alliance.createAqThread) {
     const thread = await sent.startThread({
       name: `AQ Day ${day} Updates`,
       autoArchiveDuration: 1440, // 24 hours
