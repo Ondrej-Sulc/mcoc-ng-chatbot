@@ -1,4 +1,4 @@
-import { ChatInputCommandInteraction, MessageFlags } from "discord.js";
+import { ChatInputCommandInteraction, MessageFlags, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, SeparatorSpacingSize } from "discord.js";
 import { prisma } from "../../services/prismaService";
 import { safeReply } from "../../utils/errorHandler";
 import { AQSchedule } from "@prisma/client";
@@ -15,8 +15,11 @@ export async function handleAqScheduleView(interaction: ChatInputCommandInteract
     include: { aqSchedules: true },
   });
 
+  const container = new ContainerBuilder();
+
   if (!alliance || !alliance.aqSchedules || alliance.aqSchedules.length === 0) {
-    await safeReply(interaction, "No AQ schedule found for this alliance.");
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent("No AQ schedule found for this alliance."));
+    await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
     return;
   }
 
@@ -28,7 +31,8 @@ export async function handleAqScheduleView(interaction: ChatInputCommandInteract
     schedulesByDay[s.dayOfWeek].push(s);
   });
 
-  let scheduleText = `# AQ Schedule for ${alliance.name}\n\n`;
+  container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`# AQ Schedule for ${alliance.name}`));
+  container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small));
 
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const displayOrder = [1, 2, 3, 4, 5, 6, 0]; // Mon, Tue, Wed, Thu, Fri, Sat, Sun
@@ -36,14 +40,16 @@ export async function handleAqScheduleView(interaction: ChatInputCommandInteract
   for (const dayIndex of displayOrder) {
     const daySchedules = schedulesByDay[dayIndex];
     if (daySchedules && daySchedules.length > 0) {
-      scheduleText += `### ${days[dayIndex]}\n`;
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`### ${days[dayIndex]}`));
       daySchedules.sort((a, b) => a.battlegroup - b.battlegroup || a.time.localeCompare(b.time));
-      scheduleText += daySchedules
-        .map(s => `- **BG${s.battlegroup}**: ${s.time} UTC (AQ Day ${s.aqDay}) in <#${s.channelId}> tagging <@&${s.roleId}>`)
-        .join('\n');
-      scheduleText += '\n\n';
+      const scheduleText = daySchedules
+        .map(s => `- **BG${s.battlegroup}**: ${s.time} UTC (AQ Day ${s.aqDay}) in <#${s.channelId}> tagging <@&${s.roleId}>
+`)
+        .join('');
+      container.addTextDisplayComponents(new TextDisplayBuilder().setContent(scheduleText));
+      container.addSeparatorComponents(new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small));
     }
   }
 
-  await interaction.editReply({ content: scheduleText });
+  await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
 }
