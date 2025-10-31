@@ -73,7 +73,9 @@ export async function handleStart(
     startTimeIso: now.toISOString(),
     endTimeIso: end.toISOString(),
     slackerPingSent: false,
+    section2PingSent: false,
     finalPingSent: false,
+    allianceId: alliance.id,
   };
 
   for (const member of role.members.values()) {

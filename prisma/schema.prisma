@@ -248,9 +248,25 @@ model Alliance {
   config  AllianceConfig?
   aqSchedules AQSchedule[]
   aqSkip      AQSkip?
+  aqReminderSettings AQReminderSettings?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model AQReminderSettings {
+  id          String   @id @default(cuid())
+  alliance    Alliance @relation(fields: [allianceId], references: [id], onDelete: Cascade)
+  allianceId  String   @unique
+
+  section1ReminderEnabled Boolean @default(true)
+  section1PingTime        String  @default("11:00")
+
+  section2ReminderEnabled Boolean @default(true)
+  section2PingTime        String  @default("18:00")
+
+  finalReminderEnabled    Boolean @default(true)
+  finalPingTime           String  @default("11:00")
 }
 
 model AllianceConfig {

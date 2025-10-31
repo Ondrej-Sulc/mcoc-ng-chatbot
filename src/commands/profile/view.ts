@@ -82,6 +82,12 @@ export async function handleView(interaction: ChatInputCommandInteraction) {
   );
   container.addTextDisplayComponents(title);
 
+  //Timezone Info
+  const timezoneInfo = new TextDisplayBuilder().setContent(
+    `**Timezone:** ${player.timezone || "Not set"}`
+  );
+  container.addTextDisplayComponents(timezoneInfo);
+
   // Prestige Info
   let prestigeInfo = "## Prestige\n";
   prestigeInfo += `**Summoner:** ${player.summonerPrestige || "Not set"}\n`;

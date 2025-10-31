@@ -43,34 +43,15 @@ export function getColorDistance(
 
 export async function getImageHash(imageBuffer: Buffer): Promise<string> {
   const pngBuffer = await sharp(imageBuffer).png().toBuffer();
-  const tempPath = path.join(tmpdir(), `image-hash-${Date.now()}.png`); // Use .png extension
-  return new Promise(async (resolve, reject) => {
-    try {
-      await fs.writeFile(tempPath, pngBuffer);
-      imageHash(tempPath, 16, true, (error: any, data: string) => {
-        // Check if the file exists before trying to delete it
-        fs.access(tempPath)
-          .then(() =>
-            fs
-              .unlink(tempPath)
-              .catch((err: any) =>
-                logger.error(`Failed to delete temp file: ${tempPath}`, err)
-              )
-          )
-          .catch(() => {
-            /* File doesn't exist, no need to delete */
-          });
-
-        if (error) {
-          logger.error({ err: error }, `Failed to generate image hash for ${tempPath}`);
-          return reject(error);
-        }
-        resolve(data);
-      });
-    } catch (error) {
-      logger.error({ err: error }, `Failed to write temporary image file: ${tempPath}`);
-      reject(error);
-    }
+  return new Promise((resolve, reject) => {
+    // @ts-ignore
+    imageHash(pngBuffer, 16, true, (error: any, data: string) => {
+      if (error) {
+        logger.error({ err: error }, "Failed to generate image hash from buffer");
+        return reject(error);
+      }
+      resolve(data);
+    });
   });
 }
 

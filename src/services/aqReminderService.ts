@@ -1,13 +1,22 @@
 import { Client, TextChannel } from "discord.js";
+import { DateTime } from "luxon";
 import cron from "node-cron";
 import { config } from "../config";
 import { AQState, getAllStates, setState } from "../commands/aq/state";
+import { prisma } from "./prismaService";
 
-function getSlackers(state: AQState, isFinal: boolean): string[] {
+function getSlackers(
+  state: AQState,
+  isFinal: boolean,
+  isSection2: boolean
+): string[] {
   const slackers: Set<string> = new Set();
-  const sectionsToCheck: ("s1" | "s2" | "s3")[] = isFinal
-    ? ["s1", "s2", "s3"]
-    : ["s1"];
+  let sectionsToCheck: ("s1" | "s2" | "s3")[] = ["s1"];
+  if (isFinal) {
+    sectionsToCheck = ["s1", "s2", "s3"];
+  } else if (isSection2) {
+    sectionsToCheck = ["s1", "s2"];
+  }
 
   for (const section of sectionsToCheck) {
     if (state.players[section]) {
@@ -24,16 +33,20 @@ function getSlackers(state: AQState, isFinal: boolean): string[] {
 async function sendReminderPing(
   client: Client,
   state: AQState,
-  isFinal: boolean
+  isFinal: boolean,
+  isSection2: boolean
 ) {
-  const slackers = getSlackers(state, isFinal);
+  const slackers = getSlackers(state, isFinal, isSection2);
   if (slackers.length === 0) return;
 
-  const message = isFinal
-    ? `🚨 Final push! Map not complete. Please clear your paths: ${slackers.join(
-        " "
-      )}`
-    : `Friendly reminder to move in AQ: ${slackers.join(" ")}`;
+  let message = `Friendly reminder to move in AQ: ${slackers.join(" ")}`;
+  if (isFinal) {
+    message = `🚨 Final push! Map not complete. Please clear your paths: ${slackers.join(
+      " "
+    )}`;
+  } else if (isSection2) {
+    message = `Reminder to clear section 2 in AQ: ${slackers.join(" ")}`;
+  }
 
   try {
     const channel = await client.channels.fetch(state.channelId);
@@ -55,48 +68,62 @@ async function checkAqStatuses(client: Client) {
   for (const state of allStates) {
     if (state.status !== "active") continue;
 
-    const startTime = new Date(state.startTimeIso);
-    const endTime = new Date(state.endTimeIso);
-
-    // Auto-end
-    if (now >= endTime) {
-      state.status = "ended";
-      await setState(state.channelId, state);
-      try {
-        const channel = await client.channels.fetch(state.channelId);
-        if (channel && channel.isTextBased()) {
-          const message = await (channel as TextChannel).messages.fetch(
-            state.messageId
-          );
-          await message.edit({ content: "AQ Day has ended.", components: [] });
-        }
-      } catch (e) {
-        console.error(
-          `Could not edit AQ message for channel ${state.channelId} after auto-ending.`,
-          e
-        );
+    let allianceId = state.allianceId;
+    if (!allianceId) {
+      const schedule = await prisma.aQSchedule.findFirst({
+        where: { channelId: state.channelId },
+      });
+      if (schedule) {
+        allianceId = schedule.allianceId;
       }
-      continue;
     }
 
-    // Slacker ping
-    const slackerPingTime = new Date(
-      startTime.getTime() + config.AQ_SLACKER_PING_DELAY_HOURS * 60 * 60 * 1000
-    );
-    if (!state.slackerPingSent && now >= slackerPingTime) {
-      await sendReminderPing(client, state, false);
-      state.slackerPingSent = true;
-      await setState(state.channelId, state);
+    if (!allianceId) continue;
+
+    const alliance = await prisma.alliance.findUnique({
+      where: { id: allianceId },
+      include: { aqReminderSettings: true },
+    });
+
+    if (!alliance) continue;
+
+    const { aqReminderSettings } = alliance;
+
+    if (!aqReminderSettings) continue;
+
+    const now = DateTime.utc();
+
+    // Section 1 ping
+    if (aqReminderSettings.section1ReminderEnabled) {
+      const [hour, minute] = aqReminderSettings.section1PingTime.split(":").map(Number);
+      const section1PingTime = now.set({ hour, minute, second: 0, millisecond: 0 });
+      if (!state.slackerPingSent && now >= section1PingTime) {
+        await sendReminderPing(client, state, false, false);
+        state.slackerPingSent = true;
+        await setState(state.channelId, state);
+      }
+    }
+
+    // Section 2 ping
+    if (aqReminderSettings.section2ReminderEnabled) {
+        const [hour, minute] = aqReminderSettings.section2PingTime.split(":").map(Number);
+        const section2PingTime = now.set({ hour, minute, second: 0, millisecond: 0 });
+        if (!state.section2PingSent && now >= section2PingTime) {
+            await sendReminderPing(client, state, false, true);
+            state.section2PingSent = true;
+            await setState(state.channelId, state);
+        }
     }
 
     // Final ping
-    const finalPingTime = new Date(
-      endTime.getTime() - config.AQ_FINAL_PING_HOURS_BEFORE_END * 60 * 60 * 1000
-    );
-    if (!state.finalPingSent && now >= finalPingTime) {
-      await sendReminderPing(client, state, true);
-      state.finalPingSent = true;
-      await setState(state.channelId, state);
+    if (aqReminderSettings.finalReminderEnabled) {
+        const [hour, minute] = aqReminderSettings.finalPingTime.split(":").map(Number);
+        const finalPingTime = now.set({ hour, minute, second: 0, millisecond: 0 });
+        if (!state.finalPingSent && now >= finalPingTime) {
+            await sendReminderPing(client, state, true, false);
+            state.finalPingSent = true;
+            await setState(state.channelId, state);
+        }
     }
   }
 }

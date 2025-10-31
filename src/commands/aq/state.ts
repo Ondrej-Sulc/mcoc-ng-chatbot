@@ -20,7 +20,9 @@ export interface AQState {
   startTimeIso: string;
   endTimeIso: string;
   slackerPingSent?: boolean;
+  section2PingSent?: boolean;
   finalPingSent?: boolean;
+  allianceId: string;
 }
 
 export async function getState(channelId: string): Promise<AQState | null> {

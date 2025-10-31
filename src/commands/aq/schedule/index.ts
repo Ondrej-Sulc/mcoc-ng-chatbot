@@ -9,9 +9,10 @@ import {
   TextDisplayBuilder,
 } from "discord.js";
 import { prisma } from "../../../services/prismaService";
-import { parseDuration } from "../../../utils/time";
+import { parseDuration, convertUserToUtcTime } from "../../../utils/time";
 import { buildOverviewContainer } from "./overview";
 import { buildEditBgContainer } from "./edit";
+import { buildReminderSettingsContainer } from "./reminder-settings";
 
 export async function handleAqSchedule(
   interaction: ChatInputCommandInteraction
@@ -20,7 +21,7 @@ export async function handleAqSchedule(
   await interaction.deferReply({ ephemeral: true });
 
   const showOverview = async (i: ChatInputCommandInteraction | any) => {
-    const container = await buildOverviewContainer(interaction.guildId!);
+    const container = await buildOverviewContainer(i);
     const method = i.deferred || i.replied ? "editReply" : "update";
     await i[method]({
       components: [container],
@@ -29,7 +30,7 @@ export async function handleAqSchedule(
   };
 
   const message = await interaction.editReply({
-    components: [await buildOverviewContainer(interaction.guildId)],
+    components: [await buildOverviewContainer(interaction)],
     flags: [MessageFlags.IsComponentsV2],
   });
 
@@ -38,6 +39,7 @@ export async function handleAqSchedule(
   });
 
   let editState: any = {};
+  let reminderSettingsState: any = {};
 
   collector.on("collect", async (i: any) => {
     if (i.user.id !== interaction.user.id) {
@@ -48,7 +50,93 @@ export async function handleAqSchedule(
     const customIdParts = i.customId.split(":");
     const action = customIdParts[2];
 
-    if (action === "edit-bg") {
+    if (action === "edit-reminders") {
+      const allianceData = await prisma.alliance.findUnique({
+        where: { guildId: interaction.guildId! },
+        include: { aqReminderSettings: true },
+      });
+      const player = await prisma.player.findFirst({
+        where: { discordId: i.user.id, isActive: true },
+      });
+      const timezone = player?.timezone || "UTC";
+
+      reminderSettingsState = allianceData?.aqReminderSettings || {};
+      const container = buildReminderSettingsContainer(
+        allianceData?.aqReminderSettings || null,
+        timezone
+      );
+      await i.update({ components: [container] });
+    } else if (i.customId.startsWith("interactive:aq-reminders")) {
+      const reminderAction = customIdParts[2];
+      if (reminderAction === "toggle") {
+        let reminderKey = customIdParts[3]; // "s1", "s2", or "final"
+        if (reminderKey === "s1") {
+          reminderKey = "section1";
+        } else if (reminderKey === "s2") {
+          reminderKey = "section2";
+        }
+        const toggleTo = customIdParts[4] === "enable";
+        reminderSettingsState[`${reminderKey}ReminderEnabled`] = toggleTo;
+
+        const player = await prisma.player.findFirst({
+          where: { discordId: i.user.id, isActive: true },
+        });
+        const timezone = player?.timezone || "UTC";
+
+        const container = buildReminderSettingsContainer(
+          reminderSettingsState,
+          timezone
+        );
+        await i.update({ components: [container] });
+      } else if (reminderAction === "select") {
+        const setting = customIdParts[3];
+        const value = i.values[0];
+        const player = await prisma.player.findFirst({
+          where: { discordId: i.user.id, isActive: true },
+        });
+        const timezone = player?.timezone || "UTC";
+        const utcTime = convertUserToUtcTime(value, timezone);
+
+        if (setting === "s1") {
+          reminderSettingsState.section1PingTime = utcTime;
+        } else if (setting === "s2") {
+          reminderSettingsState.section2PingTime = utcTime;
+        } else if (setting === "final") {
+          reminderSettingsState.finalPingTime = utcTime;
+        }
+
+        const container = buildReminderSettingsContainer(
+          reminderSettingsState,
+          timezone
+        );
+        await i.update({ components: [container] });
+      } else if (reminderAction === "save") {
+        await i.deferUpdate();
+        const allianceToSave = await prisma.alliance.findUnique({
+          where: { guildId: interaction.guildId! },
+        });
+        if (!allianceToSave) return;
+
+        const settingsToSave = {
+          section1ReminderEnabled: reminderSettingsState.section1ReminderEnabled ?? true,
+          section1PingTime: reminderSettingsState.section1PingTime || "11:00",
+          section2ReminderEnabled: reminderSettingsState.section2ReminderEnabled ?? true,
+          section2PingTime: reminderSettingsState.section2PingTime || "18:00",
+          finalReminderEnabled: reminderSettingsState.finalReminderEnabled ?? true,
+          finalPingTime: reminderSettingsState.finalPingTime || "11:00",
+        };
+
+        await prisma.aQReminderSettings.upsert({
+          where: { allianceId: allianceToSave.id },
+          create: {
+            allianceId: allianceToSave.id,
+            ...settingsToSave,
+          },
+          update: settingsToSave,
+        });
+        await showOverview(i);
+      }
+    } else if (action === "edit-bg") {
       const bg = parseInt(customIdParts[3], 10);
       const allianceData = await prisma.alliance.findUnique({
         where: { guildId: interaction.guildId! },
@@ -148,6 +236,11 @@ export async function handleAqSchedule(
       await i.update({ components: [editContainer] });
     } else if (i.isButton()) {
       if (action === "edit-time") {
+        const player = await prisma.player.findFirst({
+          where: { discordId: i.user.id, isActive: true },
+        });
+        const timezone = player?.timezone || "UTC";
+
         const modal = new ModalBuilder()
           .setCustomId("interactive:aq-schedule:modal-time")
           .setTitle("Set AQ Start Time")
@@ -155,7 +248,7 @@ export async function handleAqSchedule(
             new ActionRowBuilder<TextInputBuilder>().addComponents(
               new TextInputBuilder()
                 .setCustomId("time")
-                .setLabel("Start Time (HH:mm UTC)")
+                .setLabel(`Start Time (HH:mm in ${timezone})`)
                 .setStyle(TextInputStyle.Short)
                 .setRequired(true)
                 .setPlaceholder("e.g., 15:00")
@@ -166,9 +259,10 @@ export async function handleAqSchedule(
           const submitted = await i.awaitModalSubmit({ time: 60000 });
           if (submitted) {
             await submitted.deferUpdate();
-            const time = submitted.fields.getTextInputValue("time");
+            const timeInput = submitted.fields.getTextInputValue("time");
+            const time = convertUserToUtcTime(timeInput, timezone);
             const allianceForTime = await prisma.alliance.findUnique({
-              where: { guildId: interaction.guildId! },
+              where: { guildId: i.guildId! },
             });
             if (allianceForTime) {
               await prisma.aQSchedule.updateMany({

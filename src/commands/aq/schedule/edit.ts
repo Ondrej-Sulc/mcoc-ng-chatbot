@@ -9,6 +9,7 @@ import {
   SeparatorBuilder,
   StringSelectMenuBuilder,
   TextDisplayBuilder,
+  ChannelType,
 } from "discord.js";
 import { DAY_OPTIONS } from "./utils";
 
@@ -29,6 +30,23 @@ export async function buildEditBgContainer(
   const roles = await guild.roles.fetch();
   const channels = await guild.channels.fetch();
 
+  const truncateOptions = (options: SelectOption[], limit = 25) => {
+    if (options.length <= limit) {
+      return options;
+    }
+    const selectedOption = options.find((o) => o.default);
+    const otherOptions = options.filter((o) => !o.default);
+
+    if (selectedOption) {
+      const finalOptions = [
+        selectedOption,
+        ...otherOptions.filter((o) => o.value !== selectedOption.value),
+      ];
+      return finalOptions.slice(0, limit);
+    }
+    return otherOptions.slice(0, limit);
+  };
+
   const roleOptions: SelectOption[] = roles
     .filter((r: Role) => !r.managed && r.name !== "@everyone")
     .map((r: Role) => ({
@@ -37,7 +55,7 @@ export async function buildEditBgContainer(
       default: r.id === state.role,
     }));
   const channelOptions: SelectOption[] = channels
-    .filter((c: GuildChannel) => c.type === 0)
+    .filter((c: GuildChannel) => c.type === ChannelType.GuildText)
     .map((c: GuildChannel) => ({
       label: `#${c.name}`,
       value: c.id,
@@ -58,13 +76,7 @@ export async function buildEditBgContainer(
       new StringSelectMenuBuilder()
         .setCustomId(`interactive:aq-schedule:select:role:${bg}`)
         .setPlaceholder("Select a role")
-        .addOptions(
-          roleOptions.map((o: SelectOption) => ({
-            label: o.label,
-            value: o.value,
-            default: o.default,
-          }))
-        )
+        .addOptions(truncateOptions(roleOptions))
     )
   );
   container.addActionRowComponents(
@@ -72,13 +84,7 @@ export async function buildEditBgContainer(
       new StringSelectMenuBuilder()
         .setCustomId(`interactive:aq-schedule:select:channel:${bg}`)
         .setPlaceholder("Select a channel")
-        .addOptions(
-          channelOptions.map((o: SelectOption) => ({
-            label: o.label,
-            value: o.value,
-            default: o.default,
-          }))
-        )
+        .addOptions(truncateOptions(channelOptions))
     )
   );
 
