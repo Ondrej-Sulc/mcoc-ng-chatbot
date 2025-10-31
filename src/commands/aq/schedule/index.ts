@@ -53,21 +53,29 @@ export async function handleAqSchedule(
     if (action === "edit-reminders") {
       const allianceData = await prisma.alliance.findUnique({
         where: { guildId: interaction.guildId! },
-        include: { aqReminderSettings: true },
+        include: { aqReminderSettings: true, aqSchedules: true },
       });
       const player = await prisma.player.findFirst({
         where: { discordId: i.user.id, isActive: true },
       });
       const timezone = player?.timezone || "UTC";
+      const startTime = allianceData?.aqSchedules[0]?.time || "20:00";
 
       reminderSettingsState = allianceData?.aqReminderSettings || {};
       const container = buildReminderSettingsContainer(
         allianceData?.aqReminderSettings || null,
-        timezone
+        timezone,
+        startTime
       );
       await i.update({ components: [container] });
     } else if (i.customId.startsWith("interactive:aq-reminders")) {
       const reminderAction = customIdParts[2];
+
+      const allianceSchedules = await prisma.aQSchedule.findMany({
+        where: { alliance: { guildId: i.guildId! } },
+      });
+      const startTime = allianceSchedules[0]?.time || "20:00";
+
       if (reminderAction === "toggle") {
         let reminderKey = customIdParts[3]; // "s1", "s2", or "final"
         if (reminderKey === "s1") {
@@ -85,7 +93,8 @@ export async function handleAqSchedule(
 
         const container = buildReminderSettingsContainer(
           reminderSettingsState,
-          timezone
+          timezone,
+          startTime
         );
         await i.update({ components: [container] });
       } else if (reminderAction === "select") {
@@ -107,7 +116,8 @@ export async function handleAqSchedule(
 
         const container = buildReminderSettingsContainer(
           reminderSettingsState,
-          timezone
+          timezone,
+          startTime
         );
         await i.update({ components: [container] });
       } else if (reminderAction === "save") {

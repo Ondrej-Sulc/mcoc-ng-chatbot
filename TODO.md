@@ -8,5 +8,5 @@
     - search for a champion across alliance roster
 - propper dev enviroment with dev DB
 - possibly using admin / debug commands only in dev version of bot
-- improve profile view visually
 - schedule view handle pagination for 40+ components
+- reduce /profile commands, add interactive stuff

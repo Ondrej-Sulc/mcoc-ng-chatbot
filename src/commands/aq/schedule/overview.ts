@@ -19,15 +19,22 @@ export async function buildOverviewContainer(
   const { guildId, user } = interaction;
   const container = new ContainerBuilder();
 
-  const alliance = await prisma.alliance.findUnique({
-    where: { guildId },
-    include: {
-      aqSchedules: true,
-      aqSkip: true,
-      members: { where: { discordId: user.id, isActive: true } },
-      aqReminderSettings: true,
-    },
-  });
+  const [alliance, player] = await Promise.all([
+    prisma.alliance.findUnique({
+      where: { guildId },
+      include: {
+        aqSchedules: true,
+        aqSkip: true,
+        aqReminderSettings: true,
+      },
+    }),
+    prisma.player.findFirst({
+      where: {
+        discordId: user.id,
+        isActive: true,
+      },
+    }),
+  ]);
 
   if (!alliance) {
     container.addTextDisplayComponents(
@@ -38,7 +45,6 @@ export async function buildOverviewContainer(
     return container;
   }
 
-  const player = alliance.members[0];
   const timezone = player?.timezone || "UTC";
   const { aqSchedules, aqSkip, aqReminderSettings } = alliance;
 
@@ -60,16 +66,20 @@ export async function buildOverviewContainer(
     )
   );
 
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Large)
+  );
+
   // Battlegroup Sections first
   for (const bg of [1, 2, 3]) {
     const bgSchedules = aqSchedules.filter((s) => s.battlegroup === bg);
-    let content = `### 🛡️ Battlegroup ${bg}\n`;
+    let content = `## ⚔️ Battlegroup ${bg}\n`;
     if (bgSchedules.length === 0) {
       content += "No schedule set.";
     } else {
       const roleId = bgSchedules[0].roleId;
       const channelId = bgSchedules[0].channelId;
-      content += `**Role:** <@&${roleId}>\n**Channel:** <#${channelId}>\n`;
+      content += `### Role: <@&${roleId}>  |  Channel: <#${channelId}>\n`;
       const days = DAY_OPTIONS.slice(0, 7)
         .map(({ label, value }) => {
           const sched = bgSchedules.find(
@@ -79,7 +89,7 @@ export async function buildOverviewContainer(
         })
         .filter(Boolean)
         .join(", ");
-      content += `**Days:** ${days || "None"}`;
+      content += `### **Days:** ${days || "None"}`;
     }
     const bgSection = new SectionBuilder()
       .addTextDisplayComponents(new TextDisplayBuilder().setContent(content))
@@ -91,24 +101,37 @@ export async function buildOverviewContainer(
       );
     container.addSectionComponents(bgSection);
     container.addSeparatorComponents(
-      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+      new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Large)
     );
   }
-
-  container.addSeparatorComponents(new SeparatorBuilder());
-
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(`## ⚙️ Settings`)
+  );
   const timeSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `**Start Time:** 🕒 \`${time} ${timeSuffix}\``
+        `### Start Time: 🕒 \`${time} ${timeSuffix}\``
       )
     )
     .setButtonAccessory(
       new ButtonBuilder()
         .setCustomId("interactive:aq-schedule:edit-time")
         .setLabel("Set Time")
-        .setStyle(ButtonStyle.Primary)
+        .setStyle(ButtonStyle.Secondary)
     );
+
+  if (timezone === "UTC" && !player?.timezone) {
+    timeSection.addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        "_Set your timezone with `/profile timezone` to see this in your local time._"
+      )
+    );
+  }
+
+  container.addSectionComponents(timeSection);
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+  );
 
   let skipSection: SectionBuilder;
   if (aqSkip && aqSkip.skipUntil > new Date()) {
@@ -116,7 +139,7 @@ export async function buildOverviewContainer(
     skipSection = new SectionBuilder()
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(
-          `**Reminders skipped until:** ⏩ <t:${skipEnd}:F>`
+          `### AQ Tracker is skipped until: ⏩ <t:${skipEnd}:F>`
         )
       )
       .setButtonAccessory(
@@ -128,25 +151,32 @@ export async function buildOverviewContainer(
   } else {
     skipSection = new SectionBuilder()
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent("**Reminders are active.**")
+        new TextDisplayBuilder().setContent("### AQ Tracker is active. ✅")
       )
       .setButtonAccessory(
         new ButtonBuilder()
           .setCustomId("interactive:aq-schedule:skip")
-          .setLabel("Skip Reminders")
-          .setStyle(ButtonStyle.Secondary)
+          .setLabel("Skip Until...")
+          .setStyle(ButtonStyle.Primary)
       );
   }
   skipSection.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      "_Temporarily disable AQ reminders, e.g., for off-season._"
+      "_Temporarily disable AQ tracker feature for a period of time, e.g., for Raids._"
     )
+  );
+
+  container.addSectionComponents(skipSection);
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
   );
 
   const createThreadSection = new SectionBuilder()
     .addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        `**Create AQ Thread:** ${alliance.createAqThread ? "✅ Enabled" : "❌ Disabled"}`
+        `**Create AQ Thread:** ${
+          alliance.createAqThread ? "✅ Enabled" : "❌ Disabled"
+        }`
       ),
       new TextDisplayBuilder().setContent(
         "_Automatically create a thread for each AQ day's tracker._"
@@ -159,32 +189,26 @@ export async function buildOverviewContainer(
         .setStyle(ButtonStyle.Secondary)
     );
 
-      const reminderSettingsSection = new SectionBuilder()
-
-        .addTextDisplayComponents(
-
-            new TextDisplayBuilder().setContent("**Reminders**")
-
-        )
-
-        .setButtonAccessory(
-
-          new ButtonBuilder()
-
-            .setCustomId("interactive:aq-schedule:edit-reminders")
-
-            .setLabel("Reminder Settings")
-
-            .setStyle(ButtonStyle.Secondary)
-
-        );
-
-  container.addSectionComponents(
-    timeSection,
-    skipSection,
-    createThreadSection,
-    reminderSettingsSection
+  container.addSectionComponents(createThreadSection);
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
   );
+
+  const reminderSettingsSection = new SectionBuilder()
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent("**Reminders**"),
+      new TextDisplayBuilder().setContent(
+        "_Configure when and if reminders are sent for each section of Alliance Quest._"
+      )
+    )
+    .setButtonAccessory(
+      new ButtonBuilder()
+        .setCustomId("interactive:aq-schedule:edit-reminders")
+        .setLabel("Reminder Settings")
+        .setStyle(ButtonStyle.Success)
+    );
+
+  container.addSectionComponents(reminderSettingsSection);
 
   return container;
 }

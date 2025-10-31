@@ -10,6 +10,7 @@ import {
   StringSelectMenuBuilder,
   TextDisplayBuilder,
   ChannelType,
+  SeparatorSpacingSize,
 } from "discord.js";
 import { DAY_OPTIONS } from "./utils";
 
@@ -64,10 +65,18 @@ export async function buildEditBgContainer(
 
   container.addTextDisplayComponents(
     new TextDisplayBuilder().setContent(
-      `## ✏️ Editing Schedule for Battlegroup ${bg}`
-    ),
+      `# ⚔️ Editing Schedule for Battlegroup ${bg}`
+    )
+  );
+
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Large)
+  );
+
+  container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent(`## 📢 Ping & Channel`),
     new TextDisplayBuilder().setContent(
-      "### Select the role to ping and the channel to post the AQ tracker in."
+      "_Select the role to ping and the channel where the AQ tracker should be posted._"
     )
   );
 
@@ -75,7 +84,7 @@ export async function buildEditBgContainer(
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
       new StringSelectMenuBuilder()
         .setCustomId(`interactive:aq-schedule:select:role:${bg}`)
-        .setPlaceholder("Select a role")
+        .setPlaceholder("Select a role to ping")
         .addOptions(truncateOptions(roleOptions))
     )
   );
@@ -83,16 +92,19 @@ export async function buildEditBgContainer(
     new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
       new StringSelectMenuBuilder()
         .setCustomId(`interactive:aq-schedule:select:channel:${bg}`)
-        .setPlaceholder("Select a channel")
+        .setPlaceholder("Select a channel for the tracker")
         .addOptions(truncateOptions(channelOptions))
     )
   );
 
-  container.addSeparatorComponents(new SeparatorBuilder());
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Large)
+  );
 
   container.addTextDisplayComponents(
+    new TextDisplayBuilder().setContent("## 🗓️ Day Mapping"),
     new TextDisplayBuilder().setContent(
-      "### For each AQ day, select the day of the week it will run."
+      "_For each of the 4 days of AQ, select which day of the week it corresponds to._"
     )
   );
 
@@ -114,7 +126,9 @@ export async function buildEditBgContainer(
       )
     );
   }
-  container.addSeparatorComponents(new SeparatorBuilder());
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Large)
+  );
   container.addActionRowComponents(
     new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()

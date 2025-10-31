@@ -1,10 +1,11 @@
 import {
   ChatInputCommandInteraction,
   ContainerBuilder,
-  TextDisplayBuilder,
   MessageFlags,
+  SeparatorBuilder,
+  TextDisplayBuilder,
 } from "discord.js";
-import { getPlayer } from "../../utils/playerHelper";
+import { prisma } from "../../services/prismaService";
 import { getRoster, RosterWithChampion } from "../../services/rosterService";
 
 // TODO: Refactor into a shared utility
@@ -32,7 +33,9 @@ function buildRosterSummary(
   Object.entries(byStar)
     .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Sort by star level descending
     .forEach(([stars, champions]: [string, RosterWithChampion[]]) => {
-      let starSummary = `### ${stars}-Star Champions (${champions.length} total)\n`;
+      let starSummary = `### ${"⭐".repeat(
+        parseInt(stars)
+      )} ${stars}-Star Champions (${champions.length} total)\n`;
 
       const byRank = (champions as RosterWithChampion[]).reduce(
         (acc: Record<number, number>, champ: RosterWithChampion) => {
@@ -43,10 +46,12 @@ function buildRosterSummary(
       );
 
       starSummary += `**By Rank:** `;
-      starSummary += Object.entries(byRank)
-        .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Sort by rank descending
-        .map(([rank, count]) => `R${rank}: ${count}`)
-        .join(" | ");
+      starSummary +=
+        Object.entries(byRank)
+          .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Sort by rank descending
+          .map(([rank, count]) => `R${rank}: ${count}`)
+          .join(" | ") || "N/A";
+      starSummary += "\n";
 
       const byClass = (champions as RosterWithChampion[]).reduce(
         (acc: Record<string, number>, champ: RosterWithChampion) => {
@@ -56,13 +61,14 @@ function buildRosterSummary(
         {} as Record<string, number>
       );
 
-      starSummary += `\n**By Class:** `;
-      starSummary += Object.entries(byClass)
-        .map(
-          ([className, count]) =>
-            `${CLASS_EMOJIS[className] || className}${count}`
-        )
-        .join(" | ");
+      starSummary += `**By Class:** `;
+      starSummary +=
+        Object.entries(byClass)
+          .map(
+            ([className, count]) =>
+              `${CLASS_EMOJIS[className] || className}${count}`
+          )
+          .join(" | ") || "N/A";
 
       const starContent = new TextDisplayBuilder().setContent(starSummary);
       container.addTextDisplayComponents(starContent);
@@ -70,43 +76,63 @@ function buildRosterSummary(
 }
 
 export async function handleView(interaction: ChatInputCommandInteraction) {
+  const player = await prisma.player.findFirst({
+    where: {
+      discordId: interaction.user.id,
+      isActive: true,
+    },
+    include: {
+      alliance: true,
+    },
+  });
 
-  const player = await getPlayer(interaction);
   if (!player) {
+    await interaction.editReply(
+      "You do not have an active profile. Use `/profile switch` to set one, or `/profile add` to create one."
+    );
     return;
   }
 
   const container = new ContainerBuilder();
   const title = new TextDisplayBuilder().setContent(
-    `# Profile for ${player.ingameName}`
+    `# 👤 Profile for ${player.ingameName} ${player.isActive ? "*(Active)*" : ""}`
   );
   container.addTextDisplayComponents(title);
 
-  //Timezone Info
-  const timezoneInfo = new TextDisplayBuilder().setContent(
-    `**Timezone:** ${player.timezone || "Not set"}`
+  // Alliance and Timezone Info
+  const allianceName = player.alliance
+    ? player.alliance.name
+    : "Not in an alliance";
+  const generalInfo = new TextDisplayBuilder().setContent(
+    `**Alliance:** ${allianceName}\n**Timezone:** 🕒 ${player.timezone || "Not set"}`
   );
-  container.addTextDisplayComponents(timezoneInfo);
+  container.addTextDisplayComponents(generalInfo);
+
+  container.addSeparatorComponents(new SeparatorBuilder());
 
   // Prestige Info
-  let prestigeInfo = "## Prestige\n";
-  prestigeInfo += `**Summoner:** ${player.summonerPrestige || "Not set"}\n`;
-  prestigeInfo += `**Champion:** ${player.championPrestige || "Not set"}\n`;
-  prestigeInfo += `**Relic:** ${player.relicPrestige || "Not set"}`;
+  let prestigeInfo = "## 🏆 Prestige\n";
+  prestigeInfo += `**Summoner:** ${player.summonerPrestige || "N/A"} | `;
+  prestigeInfo += `**Champion:** ${player.championPrestige || "N/A"} | `;
+  prestigeInfo += `**Relic:** ${player.relicPrestige || "N/A"}`;
   const prestigeComponent = new TextDisplayBuilder().setContent(prestigeInfo);
   container.addTextDisplayComponents(prestigeComponent);
+
+  container.addSeparatorComponents(new SeparatorBuilder());
 
   // Roster Summary
   const roster = await getRoster(player.id, null, null, null);
 
   if (typeof roster !== "string" && roster.length > 0) {
     const rosterTitle = new TextDisplayBuilder().setContent(
-      `## Roster Summary (Total: ${roster.length})`
+      `## 📈 Roster Summary (Total: ${roster.length})`
     );
     container.addTextDisplayComponents(rosterTitle);
     buildRosterSummary(roster, container);
   } else {
-    const noRoster = new TextDisplayBuilder().setContent("## Roster Summary\nNo roster data found.");
+    const noRoster = new TextDisplayBuilder().setContent(
+      "## 📈 Roster Summary\nNo roster data found. Use `/roster update` to add your champions."
+    );
     container.addTextDisplayComponents(noRoster);
   }
 
