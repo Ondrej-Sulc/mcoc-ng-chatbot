@@ -18,15 +18,7 @@ import { handleProfileRemove } from "./remove";
 import { handleProfileRename } from "./rename";
 import { handleProfileSwitch } from "./switch";
 
-// TODO: Refactor into a shared utility
-const CLASS_EMOJIS: Record<string, string> = {
-  MYSTIC: "<:Mystic:1253449751555215504>",
-  MUTANT: "<:Mutant:1253449731284406332>",
-  SKILL: "<:Skill:1253449798825279660>",
-  SCIENCE: "<:Science:1253449774271696967>",
-  COSMIC: "<:Cosmic:1253449702595235950>",
-  TECH: "<:Tech:1253449817808703519>",
-};
+import { getApplicationEmojiMarkupByName } from "../../services/applicationEmojiService";
 
 function buildRosterSummary(
   roster: RosterWithChampion[],
@@ -74,10 +66,13 @@ function buildRosterSummary(
       starSummary += `**By Class:** `;
       starSummary +=
         Object.entries(byClass)
-          .map(
-            ([className, count]) =>
-              `${CLASS_EMOJIS[className] || className}${count}`
-          )
+          .map(([className, count]) => {
+            const capitalizedClassName =
+              className.charAt(0).toUpperCase() +
+              className.slice(1).toLowerCase();
+            const emoji = getApplicationEmojiMarkupByName(capitalizedClassName);
+            return `${emoji || capitalizedClassName}${count}`;
+          })
           .join(" | ") || "N/A";
 
       const starContent = new TextDisplayBuilder().setContent(starSummary);
