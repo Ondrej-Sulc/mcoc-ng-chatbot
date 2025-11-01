@@ -1,15 +1,15 @@
-import { ChatInputCommandInteraction } from 'discord.js';
+import { ChatInputCommandInteraction, ButtonInteraction, ModalSubmitInteraction } from 'discord.js';
 import { prisma } from '../../services/prismaService';
-import { safeReply } from '../../utils/errorHandler';
 
-export async function handleProfileRename(interaction: ChatInputCommandInteraction): Promise<void> {
-  const currentName = interaction.options.getString('current_name', true);
-  const newName = interaction.options.getString('new_name', true);
+export async function handleProfileRename(interaction: ChatInputCommandInteraction | ButtonInteraction | ModalSubmitInteraction, currentNameArg?: string, newNameArg?: string): Promise<string> {
   const discordId = interaction.user.id;
 
+  // Get currentName and newName, prioritizing arguments
+  const currentName = currentNameArg || (interaction as ChatInputCommandInteraction).options.getString('current_name', true);
+  const newName = newNameArg || (interaction as ChatInputCommandInteraction).options.getString('new_name', true);
+
   if (currentName.toLowerCase() === newName.toLowerCase()) {
-    await safeReply(interaction, "The new name cannot be the same as the current name.");
-    return;
+    return "The new name cannot be the same as the current name.";
   }
 
   // Check if the target profile exists
@@ -23,8 +23,7 @@ export async function handleProfileRename(interaction: ChatInputCommandInteracti
   });
 
   if (!profileToRename) {
-    await safeReply(interaction, `You don't have a profile named **${currentName}**.`);
-    return;
+    return `You don't have a profile named **${currentName}**.`;
   }
 
   // Check if a profile with the new name already exists
@@ -38,8 +37,7 @@ export async function handleProfileRename(interaction: ChatInputCommandInteracti
   });
 
   if (existingProfile) {
-    await safeReply(interaction, `You already have a profile named **${newName}**.`);
-    return;
+    return `You already have a profile named **${newName}**.`;
   }
 
   await prisma.player.update({
@@ -51,5 +49,5 @@ export async function handleProfileRename(interaction: ChatInputCommandInteracti
     },
   });
 
-  await safeReply(interaction, `✅ Renamed profile **${currentName}** to **${newName}**.`);
+  return `✅ Renamed profile **${currentName}** to **${newName}**.`;
 }

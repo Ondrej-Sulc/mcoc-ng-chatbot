@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction, MessageFlags } from "discord.js";
 import { Command, CommandAccess } from "../../types/command";
 import { prisma } from "../../services/prismaService";
 import { handleProfileAdd } from "./add";
@@ -91,7 +91,7 @@ export const command: Command = {
   access: CommandAccess.USER,
 
   async execute(interaction: ChatInputCommandInteraction) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const subcommand = interaction.options.getSubcommand();
 
     switch (subcommand) {
@@ -111,10 +111,10 @@ export const command: Command = {
         await handleProfileRename(interaction);
         break;
       case "view":
-        await handleView(interaction); // Needs refactor for active profile
+        await handleView(interaction);
         break;
       case "timezone":
-        await handleTimezone(interaction); // Needs refactor for active profile
+        await handleTimezone(interaction);
         break;
     }
   },

@@ -1,10 +1,12 @@
-import { ChatInputCommandInteraction } from 'discord.js';
+import { ChatInputCommandInteraction, StringSelectMenuInteraction, ModalSubmitInteraction } from 'discord.js';
 import { prisma } from '../../services/prismaService';
 import { safeReply } from '../../utils/errorHandler';
 
-export async function handleProfileSwitch(interaction: ChatInputCommandInteraction): Promise<void> {
-  const ingameName = interaction.options.getString('name', true);
+export async function handleProfileSwitch(interaction: ChatInputCommandInteraction | StringSelectMenuInteraction | ModalSubmitInteraction, ingameName?: string): Promise<void> {
   const discordId = interaction.user.id;
+
+  // If ingameName is not provided (e.g., from a slash command), get it from options
+  const profileName = ingameName || (interaction as ChatInputCommandInteraction).options.getString('name', true);
 
   const profiles = await prisma.player.findMany({
     where: { discordId },
@@ -15,15 +17,15 @@ export async function handleProfileSwitch(interaction: ChatInputCommandInteracti
     return;
   }
 
-  const targetProfile = profiles.find(p => p.ingameName === ingameName);
+  const targetProfile = profiles.find(p => p.ingameName === profileName);
 
   if (!targetProfile) {
-    await safeReply(interaction, `You don't have a profile named **${ingameName}**.`);
+    await safeReply(interaction, `You don't have a profile named **${profileName}**.`);
     return;
   }
 
   if (targetProfile.isActive) {
-    await safeReply(interaction, `**${ingameName}** is already your active profile.`);
+    await safeReply(interaction, `**${profileName}** is already your active profile.`);
     return;
   }
 
@@ -49,5 +51,5 @@ export async function handleProfileSwitch(interaction: ChatInputCommandInteracti
     }),
   ]);
 
-  await safeReply(interaction, `✅ Switched active profile to **${ingameName}**.`);
+  await safeReply(interaction, `✅ Switched active profile to **${profileName}**.`);
 }

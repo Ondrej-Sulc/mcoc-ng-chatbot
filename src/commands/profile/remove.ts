@@ -1,10 +1,12 @@
-import { ChatInputCommandInteraction } from 'discord.js';
+import { ChatInputCommandInteraction, ButtonInteraction, ModalSubmitInteraction } from 'discord.js';
 import { prisma } from '../../services/prismaService';
 import { safeReply } from '../../utils/errorHandler';
 
-export async function handleProfileRemove(interaction: ChatInputCommandInteraction): Promise<void> {
-  const ingameName = interaction.options.getString('name', true);
+export async function handleProfileRemove(interaction: ChatInputCommandInteraction | ButtonInteraction | ModalSubmitInteraction, ingameNameArg?: string): Promise<void> {
   const discordId = interaction.user.id;
+
+  // Get ingameName, prioritizing argument
+  const ingameName = ingameNameArg || (interaction as ChatInputCommandInteraction).options.getString('name', true);
 
   const profileToRemove = await prisma.player.findUnique({
     where: {
@@ -45,7 +47,8 @@ export async function handleProfileRemove(interaction: ChatInputCommandInteracti
           isActive: true,
         },
       });
-      replyMessage += `\n**${newActiveProfile.ingameName}** has been set as your new active profile.`;
+      replyMessage += `
+**${newActiveProfile.ingameName}** has been set as your new active profile.`;
     }
   }
 

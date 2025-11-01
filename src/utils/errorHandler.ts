@@ -1,17 +1,13 @@
 import {
-  ButtonInteraction,
   ChatInputCommandInteraction,
   MessageFlags,
-  ModalSubmitInteraction,
+  RepliableInteraction, // Import RepliableInteraction directly
 } from "discord.js";
 import { randomBytes } from "crypto";
 import logger from "../services/loggerService";
 import posthogClient from "../services/posthogService";
 
-export type RepliableInteraction =
-  | ChatInputCommandInteraction
-  | ButtonInteraction
-  | ModalSubmitInteraction;
+// Removed custom RepliableInteraction type definition
 
 export interface ErrorContext {
   location?: string; // e.g., command name, service name

@@ -16,6 +16,63 @@ const CLASS_EMOJIS: Record<string, string> = {
   TECH: "<:Tech:1253449817808703519>",
 };
 
+function buildRosterSummary(
+  roster: RosterWithChampion[],
+  container: ContainerBuilder
+) {
+  const byStar = roster.reduce((acc, champ) => {
+    if (!acc[champ.stars]) {
+      acc[champ.stars] = [];
+    }
+    acc[champ.stars].push(champ);
+    return acc;
+  }, {} as Record<number, RosterWithChampion[]>);
+
+  Object.entries(byStar)
+    .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Sort by star level descending
+    .forEach(([stars, champions]: [string, RosterWithChampion[]]) => {
+      let starSummary = `### ${"⭐".repeat(
+        parseInt(stars)
+      )} ${stars}-Star Champions (${champions.length} total)\n`;
+
+      const byRank = (champions as RosterWithChampion[]).reduce(
+        (acc: Record<number, number>, champ: RosterWithChampion) => {
+          acc[champ.rank] = (acc[champ.rank] || 0) + 1;
+          return acc;
+        },
+        {} as Record<number, number>
+      );
+
+      starSummary += `**By Rank:** `;
+      starSummary +=
+        Object.entries(byRank)
+          .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Sort by rank descending
+          .map(([rank, count]) => `R${rank}: ${count}`)
+          .join(" | ") || "N/A";
+      starSummary += "\n";
+
+      const byClass = (champions as RosterWithChampion[]).reduce(
+        (acc: Record<string, number>, champ: RosterWithChampion) => {
+          acc[champ.champion.class] = (acc[champ.champion.class] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
+
+      starSummary += `**By Class:** `;
+      starSummary +=
+        Object.entries(byClass)
+          .map(
+            ([className, count]) =>
+              `${CLASS_EMOJIS[className] || className}${count}`
+          )
+          .join(" | ") || "N/A";
+
+      const starContent = new TextDisplayBuilder().setContent(starSummary);
+      container.addTextDisplayComponents(starContent);
+    });
+}
+
 export async function handleSummary(
   interaction: ChatInputCommandInteraction
 ): Promise<void> {
@@ -33,52 +90,12 @@ export async function handleSummary(
     return;
   }
 
-  const byStar = roster.reduce((acc, champ) => {
-    if (!acc[champ.stars]) {
-      acc[champ.stars] = [];
-    }
-    acc[champ.stars].push(champ);
-    return acc;
-  }, {} as Record<number, RosterWithChampion[]>);
-
   const container = new ContainerBuilder();
-  const title = new TextDisplayBuilder().setContent(
-    `### Roster Summary for ${player.ingameName}\n**Total Champions:** ${roster.length}`
+  const rosterTitle = new TextDisplayBuilder().setContent(
+    `## 📈 Roster Summary (Total: ${roster.length})`
   );
-  container.addTextDisplayComponents(title);
-
-  Object.entries(byStar)
-    .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Sort by star level descending
-    .forEach(([stars, champions]: [string, RosterWithChampion[]]) => {
-      let starSummary = `### ${stars}-Star Champions (${champions.length} total)\n`;
-
-      const byRank = (champions as RosterWithChampion[]).reduce((acc: Record<number, number>, champ: RosterWithChampion) => {
-        acc[champ.rank] = (acc[champ.rank] || 0) + 1;
-        return acc;
-      }, {} as Record<number, number>);
-
-      starSummary += `**By Rank:** `;
-      starSummary += Object.entries(byRank)
-        .sort(([a], [b]) => parseInt(b) - parseInt(a)) // Sort by rank descending
-        .map(([rank, count]) => `R${rank}: ${count}`)
-        .join(" | ");
-
-      const byClass = (champions as RosterWithChampion[]).reduce((acc: Record<string, number>, champ: RosterWithChampion) => {
-        acc[champ.champion.class] = (acc[champ.champion.class] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      starSummary += `\n**By Class:** `;
-      starSummary += Object.entries(byClass)
-        .map(
-          ([className, count]) =>
-            `${CLASS_EMOJIS[className] || className}${count}`
-        )
-        .join(" | ");
-
-      const starContent = new TextDisplayBuilder().setContent(starSummary);
-      container.addTextDisplayComponents(starContent);
-    });
+  container.addTextDisplayComponents(rosterTitle);
+  buildRosterSummary(roster, container);
 
   await interaction.editReply({
     components: [container],
