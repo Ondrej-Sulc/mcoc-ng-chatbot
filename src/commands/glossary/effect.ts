@@ -16,6 +16,7 @@ import { glossaryColors } from "./index";
 export async function handleEffect(
   name: string,
   resolveEmoji: (text: string) => string,
+  userId: string,
   categoryName?: string // for the back button
 ): Promise<CommandResult> {
   const effect = await prisma.ability.findFirst({
@@ -33,6 +34,11 @@ export async function handleEffect(
         },
       },
     },
+  });
+
+  const player = await prisma.player.findFirst({
+    where: { discordId: userId },
+    include: { roster: true },
   });
 
   const container = new ContainerBuilder();
@@ -121,13 +127,22 @@ export async function handleEffect(
       container.addTextDisplayComponents(championsTitle);
       displayChampionEmojis(abilityChamps, container, resolveEmoji);
 
-      const searchAbilitiesButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      const searchButtons = new ActionRowBuilder<ButtonBuilder>();
+      searchButtons.addComponents(
         new ButtonBuilder()
           .setCustomId(`glossary_search_ability_${effect.name}`)
           .setLabel("🔍 Search for this ability")
           .setStyle(glossaryColors.buttons.search)
       );
-      container.addActionRowComponents(searchAbilitiesButton);
+      if (player && player.roster.length > 0) {
+        searchButtons.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`glossary_roster_search_ability_${effect.name}`)
+            .setLabel("🔍 Search in my Roster")
+            .setStyle(glossaryColors.buttons.search)
+        );
+      }
+      container.addActionRowComponents(searchButtons);
     }
 
     if (immunityChamps.length > 0) {
@@ -142,13 +157,22 @@ export async function handleEffect(
       container.addTextDisplayComponents(immunitiesTitle);
       displayChampionEmojis(immunityChamps, container, resolveEmoji);
 
-      const searchImmunitiesButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      const searchImmunitiesButtons = new ActionRowBuilder<ButtonBuilder>();
+      searchImmunitiesButtons.addComponents(
         new ButtonBuilder()
           .setCustomId(`glossary_search_immunity_${effect.name}`)
           .setLabel("🔍 Search for this immunity")
           .setStyle(glossaryColors.buttons.search)
       );
-      container.addActionRowComponents(searchImmunitiesButton);
+      if (player && player.roster.length > 0) {
+        searchImmunitiesButtons.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`glossary_roster_search_immunity_${effect.name}`)
+            .setLabel("🔍 Search in my Roster")
+            .setStyle(glossaryColors.buttons.search)
+        );
+      }
+      container.addActionRowComponents(searchImmunitiesButtons);
     }
   }
 

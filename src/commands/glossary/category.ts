@@ -13,7 +13,8 @@ import { glossaryColors } from "./index";
 
 export async function handleCategory(
   name: string,
-  resolveEmoji: (text: string) => string
+  resolveEmoji: (text: string) => string,
+  userId: string
 ): Promise<CommandResult> {
   const category = await prisma.abilityCategory.findFirst({
     where: {
@@ -30,6 +31,11 @@ export async function handleCategory(
         },
       },
     },
+  });
+
+  const player = await prisma.player.findFirst({
+    where: { discordId: userId },
+    include: { roster: true },
   });
 
   const container = new ContainerBuilder();
@@ -95,7 +101,16 @@ export async function handleCategory(
     .setCustomId(`glossary_search_category_${name}`)
     .setLabel("Search Champions")
     .setStyle(glossaryColors.buttons.search);
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(searchButton, backButton);
+  const row = new ActionRowBuilder<ButtonBuilder>();
+  row.addComponents(searchButton);
+  if (player && player.roster.length > 0) {
+    const searchRosterButton = new ButtonBuilder()
+      .setCustomId(`glossary_roster_search_category_${name}`)
+      .setLabel("Search in my Roster")
+      .setStyle(glossaryColors.buttons.search);
+    row.addComponents(searchRosterButton);
+  }
+  row.addComponents(backButton);
   container.addSeparatorComponents(
     new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
   );
