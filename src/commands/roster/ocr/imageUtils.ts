@@ -2,9 +2,6 @@ import sharp from "sharp";
 import { promises as fs } from "fs";
 import * as path from "path";
 import { tmpdir } from "os";
-import { randomBytes } from "crypto";
-// @ts-ignore
-import { imageHash } from "image-hash";
 import { ChampionGridCell, Vertex } from "./types";
 import logger from "../../../services/loggerService";
 
@@ -43,39 +40,59 @@ export function getColorDistance(
 }
 
 export async function getImageHash(imageBuffer: Buffer): Promise<string> {
-  const pngBuffer = await sharp(imageBuffer).png().toBuffer();
-  const uniqueName = `image-hash-${randomBytes(16).toString("hex")}.png`;
-  const tempPath = path.join(tmpdir(), uniqueName);
-
   try {
-    await fs.writeFile(tempPath, pngBuffer);
-    return await new Promise((resolve, reject) => {
-      // @ts-ignore
-      imageHash(tempPath, 16, true, (error: any, data: string) => {
-        if (error) {
-          logger.error({ err: error }, "Failed to generate image hash from buffer");
-          return reject(error);
-        }
-        resolve(data);
-      });
-    });
-  } finally {
-    // Clean up the temporary file
-    try {
-      await fs.unlink(tempPath);
-    } catch (e) {
-      logger.warn({ err: e, tempPath }, "Failed to clean up temp image hash file");
+    // 1. Resize to 8x8 and convert to grayscale
+    const pixelBuffer = await sharp(imageBuffer)
+      .grayscale()
+      .resize(8, 8, { fit: "fill" }) // Use 'fill' to ignore aspect ratio
+      .raw()
+      .toBuffer();
+
+    // 2. Compute the average color
+    let totalValue = 0;
+    for (let i = 0; i < pixelBuffer.length; i++) {
+      totalValue += pixelBuffer[i];
     }
+    const averageValue = totalValue / pixelBuffer.length;
+
+    // 3. Compute the bits and construct the hash
+    let hash = 0n; // Use BigInt for 64-bit integer
+    for (let i = 0; i < pixelBuffer.length; i++) {
+      if (pixelBuffer[i] >= averageValue) {
+        hash |= 1n;
+      }
+      if (i < pixelBuffer.length - 1) {
+        hash <<= 1n;
+      }
+    }
+
+    // 4. Return as a hex string
+    return hash.toString(16).padStart(16, "0");
+  } catch (error) {
+    logger.error({ err: error }, "Failed to generate average image hash");
+    throw error;
   }
 }
 
 export function compareHashes(hash1: string, hash2: string): number {
+  // Convert hex strings to BigInts
+  const h1 = BigInt(`0x${hash1}`);
+  const h2 = BigInt(`0x${hash2}`);
+
+  // XOR the two hashes
+  let xorResult = h1 ^ h2;
+
+  // Count the number of set bits (1s) in the XOR result (Hamming distance)
   let distance = 0;
-  for (let i = 0; i < hash1.length; i++) {
-    if (hash1[i] !== hash2[i]) {
+  while (xorResult > 0n) {
+    // This checks if the last bit is 1
+    if (xorResult & 1n) {
       distance++;
     }
+    // Right shift to check the next bit
+    xorResult >>= 1n;
   }
+
   return distance;
 }
 
