@@ -91,7 +91,11 @@ export async function handleCategory(
     .setCustomId("glossary_list_back")
     .setLabel("Back to Category List")
     .setStyle(glossaryColors.buttons.navigation);
-  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(backButton);
+  const searchButton = new ButtonBuilder()
+    .setCustomId(`glossary_search_category_${name}`)
+    .setLabel("Search Champions")
+    .setStyle(glossaryColors.buttons.search);
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(searchButton, backButton);
   container.addSeparatorComponents(
     new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
   );

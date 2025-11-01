@@ -4,7 +4,7 @@
 - Note: Adding new glossary effects is handled by /admin glossary update-ability (upsert functionality).
 - add interactive buttons to champions commands to be able to switch between abilities/immunities/attacks and others
 - improve /champion duel command, add two interactive buttons for suggesting a new duel target as well as reporting a duel as outdated. both actions should be logged somewhere possibly notify me.
-- on glossary detail page add button to trigger search for that category
+- [DONE] on glossary detail page add button to trigger search for that category
 - on glossary effect and category pages if user has roster also add buttons to search through players roster
 - possibly add buttons in the /help command to go try some of the commands
 - feature web page about the bot
