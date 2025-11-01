@@ -2,6 +2,7 @@ import sharp from "sharp";
 import { promises as fs } from "fs";
 import * as path from "path";
 import { tmpdir } from "os";
+import { randomBytes } from "crypto";
 // @ts-ignore
 import { imageHash } from "image-hash";
 import { ChampionGridCell, Vertex } from "./types";
@@ -43,16 +44,29 @@ export function getColorDistance(
 
 export async function getImageHash(imageBuffer: Buffer): Promise<string> {
   const pngBuffer = await sharp(imageBuffer).png().toBuffer();
-  return new Promise((resolve, reject) => {
-    // @ts-ignore
-    imageHash(pngBuffer, 16, true, (error: any, data: string) => {
-      if (error) {
-        logger.error({ err: error }, "Failed to generate image hash from buffer");
-        return reject(error);
-      }
-      resolve(data);
+  const uniqueName = `image-hash-${randomBytes(16).toString("hex")}.png`;
+  const tempPath = path.join(tmpdir(), uniqueName);
+
+  try {
+    await fs.writeFile(tempPath, pngBuffer);
+    return await new Promise((resolve, reject) => {
+      // @ts-ignore
+      imageHash(tempPath, 16, true, (error: any, data: string) => {
+        if (error) {
+          logger.error({ err: error }, "Failed to generate image hash from buffer");
+          return reject(error);
+        }
+        resolve(data);
+      });
     });
-  });
+  } finally {
+    // Clean up the temporary file
+    try {
+      await fs.unlink(tempPath);
+    } catch (e) {
+      logger.warn({ err: e, tempPath }, "Failed to clean up temp image hash file");
+    }
+  }
 }
 
 export function compareHashes(hash1: string, hash2: string): number {
