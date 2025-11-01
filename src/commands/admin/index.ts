@@ -14,7 +14,7 @@ import { handleAbilityAdd, handleAbilityRemove, handleAbilityDraft } from "./abi
 import { showAttackModal } from "./attack/add";
 import { championsByName } from "../../services/championService";
 import { AbilityLinkType } from "@prisma/client";
-import { handleGlossaryLink, handleGlossaryUnlink, handleGlossaryUpdateAbility, handleGlossaryUpdateCategory } from "./glossary/handlers";
+import { handleGlossaryLink, handleGlossaryUnlink, handleGlossaryUpdateAbility, handleGlossaryUpdateCategory, handleSetEmoji, handleRemoveEmoji } from "./glossary/handlers";
 import { handleDuelUpload } from "./duel/upload";
 import { handleBotAdminAdd, handleBotAdminRemove } from "./bot-admin/handlers";
 
@@ -296,6 +296,36 @@ export const command: Command = {
                 .setRequired(true)
             )
         )
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("emoji-set")
+            .setDescription("Sets an emoji for a glossary ability.")
+            .addStringOption((option) =>
+              option
+                .setName("ability")
+                .setDescription("The ability to set the emoji for.")
+                .setRequired(true)
+                .setAutocomplete(true)
+            )
+            .addAttachmentOption((option) =>
+              option
+                .setName("image")
+                .setDescription("The image for the emoji.")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("emoji-remove")
+            .setDescription("Removes an emoji from a glossary ability.")
+            .addStringOption((option) =>
+              option
+                .setName("ability")
+                .setDescription("The ability to remove the emoji from.")
+                .setRequired(true)
+                .setAutocomplete(true)
+            )
+        )
     )
     .addSubcommandGroup((group) =>
       group
@@ -390,6 +420,10 @@ export const command: Command = {
             await handleGlossaryUpdateAbility(interaction);
         } else if (subcommand === "update-category") {
             await handleGlossaryUpdateCategory(interaction);
+        } else if (subcommand === "emoji-set") {
+            await handleSetEmoji(interaction);
+        } else if (subcommand === "emoji-remove") {
+            await handleRemoveEmoji(interaction);
         }
     } else if (group === "duel") {
       if (subcommand === "upload") {

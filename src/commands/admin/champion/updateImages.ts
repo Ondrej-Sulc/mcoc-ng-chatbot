@@ -2,7 +2,8 @@ import { CommandInteraction, Routes } from "discord.js";
 import logger from "../../../services/loggerService";
 import { prisma } from "../../../services/prismaService";
 import { getChampionImageUrl } from "../../../utils/championHelper";
-import { processAndUploadImages, createDiscordEmoji } from "./addChampion";
+import { processAndUploadImages } from "./addChampion";
+import { createDiscordEmoji } from "../../../utils/emojiHelper";
 
 export async function handleChampionUpdateImages(interaction: CommandInteraction) {
     if (!interaction.isChatInputCommand()) return;
