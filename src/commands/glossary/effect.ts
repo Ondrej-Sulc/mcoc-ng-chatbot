@@ -199,12 +199,24 @@ export async function handleEffect(
       }
     }
 
-  const backButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
-    new ButtonBuilder()
-      .setCustomId("glossary_list_back")
-      .setLabel("Go to Category List")
-      .setStyle(glossaryColors.buttons.navigation)
+  const backButtonBuilder = new ButtonBuilder().setStyle(
+    glossaryColors.buttons.navigation
   );
+
+  if (categoryName) {
+    backButtonBuilder
+      .setCustomId(`glossary_back_category_${categoryName}`)
+      .setLabel(`Back to ${categoryName}`);
+  } else {
+    backButtonBuilder
+      .setCustomId("glossary_list_back")
+      .setLabel("Go to Category List");
+  }
+
+  const backButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    backButtonBuilder
+  );
+
   container.addSeparatorComponents(
     new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
   );

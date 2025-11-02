@@ -80,9 +80,9 @@ export const command: Command = {
       }
 
       if (subcommand === "effect") {
-        result = await handleEffect(name, resolveEmoji);
+        result = await handleEffect(name, resolveEmoji, interaction.user.id);
       } else if (subcommand === "category") {
-        result = await handleCategory(name, resolveEmoji);
+        result = await handleCategory(name, resolveEmoji, interaction.user.id);
       }
     }
 

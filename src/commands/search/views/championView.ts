@@ -16,8 +16,9 @@ import {
   SearchCoreParams,
 } from "../../../types/search";
 import { parseAndOrConditions } from "../queryBuilder";
-import { getChampionDetailsString, getCriteriaString, CLASS_EMOJIS } from "./common";
+import { getChampionDetailsString, getCriteriaString } from "./common";
 import { CommandResult } from "../../../types/command";
+import { getApplicationEmojiMarkupByName } from "../../../services/applicationEmojiService";
 
 export async function generateChampionResponse(
   client: Client,
@@ -61,11 +62,14 @@ export async function generateChampionResponse(
 
   let totalChampString = "";
   champions.forEach(champion => {
-    const classEmoji = CLASS_EMOJIS[champion.class];
+    const capitalizedClassName =
+      champion.class.charAt(0).toUpperCase() +
+      champion.class.slice(1).toLowerCase();
+    const classEmoji = getApplicationEmojiMarkupByName(capitalizedClassName);
     const championEmoji = champion.discordEmoji
       ? resolveEmoji(champion.discordEmoji)
       : "";
-    let champString = `### ${championEmoji} ${champion.name} ${classEmoji}`;
+    let champString = `### ${championEmoji} ${champion.name} ${classEmoji || capitalizedClassName}`;
     const details = getChampionDetailsString(champion, parsedSearchCriteria);
     if (details) {
       champString += `\n${details}`;

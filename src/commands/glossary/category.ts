@@ -93,28 +93,39 @@ export async function handleCategory(
     components.forEach((row) => container.addActionRowComponents(row));
   }
 
-  const backButton = new ButtonBuilder()
-    .setCustomId("glossary_list_back")
-    .setLabel("Back to Category List")
-    .setStyle(glossaryColors.buttons.navigation);
   const searchButton = new ButtonBuilder()
     .setCustomId(`glossary_search_category_${name}`)
     .setLabel("Search Champions")
-    .setStyle(glossaryColors.buttons.search);
-  const row = new ActionRowBuilder<ButtonBuilder>();
-  row.addComponents(searchButton);
+    .setStyle(glossaryColors.buttons.search)
+    .setEmoji("🔍");
+
+  const searchRow = new ActionRowBuilder<ButtonBuilder>();
+  searchRow.addComponents(searchButton);
+
   if (player && player.roster.length > 0) {
     const searchRosterButton = new ButtonBuilder()
       .setCustomId(`glossary_roster_search_category_${name}`)
       .setLabel("Search in my Roster")
-      .setStyle(glossaryColors.buttons.search);
-    row.addComponents(searchRosterButton);
+      .setStyle(glossaryColors.buttons.search)
+      .setEmoji("🔍");
+    searchRow.addComponents(searchRosterButton);
   }
-  row.addComponents(backButton);
+
+  const backButton = new ButtonBuilder()
+    .setCustomId("glossary_list_back")
+    .setLabel("Back to Category List")
+    .setStyle(glossaryColors.buttons.navigation);
+  
+  const backRow = new ActionRowBuilder<ButtonBuilder>().addComponents(backButton);
+
   container.addSeparatorComponents(
     new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
   );
-  container.addActionRowComponents(row);
+  container.addActionRowComponents(searchRow);
+  container.addSeparatorComponents(
+    new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Small)
+  );
+  container.addActionRowComponents(backRow);
 
   return { components: [container], flags: MessageFlags.IsComponentsV2 };
 }

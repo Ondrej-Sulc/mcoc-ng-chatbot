@@ -1,4 +1,4 @@
-import { User, ChatInputCommandInteraction } from "discord.js";
+import { User, ChatInputCommandInteraction, ButtonInteraction } from "discord.js";
 import { prisma } from "../services/prismaService";
 import { Player } from "@prisma/client";
 import { safeReply } from "./errorHandler";
@@ -22,10 +22,15 @@ export async function getActivePlayer(discordId: string): Promise<Player | null>
 }
 
 export async function getPlayer(
-  interaction: ChatInputCommandInteraction
+  interaction: ChatInputCommandInteraction | ButtonInteraction
 ): Promise<Player | null> {
-  const playerOption = interaction.options.getUser("user");
-  const targetUser = playerOption || interaction.user;
+  let targetUser: User;
+  if (interaction.isChatInputCommand()) {
+    const playerOption = interaction.options.getUser("user");
+    targetUser = playerOption || interaction.user;
+  } else {
+    targetUser = interaction.user;
+  }
 
   const activePlayer = await getActivePlayer(targetUser.id);
 

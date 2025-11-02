@@ -97,23 +97,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
             ],
           },
         ],
-        [
-          "aq_schedule",
-          {
-            description: "View or manage the automated AQ schedule for your alliance (Alliance Admin only). Includes subcommands to add, remove, and view schedule entries.",
-            usage: "/alliance aq_schedule <subcommand>",
-          },
-        ],
-        [
-          "aq_skip",
-          {
-            description: "Skip the next scheduled AQ for a specific day (e.g., for off-season) (Alliance Admin only).",
-            usage: "/alliance aq_skip <day>",
-            examples: [
-              "/alliance aq_skip day:1 - Skips the next scheduled AQ for Day 1.",
-            ],
-          },
-        ],
+
         [
           "name",
           {
@@ -157,6 +141,14 @@ export const commandDescriptions = new Map<string, CommandInfo>([
               "/aq end - Ends the active AQ tracker in the current channel.",
               "/aq end channel:#aq-discussion - Ends the active AQ tracker in #aq-discussion.",
             ],
+          },
+        ],
+        [
+          "schedule",
+          {
+            description: "Manage the automated AQ schedule for your alliance through an interactive menu (Alliance Admin only). This includes setting up schedules for each battlegroup, defining AQ day-to-weekday mappings, setting a global start time, configuring reminders, and skipping AQ for a specified duration.",
+            usage: "/aq schedule",
+            image: "https://storage.googleapis.com/champion-images/feature-showcase/aq_schedule.png"
           },
         ],
       ]),
@@ -300,7 +292,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
           "effect",
           {
             description:
-              "Look up a specific effect by name to see its description, associated categories, and a list of champions that have or are immune to this effect. Provides detailed information about the effect's mechanics.",
+              "Look up a specific effect by name to see its description, associated categories, and a list of champions that have or are immune to this effect. You can also search for champions with the effect in your own roster. Provides detailed information about the effect's mechanics.",
             usage: "/glossary effect <effect>",
             image: "https://storage.googleapis.com/champion-images/feature-showcase/glossary_effect_crush.png",
           },
@@ -309,7 +301,7 @@ export const commandDescriptions = new Map<string, CommandInfo>([
           "category",
           {
             description:
-              "List all effects within a specific category (e.g., Buffs, Debuffs, Immunities). This helps in exploring related effects and their descriptions.",
+              "List all effects within a specific category (e.g., Buffs, Debuffs, Immunities). You can also search for all champions in the category, including within your own roster. This helps in exploring related effects and their descriptions.",
             usage: "/glossary category <category>",
             image: "https://storage.googleapis.com/champion-images/feature-showcase/glossary_category_auto-block.png",
           },
@@ -356,46 +348,58 @@ export const commandDescriptions = new Map<string, CommandInfo>([
   [
     "profile",
     {
-      description: "Manage your player profile.",
+      description: "Manage your in-game profiles. Supports multiple accounts, allowing you to switch between them easily. The main `/profile view` command provides an interactive dashboard for managing all aspects of your profile.",
       access: CommandAccess.USER,
       group: "User Management",
       subcommands: new Map([
         [
-          "name",
-          {
-            description: "Change your in-game name.",
-            usage: "/profile name <new_name>",
-            examples: [
-              '/profile name new_name:MyNewIGN - Changes your in-game name to "MyNewIGN".',
-            ],
-          },
-        ],
-        [
           "view",
           {
-            description: "View a player\'s profile, including prestige and roster summary.",
+            description: "Displays an interactive dashboard of your active profile, including prestige, roster summary, and alliance info. From this view, you can switch between profiles, rename or delete the active profile, and set your timezone.",
             usage: "/profile view [user]",
-            examples: [
-              "/profile view - Displays your own profile.",
-              "/profile view user:@Player - Displays the profile for @Player.",
-            ],
+            image: "https://storage.googleapis.com/champion-images/feature-showcase/profile_view.png"
           },
         ],
         [
-          "delete",
+          "add",
           {
-            description: "Delete your user profile and all associated data from the bot.",
-            usage: "/profile delete",
+            description: "Adds a new in-game profile to your Discord account. You can switch to this profile using `/profile switch`.",
+            usage: "/profile add <name>",
+          },
+        ],
+        [
+          "switch",
+          {
+            description: "Switches your active in-game profile to another one you have registered.",
+            usage: "/profile switch <name>",
+          },
+        ],
+        [
+          "list",
+          {
+            description: "Lists all of your registered in-game profiles, indicating which one is currently active.",
+            usage: "/profile list",
+          },
+        ],
+        [
+          "remove",
+          {
+            description: "Removes one of your registered in-game profiles.",
+            usage: "/profile remove <name>",
+          },
+        ],
+        [
+          "rename",
+          {
+            description: "Renames one of your registered in-game profiles.",
+            usage: "/profile rename <current_name> <new_name>",
           },
         ],
         [
           "timezone",
           {
-            description: "Set your timezone to get localized dates and times.",
+            description: "Sets the local timezone for your active profile, ensuring all times are displayed correctly for you.",
             usage: "/profile timezone <timezone>",
-            examples: [
-              "/profile timezone timezone:America/New_York - Sets your timezone to Eastern Time.",
-            ],
           },
         ],
       ]),

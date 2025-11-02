@@ -15,16 +15,9 @@ import {
   ATTACK_TYPE_KEYWORDS,
   MODIFIER_KEYWORDS,
 } from "../queryBuilder";
+import { getApplicationEmojiMarkupByName } from "../../../services/applicationEmojiService";
 
-export const CLASS_EMOJIS: Record<ChampionClass, string> = {
-  MYSTIC: "<:Mystic:1253449751555215504>",
-  MUTANT: "<:Mutant:1253449731284406332>",
-  SKILL: "<:Skill:1253449798825279660>",
-  SCIENCE: "<:Science:1253449774271696967>",
-  COSMIC: "<:Cosmic:1253449702595235950>",
-  TECH: "<:Tech:1253449817808703519>",
-  SUPERIOR: "<:Superior:1253458213618323660>",
-};
+
 
 export function getCriteriaString(
   searchCriteria: Omit<SearchCoreParams, "userId" | "page" | "searchId">
@@ -245,12 +238,16 @@ export function getChampionDisplayLength(
   parsedSearchCriteria: any
 ): number {
   const details = getChampionDetailsString(champion, parsedSearchCriteria);
-  const classEmoji = CLASS_EMOJIS[champion.class];
+  const capitalizedClassName =
+    champion.class.charAt(0).toUpperCase() +
+    champion.class.slice(1).toLowerCase();
+  const classEmojiMarkup = getApplicationEmojiMarkupByName(capitalizedClassName);
+  const classDisplay = classEmojiMarkup || capitalizedClassName;
   const championEmoji = champion.discordEmoji || "";
   return (
     champion.name.length +
     details.length +
-    classEmoji.length +
+    classDisplay.length +
     championEmoji.length +
     10
   );

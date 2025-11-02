@@ -16,8 +16,9 @@ import {
   SearchCoreParams,
 } from "../../../types/search";
 import { parseAndOrConditions } from "../queryBuilder";
-import { getChampionDetailsString, getCriteriaString, CLASS_EMOJIS } from "./common";
+import { getChampionDetailsString, getCriteriaString } from "./common";
 import { CommandResult } from "../../../types/command";
+import { getApplicationEmojiMarkupByName } from "../../../services/applicationEmojiService";
 
 export async function generateRosterResponse(
   client: Client,
@@ -61,14 +62,17 @@ export async function generateRosterResponse(
   let totalChampString = "";
   champions.forEach(entry => {
     const { champion } = entry;
-    const classEmoji = CLASS_EMOJIS[champion.class];
+    const capitalizedClassName =
+      champion.class.charAt(0).toUpperCase() +
+      champion.class.slice(1).toLowerCase();
+    const classEmoji = getApplicationEmojiMarkupByName(capitalizedClassName);
     const championEmoji = champion.discordEmoji
       ? resolveEmoji(champion.discordEmoji)
       : "";
     const ascendedEmoji = entry.isAscended ? "🏆" : "";
     const awakenedEmoji = entry.isAwakened ? "★" : "☆";
 
-    let champString = `### ${championEmoji} ${champion.name} ${classEmoji} ${awakenedEmoji} ${entry.stars}* R${entry.rank} ${ascendedEmoji}`;
+    let champString = `### ${championEmoji} ${champion.name} ${classEmoji || capitalizedClassName} ${awakenedEmoji} ${entry.stars}* R${entry.rank} ${ascendedEmoji}`;
     const details = getChampionDetailsString(champion, parsedSearchCriteria);
     if (details) {
       champString += `\n${details}`;

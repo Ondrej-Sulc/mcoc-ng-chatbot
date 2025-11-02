@@ -6,6 +6,7 @@
 - improve /champion duel command, add two interactive buttons for suggesting a new duel target as well as reporting a duel as outdated. both actions should be logged somewhere possibly notify me.
 - [DONE] on glossary detail page add button to trigger search for that category
 - [DONE] on glossary effect and category pages if user has roster also add buttons to search through players roster
+- [DONE] Fix glossary search bugs and improve UI (search emoji, separators, empty results handling).
 - possibly add buttons in the /help command to go try some of the commands
 - feature web page about the bot
 - war videos database (attacker, defender, node number, season, war tier?, player?, death?, anything else?)
