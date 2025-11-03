@@ -1,7 +1,7 @@
 # TODO
 
 - [DONE] Way to manage discord emojis for glossary stuff, upload and add to a specific effect in glossary (via /admin glossary emoji-set/emoji-remove)
-- Note: Adding new glossary effects is handled by /admin glossary update-ability (upsert functionality).
+    - Note: Adding new glossary effects is handled by /admin glossary update-ability (upsert functionality).
 - add interactive buttons to champions commands to be able to switch between abilities/immunities/attacks and others
 - improve /champion duel command, add two interactive buttons for suggesting a new duel target as well as reporting a duel as outdated. both actions should be logged somewhere possibly notify me.
 - [DONE] on glossary detail page add button to trigger search for that category

@@ -35,7 +35,7 @@ export async function getPlayer(
   const activePlayer = await getActivePlayer(targetUser.id);
 
   if (!activePlayer) {
-    await safeReply(interaction, `Player ${targetUser.username} has no registered profiles. Please use /profile add first.`);
+    await safeReply(interaction, `Player ${targetUser.username} has no registered profiles. Please use the /register command.`);
     return null;
   }
   
