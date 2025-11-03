@@ -1,13 +1,13 @@
 import path from 'path';
 import fs from 'fs/promises';
-import { getStyledImagePath } from './imageStyleService';
-import logger from './loggerService';
+import { getStyledImagePath } from '../services/imageStyleService';
+import logger from '../services/loggerService';
 
 async function runTest() {
     logger.info('Starting image style test...');
 
     const testImageUrl = 'https://storage.googleapis.com/champion-images/feature-showcase/tags_dracula.png';
-    const outputDir = path.join(process.cwd(), 'temp', 'test-output');
+    const outputDir = path.join(process.cwd(), 'temp', 'styled-images');
 
     try {
         // Ensure output directory exists
