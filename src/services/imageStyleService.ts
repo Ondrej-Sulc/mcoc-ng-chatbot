@@ -64,15 +64,15 @@ async function styleImage(imageBuffer: Buffer): Promise<Buffer> {
     // --- Final Assembly ---
     const outerGlowMeta = await sharp(outerGlowLayer).metadata();
     const outerGlowTop = Math.round((finalHeight - outerGlowMeta.height!) / 2);
-    const outerGlowLeft = Math.round((finalHeight - outerGlowMeta.width!) / 2);
+    const outerGlowLeft = Math.round((finalWidth - outerGlowMeta.width!) / 2);
 
     const borderTop = Math.round((finalHeight - imageWithBorderSize.height) / 2);
-    const borderLeft = Math.round((finalHeight - imageWithBorderSize.width) / 2);
+    const borderLeft = Math.round((finalWidth - imageWithBorderSize.width) / 2);
 
     const imageTop = Math.round((finalHeight - height) / 2);
-    const imageLeft = Math.round((finalHeight - width) / 2);
+    const imageLeft = Math.round((finalWidth - width) / 2);
 
-    return sharp({ create: { width: finalHeight, height: finalHeight, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    return sharp({ create: { width: finalWidth, height: finalHeight, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
         .composite([
             { input: outerGlowLayer, top: outerGlowTop, left: outerGlowLeft },
             { input: gradientBorder, top: borderTop, left: borderLeft },

@@ -26,7 +26,7 @@ export async function getPlayer(
 ): Promise<Player | null> {
   let targetUser: User;
   if (interaction.isChatInputCommand()) {
-    const playerOption = interaction.options.getUser("user");
+    const playerOption = interaction.options.getUser("player");
     targetUser = playerOption || interaction.user;
   } else {
     targetUser = interaction.user;
