@@ -9,6 +9,7 @@ import { AQState, getState, setState } from "./state";
 import { generateAQHeader } from "./header";
 import { buildAQContainer } from "./view";
 import { prisma } from "../../services/prismaService";
+import logger from "../../services/loggerService";
 
 interface AQCoreStartParams {
   day: number;
@@ -100,11 +101,22 @@ export async function handleStart(
   state.messageId = sent.id;
 
   if (alliance.createAqThread) {
-    const thread = await sent.startThread({
-      name: `AQ Day ${day} Updates`,
-      autoArchiveDuration: 1440, // 24 hours
-    });
-    state.threadId = thread.id;
+    try {
+      const thread = await sent.startThread({
+        name: `AQ Day ${day} Updates`,
+        autoArchiveDuration: 1440, // 24 hours
+      });
+      state.threadId = thread.id;
+    } catch (error: any) {
+      logger.error({ err: error, guildId: guild.id }, 'Failed to create AQ thread');
+      if (error.code === 50001) { // Missing Access
+        try {
+          await (channel as any).send("I tried to start a thread for AQ updates, but I don't have the required 'Create Public Threads' permission. Please grant it to me if you'd like this feature enabled.");
+        } catch (sendMessageError) {
+          logger.error({ err: sendMessageError, guildId: guild.id }, 'Failed to send "missing permissions" message for thread creation');
+        }
+      }
+    }
   }
 
   await setState(channelId, state);
