@@ -63,7 +63,7 @@ async function sendReminderPing(
 
 async function checkAqStatuses(client: Client) {
   const allStates = await getAllStates();
-  const now = new Date();
+  const now = DateTime.utc();
 
   for (const state of allStates) {
     if (state.status !== "active") continue;
@@ -91,39 +91,81 @@ async function checkAqStatuses(client: Client) {
 
     if (!aqReminderSettings) continue;
 
-    const now = DateTime.utc();
+    let stateNeedsSaving = false;
+    let startTime: DateTime;
+    if (state.startTimeIso) {
+      startTime = DateTime.fromISO(state.startTimeIso);
+    } else {
+      startTime = now;
+      state.startTimeIso = now.toISO();
+      stateNeedsSaving = true;
+    }
 
     // Section 1 ping
     if (aqReminderSettings.section1ReminderEnabled) {
-      const [hour, minute] = aqReminderSettings.section1PingTime.split(":").map(Number);
-      const section1PingTime = now.set({ hour, minute, second: 0, millisecond: 0 });
+      const [hour, minute] = aqReminderSettings.section1PingTime
+        .split(":")
+        .map(Number);
+      let section1PingTime = startTime.set({
+        hour,
+        minute,
+        second: 0,
+        millisecond: 0,
+      });
+      if (section1PingTime < startTime) {
+        section1PingTime = section1PingTime.plus({ days: 1 });
+      }
       if (!state.slackerPingSent && now >= section1PingTime) {
         await sendReminderPing(client, state, false, false);
         state.slackerPingSent = true;
-        await setState(state.channelId, state);
+        stateNeedsSaving = true;
       }
     }
 
     // Section 2 ping
     if (aqReminderSettings.section2ReminderEnabled) {
-        const [hour, minute] = aqReminderSettings.section2PingTime.split(":").map(Number);
-        const section2PingTime = now.set({ hour, minute, second: 0, millisecond: 0 });
-        if (!state.section2PingSent && now >= section2PingTime) {
-            await sendReminderPing(client, state, false, true);
-            state.section2PingSent = true;
-            await setState(state.channelId, state);
-        }
+      const [hour, minute] = aqReminderSettings.section2PingTime
+        .split(":")
+        .map(Number);
+      let section2PingTime = startTime.set({
+        hour,
+        minute,
+        second: 0,
+        millisecond: 0,
+      });
+      if (section2PingTime < startTime) {
+        section2PingTime = section2PingTime.plus({ days: 1 });
+      }
+      if (!state.section2PingSent && now >= section2PingTime) {
+        await sendReminderPing(client, state, false, true);
+        state.section2PingSent = true;
+        stateNeedsSaving = true;
+      }
     }
 
     // Final ping
     if (aqReminderSettings.finalReminderEnabled) {
-        const [hour, minute] = aqReminderSettings.finalPingTime.split(":").map(Number);
-        const finalPingTime = now.set({ hour, minute, second: 0, millisecond: 0 });
-        if (!state.finalPingSent && now >= finalPingTime) {
-            await sendReminderPing(client, state, true, false);
-            state.finalPingSent = true;
-            await setState(state.channelId, state);
-        }
+      const [hour, minute] = aqReminderSettings.finalPingTime
+        .split(":")
+        .map(Number);
+      let finalPingTime = startTime.set({
+        hour,
+        minute,
+        second: 0,
+        millisecond: 0,
+      });
+      if (finalPingTime < startTime) {
+        finalPingTime = finalPingTime.plus({ days: 1 });
+      }
+      if (!state.finalPingSent && now >= finalPingTime) {
+        await sendReminderPing(client, state, true, false);
+        state.finalPingSent = true;
+        stateNeedsSaving = true;
+      }
+    }
+
+    if (stateNeedsSaving) {
+      await setState(state.channelId, state);
     }
   }
 }

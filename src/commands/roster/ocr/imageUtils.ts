@@ -12,6 +12,12 @@ export async function downloadImage(url: string): Promise<Buffer> {
       `Failed to download image from ${url}: ${response.statusText}`
     );
   }
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.startsWith('image/')) {
+      throw new Error(
+          `Expected an image but received content-type ${contentType} from ${url}`
+      );
+  }
   const arrayBuffer = await response.arrayBuffer();
   return Buffer.from(arrayBuffer);
 }

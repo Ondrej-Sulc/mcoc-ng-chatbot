@@ -29,10 +29,13 @@ function getAccessLevelString(access: CommandAccess): string {
   }
 }
 
+import { getStyledImagePath } from "../../services/imageStyleService";
+import path from "path";
+
 export async function handleDetail(
   name: string,
   interaction: ButtonInteraction
-): Promise<CommandResult> {
+): Promise<void> {
   const commandInfo = commandDescriptions.get(name);
 
   const applicationCommands = await interaction.client.application.commands.fetch();
@@ -46,10 +49,11 @@ export async function handleDetail(
       `Command "${name}" not found.`
     );
     container.addTextDisplayComponents(notFound);
-    return {
+    await interaction.editReply({
       components: [container],
       flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
-    };
+    });
+    return;
   }
 
   const title = new TextDisplayBuilder().setContent(`# /${name}`);
@@ -65,25 +69,27 @@ export async function handleDetail(
   );
   container.addTextDisplayComponents(description);
 
+  const filesToAttach: string[] = [];
+
   if (commandInfo.subcommands.size > 0) {
     container.addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Large)
     );
 
-    let isFirstSubcommand = true; // Flag to avoid adding separator before the first subcommand
+    let isFirstSubcommand = true;
     for (const [subName, subInfo] of commandInfo.subcommands) {
       if (!isFirstSubcommand) {
-        container.addSeparatorComponents(new SeparatorBuilder()); // Separator between subcommands
+        container.addSeparatorComponents(new SeparatorBuilder());
       }
       isFirstSubcommand = false;
 
       const subCommandMention = commandId
         ? `</${name} ${subName}:${commandId}>`
         : `\`/${name} ${subName}\``;
-      let subcommandContent = `## ${subCommandMention}\n*${subInfo.description}*`; // Changed to H3 and added description here
+      let subcommandContent = `## ${subCommandMention}\n*${subInfo.description}*`;
 
       if (subInfo.usage) {
-        subcommandContent += `\n- **Usage:** \`${subInfo.usage}\``; // Bullet point and code block for usage
+        subcommandContent += `\n- **Usage:** \`${subInfo.usage}\``;
       }
 
       if (subInfo.filters && subInfo.filters.size > 0) {
@@ -100,7 +106,7 @@ export async function handleDetail(
       if (subInfo.examples && subInfo.examples.length > 0) {
         subcommandContent += `\n- **Examples:**`;
         for (const example of subInfo.examples) {
-          subcommandContent += `\n  - \`${example}\``; // Bullet point and code block for examples
+          subcommandContent += `\n  - \`${example}\``;
         }
       }
 
@@ -109,12 +115,21 @@ export async function handleDetail(
       );
       container.addTextDisplayComponents(subcommandDisplay);
 
-      // Add image rendering here
       if (subInfo.image) {
-        const imageGallery = new MediaGalleryBuilder().addItems(
-          new MediaGalleryItemBuilder().setURL(subInfo.image)
-        );
-        container.addMediaGalleryComponents(imageGallery);
+        const styledImagePath = await getStyledImagePath(subInfo.image);
+        if (styledImagePath) {
+          const filename = path.basename(styledImagePath);
+          const imageGallery = new MediaGalleryBuilder().addItems(
+            new MediaGalleryItemBuilder().setURL(`attachment://${filename}`)
+          );
+          container.addMediaGalleryComponents(imageGallery);
+          filesToAttach.push(styledImagePath);
+        } else {
+          const imageGallery = new MediaGalleryBuilder().addItems(
+            new MediaGalleryItemBuilder().setURL(subInfo.image)
+          );
+          container.addMediaGalleryComponents(imageGallery);
+        }
       }
     }
   }
@@ -129,5 +144,8 @@ export async function handleDetail(
   );
   container.addActionRowComponents(row);
 
-  return { components: [container], flags: MessageFlags.IsComponentsV2 };
+  await interaction.editReply({
+    components: [container],
+    files: filesToAttach,
+  });
 }

@@ -6,8 +6,7 @@ import { handleDetail } from "./detail";
 async function handleCommandButton(interaction: ButtonInteraction) {
   await interaction.deferUpdate();
   const commandName = interaction.customId.substring("help:".length);
-  const result = await handleDetail(commandName, interaction);
-  await interaction.editReply(result);
+  await handleDetail(commandName, interaction);
 }
 
 async function handleHomeButton(interaction: ButtonInteraction) {

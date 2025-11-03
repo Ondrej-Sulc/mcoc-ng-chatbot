@@ -10,7 +10,8 @@
     "dev": "tsx watch src/index.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "test:style": "tsx src/scripts/test-image-style.ts"
   },
   "keywords": [],
   "type": "commonjs",
@@ -18,6 +19,7 @@
     "@google-cloud/storage": "^7.17.2",
     "@google-cloud/vision": "^5.3.3",
     "@prisma/client": "^6.14.0",
+    "axios": "^1.13.1",
     "discord.js": "^14.21.0",
     "dotenv": "^17.2.0",
     "fuse.js": "^7.1.0",

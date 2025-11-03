@@ -17,7 +17,7 @@ export interface AQState {
   mapStatus: string;
   players: Record<SectionKey, Record<string, PlayerSectionState>>;
   // timestamps are stored as ISO strings
-  startTimeIso: string;
+  startTimeIso?: string;
   endTimeIso: string;
   slackerPingSent?: boolean;
   section2PingSent?: boolean;
