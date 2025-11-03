@@ -25,18 +25,12 @@ A modular Discord bot built with TypeScript, designed for Marvel Contest of Cham
     - `/alliance join`: Allows new members to join the alliance on Discord and register with the bot in one step.
     - `/alliance name`: Alliance Admins can update the alliance's name.
     - `/alliance toggle-feature`: Enables or disables features like `/aw` for the alliance.
-    - `/alliance aq_schedule`: Manage the automated AQ schedule.
-    - `/alliance aq_skip`: Skip upcoming scheduled AQs.
-- **Profile Management:** The `/profile` command allows users to manage their identity within the bot. Subcommands include:
-    - `view`: View a player's profile.
-    - `name`: Change your in-game name.
-    - `timezone`: Set your local timezone for accurate event timing.
-    - `delete`: Delete your profile and all associated data.
+- **Profile Management:** The `/profile` command allows users to manage their in-game profiles. It supports multiple accounts, allowing you to switch between them easily. The main `/profile view` command provides an interactive dashboard for managing all aspects of your profile, including prestige, roster summary, and alliance info. From this view, you can switch between profiles, rename or delete the active profile, and set your timezone.
 - **Roster Management:** A comprehensive `/roster` command that allows users to manage their personal champion rosters. It includes subcommands to `update` (via OCR from screenshots), `view`, `delete`, `summary`, and `export` champions, providing a full suite of tools for roster maintenance.
 - **Advanced Search:** A powerful `/search` command with two main subcommands:
     - `/search all`: Performs a global search across all champions in the database based on a wide range of criteria, including abilities, immunities, tags, classes, ability categories, and attack types.
     - `/search roster`: Allows users to search within their own personal roster, making it easy to find specific champions they own.
-- **AQ Management:** An interactive `/aq` command to manage Alliance Quest (AQ) trackers. Users can `start` and `end` trackers, and progress is updated through interactive buttons, providing a real-time view of the AQ status.
+- **AQ Management:** An interactive `/aq` command to manage Alliance Quest (AQ) trackers. Users can `start` and `end` trackers, and progress is updated through interactive buttons, providing a real-time view of the AQ status. It also includes a comprehensive, interactive `/aq schedule` command for Alliance Admins to manage the automated AQ schedule for their alliance.
 - **PostgreSQL Database:** Uses a robust PostgreSQL database managed with Prisma for persistent data storage.
 - **Google Sheets Integration:** Utilizes Google Sheets for data storage and retrieval (e.g., for scheduling).
 - **Advanced Scheduling:** Schedule commands or custom messages with flexible timing (e.g., daily, weekly, monthly) via `/schedule`.
@@ -63,20 +57,20 @@ The production instance of the bot and its PostgreSQL database are hosted on [Ra
 
 | Command | Description | Access |
 | --- | --- | --- |
-| `/admin` | Administrative commands for managing champions, abilities, attacks, and the glossary. | Bot Admin |
-| `/alliance` | Manage alliance settings. Subcommands for joining, managing features, and scheduling. | User / Admin |
-| `/aq` | Alliance Quest (AQ) utilities. | User |
+| `/admin` | Administrative commands for managing champions, abilities, attacks, and the glossary. These commands are typically restricted to bot administrators and are used for data management and bot configuration. | Bot Admin |
+| `/alliance` | Manage your alliance, its features, and AQ schedule. | User |
+| `/aq` | Alliance Quest (AQ) utilities. These commands help alliances coordinate and track their progress in Alliance Quests. | User |
 | `/aw` | Commands for Alliance War planning and details. | Feature |
-| `/debug` | Debugging commands, restricted to bot administrators. | Bot Admin |
-| `/glossary` | Look up MCOC effects, buffs, and debuffs. | Public |
-| `/champion` | Get detailed information about any champion in the game, including duel targets. | Public |
+| `/champion` | Get detailed information about any champion in the game. This acts as a comprehensive in-game encyclopedia for all champions. | Public |
+| `/debug` | Debugging commands, restricted to bot administrators. These commands are used for testing and troubleshooting bot features. | Bot Admin |
+| `/glossary` | Look up MCOC effects, buffs, and debuffs. This acts as an in-game dictionary for various terms. | Public |
 | `/prestige` | Extract prestige values from an MCOC screenshot or view the leaderboard. | User |
-| `/profile` | Manage your player profile (`view`, `name`, `timezone`, `delete`). | User |
-| `/register` | Register your in-game name. Use `/alliance join` if in an alliance. | Public |
-| `/roster` | Manage your MCOC roster. | User |
-| `/schedule` | Manage scheduled tasks with daily, weekly, or monthly frequencies. | Public |
-| `/search` | Powerful search for champions based on various criteria. | Public |
-| `/summarize` | Summarizes recent messages in a channel or thread using AI. | Public |
+| `/profile` | Manage your in-game profiles. Supports multiple accounts, allowing you to switch between them easily. The main `/profile view` command provides an interactive dashboard for managing all aspects of your profile. | User |
+| `/register` | For new users to register their in-game name with the bot. This is the first step to unlock features like roster management and prestige tracking. If you are part of an alliance, use '/alliance join' instead to register and join your alliance simultaneously. | User |
+| `/roster` | Manage your MCOC roster. Keep track of your champions, their ranks, awakened status, and ascension levels. | User |
+| `/schedule` | Manage scheduled tasks. You can add, list, and remove scheduled messages or command executions. | Public |
+| `/search` | Powerful search for champions based on various criteria, acting as a comprehensive in-game wiki. Filters are case-insensitive. | Public |
+| `/summarize` | Summarizes recent messages in a channel or thread using AI. You can specify a timeframe, target channel, language, and even a custom prompt for the summarization. | Public |
 | `/help` | Displays an interactive help guide for all bot commands. | Public |
 
 
