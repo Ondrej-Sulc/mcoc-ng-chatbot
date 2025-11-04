@@ -1,4 +1,4 @@
-import { ModalSubmitInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
+import { ModalSubmitInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } from "discord.js";
 import { ChampionClass } from "@prisma/client";
 import logger from "../../../services/loggerService";
 import { addChampion } from "./addChampion";
@@ -136,7 +136,7 @@ export async function handleChampionModalPart2(interaction: ModalSubmitInteracti
         content: `An error occurred: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
-        ephemeral: true,
+        flags: [MessageFlags.Ephemeral],
       });
     }
 }
