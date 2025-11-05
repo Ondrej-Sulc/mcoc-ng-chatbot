@@ -11,6 +11,7 @@ import { getPlayer } from "../../utils/playerHelper";
 import { processRosterScreenshot } from "./ocr/process";
 import { RosterUpdateResult, RosterWithChampion } from "./ocr/types";
 import { createEmojiResolver } from "../../utils/emojiResolver";
+import { handleError } from "../../utils/errorHandler";
 
 export async function handleUpdate(
   interaction: ChatInputCommandInteraction
@@ -50,7 +51,18 @@ export async function handleUpdate(
       false,
       player.id
     ).catch((error) => {
-      return { error: `Error processing ${image.name}: ${error.message}` };
+      const { userMessage } = handleError(error, {
+        location: "roster update",
+        userId: interaction.user.id,
+        extra: {
+          image: image.name,
+          stars,
+          rank,
+          isAscended,
+          playerId: player.id,
+        },
+      });
+      return { error: `Error processing ${image.name}: ${userMessage}` };
     })
   );
 
