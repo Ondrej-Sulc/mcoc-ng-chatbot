@@ -58,7 +58,24 @@ export async function handleStart(
     };
   }
 
-  await guild.members.fetch();
+  // To get all members of a role, we need to make sure the guild member cache is populated.
+  // guild.members.fetch() is the way to do that, but it can time out on very large guilds,
+  // causing a `GuildMembersTimeout` error and crashing the process.
+  // As a workaround, we'll wrap it in a try/catch. If it times out, we'll log a
+  // warning and continue with a potentially incomplete list of members from the cache.
+  // This prevents the crash, but the AQ tracker might not include all players.
+  try {
+    await guild.members.fetch();
+  } catch (error: any) {
+    if (error.code === "GuildMembersTimeout") {
+      logger.warn(
+        { guildId: guild.id, roleId },
+        "guild.members.fetch() timed out. The player list may be incomplete."
+      );
+    } else {
+      throw error;
+    }
+  }
 
   const now = new Date();
   const end = new Date(now.getTime() + 24 * 60 * 60 * 1000 - 1000 * 600); // 24 hours minus 10 minutes
