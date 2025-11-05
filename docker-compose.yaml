@@ -2,9 +2,13 @@ services:
   bot:
     build:
       context: .
+      target: builder
+    volumes:
+      - ./src:/usr/src/app/src
     environment:
       - CHOKIDAR_USEPOLLING=true
+      - TS_MODE_ENABLED=true
       - DATABASE_URL=${DATABASE_URL}
     env_file:
       - ./.env
-    command: bun run dist/index.js
+    command: npm run dev
