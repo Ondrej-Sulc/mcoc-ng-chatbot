@@ -20,6 +20,7 @@ import { initializeAqReminders } from "./services/aqReminderService.js";
 import { getModalHandler } from "./utils/modalHandlerRegistry";
 import posthogClient from "./services/posthogService";
 import { prisma } from "./services/prismaService";
+import logger from "./services/loggerService";
 
 declare module "discord.js" {
   interface Client {
@@ -41,7 +42,7 @@ const client = new Client({
 client.commands = commands;
 
 client.once(Events.ClientReady, async (readyClient) => {
-  console.log(`✅ Bot connected as ${readyClient.user.username}`);
+  logger.info(`✅ Bot connected as ${readyClient.user.username}`);
 
   // We start a minimal HTTP server just for health checks.
   const port = process.env.PORT || 8080;
@@ -51,7 +52,7 @@ client.once(Events.ClientReady, async (readyClient) => {
       res.end("Bot is healthy and running!\n");
     })
     .listen(port, () => {
-      console.log(`HTTP health check server listening on port ${port}`);
+      logger.info(`HTTP health check server listening on port ${port}`);
     });
 
   await loadCommands();
@@ -60,24 +61,24 @@ client.once(Events.ClientReady, async (readyClient) => {
   );
   try {
     await readyClient.application.commands.set(commandData);
-    console.log(
+    logger.info(
       `🔄 Successfully registered ${commandData.length} global slash command(s).`
     );
-  } catch (error) {
-    console.error(`❌ Failed to register global slash commands:`, error);
+  } catch (error: unknown) {
+    logger.error({ error: String(error) }, `❌ Failed to register global slash commands:`);
   }
   // Load application emojis once at startup so resolver can reference them
   try {
     await loadApplicationEmojis(client);
-    console.log("🎨 Application emojis loaded.");
-  } catch (e) {
-    console.warn("⚠️ Failed to load application emojis:", e);
+    logger.info("🎨 Application emojis loaded.");
+  } catch (e: unknown) {
+    logger.warn({ error: String(e) }, "⚠️ Failed to load application emojis:");
   }
   // Load champion data into cache
   try {
     await loadChampions();
-  } catch (e) {
-    console.warn("⚠️ Failed to load champions:", e);
+  } catch (e: unknown) {
+    logger.warn({ error: String(e) }, "⚠️ Failed to load champions:");
   }
   // Start scheduler after bot is ready
   await startScheduler(client);
@@ -105,8 +106,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
           },
         });
       }
-    } catch (e) {
-      console.error("Error capturing PostHog event for button click:", e);
+    } catch (e: unknown) {
+      logger.error({ error: String(e) }, "Error capturing PostHog event for button click:");
     }
 
     const handler = getButtonHandler(interaction.customId);
@@ -134,7 +135,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (posthogClient) {
         const fields = interaction.fields.fields.map((field) => ({
           customId: field.customId,
-          value: 'value' in field ? field.value : null,
+          value: interaction.fields.getTextInputValue(field.customId),
         }));
 
         posthogClient.capture({
@@ -149,8 +150,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
           },
         });
       }
-    } catch (e) {
-      console.error("Error capturing PostHog event for modal submission:", e);
+    } catch (e: unknown) {
+      logger.error({ error: String(e) }, "Error capturing PostHog event for modal submission:");
     }
 
     const handler = getModalHandler(interaction.customId);
@@ -307,13 +308,13 @@ client.on(Events.InteractionCreate, async (interaction) => {
         properties,
       });
     }
-  } catch (e) {
-    console.error("Error capturing PostHog event:", e);
+  } catch (e: unknown) {
+    logger.error({ error: String(e) }, "Error capturing PostHog event:");
   }
 
   try {
     await command.execute(interaction);
-  } catch (error) {
+  } catch (error: unknown) {
     const { userMessage, errorId } = handleError(error, {
       location: `command:${interaction.commandName}`,
       userId: interaction.user?.id,
@@ -333,7 +334,7 @@ if (!config.BOT_TOKEN) {
 }
 try {
   client.login(config.BOT_TOKEN);
-} catch (error) {
-  console.error("Failed to login to Discord:", error);
+} catch (error: unknown) {
+  logger.error({ error: String(error) }, "Failed to login to Discord:");
   process.exit(1);
 }

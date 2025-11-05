@@ -1,10 +1,10 @@
-# .dockerignore
 node_modules
-dist
-.env
 .git
 .gitignore
+Dockerfile
 docker-compose.yml
 README.md
-bundler.py
-bundled_code.txt
+LICENSE
+.env
+dist
+build
