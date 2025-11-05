@@ -42,6 +42,7 @@ A modular Discord bot built with TypeScript, designed for Marvel Contest of Cham
 
 ## Technology Stack
 
+- **Runtime:** Bun
 - **Language:** TypeScript (Strict Mode)
 - **Framework:** Discord.js v14
 - **Database:** PostgreSQL with Prisma ORM
@@ -98,7 +99,7 @@ This project is a complete rewrite of a legacy Python-based MCOC bot. The migrat
 
 ## Getting Started (Local Development)
 
-The bot is designed to be run in a Dockerized environment. The `docker-compose.yaml` file is configured for a development environment with hot-reloading.
+The bot is designed to be run in a Dockerized environment using Bun. The `docker-compose.yaml` file is configured for a development environment with hot-reloading.
 
 ---
 
@@ -122,7 +123,7 @@ mcoc-ng-chatbot/
 │ ├── config.ts # Environment variable loading and validation
 │ └── index.ts # Bot entry point, client setup, event handlers
 ├── Dockerfile # Multi-stage build for lean production images
-├── docker-compose.yaml # Development environment setup
+├── docker-compose.yaml # Development environment setup with Bun
 └── README.md # You are here
 ```
 
