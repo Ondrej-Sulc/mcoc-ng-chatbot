@@ -31,18 +31,45 @@ export function startAQScheduler(client: Client) {
       },
     });
 
+    const guildSchedules = new Map<string, { guild: any, schedules: { schedule: any, channel: any }[] }>();
+
     for (const schedule of schedules) {
-      const { alliance, aqDay, channelId, roleId } = schedule;
-
-      if (alliance.aqSkip && alliance.aqSkip.skipUntil > now) {
-        console.log(`[AQScheduler] Skipping AQ for alliance ${alliance.name} (raid week).`);
-        continue;
-      }
-
       try {
-        const channel = await client.channels.fetch(channelId);
+        const channel = await client.channels.fetch(schedule.channelId);
         if (channel && channel instanceof TextChannel) {
           const guild = channel.guild;
+          if (!guildSchedules.has(guild.id)) {
+            guildSchedules.set(guild.id, { guild, schedules: [] });
+          }
+          guildSchedules.get(guild.id)!.schedules.push({ schedule, channel });
+        }
+      } catch (error) {
+        console.error(`[AQScheduler] Error fetching channel for schedule ${schedule.id}:`, error);
+      }
+    }
+
+    for (const [guildId, { guild, schedules: guildSchedulesList }] of guildSchedules.entries()) {
+      try {
+        await guild.members.fetch();
+      } catch (error: any) {
+        if (error.code === 'GuildMembersTimeout') {
+          console.error(`[AQScheduler] guild.members.fetch() timed out for guild ${guild.name}. Skipping all AQ starts for this guild.`);
+          continue; // Skip this guild
+        } else {
+          console.error(`[AQScheduler] Error fetching members for guild ${guild.name}:`, error);
+          continue; // Skip this guild
+        }
+      }
+
+      for (const { schedule, channel } of guildSchedulesList) {
+        const { alliance, aqDay, roleId } = schedule;
+
+        if (alliance.aqSkip && alliance.aqSkip.skipUntil > now) {
+          console.log(`[AQScheduler] Skipping AQ for alliance ${alliance.name} (raid week).`);
+          continue;
+        }
+
+        try {
           const role = await guild.roles.fetch(roleId);
 
           if (!role) {
@@ -60,9 +87,9 @@ export function startAQScheduler(client: Client) {
             channelName: channel.name,
             roleName: role.name,
           });
+        } catch (error) {
+          console.error(`[AQScheduler] Error running AQ start for alliance ${alliance.name}:`, error);
         }
-      } catch (error) {
-        console.error(`[AQScheduler] Error running AQ start for alliance ${alliance.name}:`, error);
       }
     }
   });

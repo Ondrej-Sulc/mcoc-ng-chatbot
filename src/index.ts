@@ -134,7 +134,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (posthogClient) {
         const fields = interaction.fields.fields.map((field) => ({
           customId: field.customId,
-          value: field.value,
+          value: 'value' in field ? field.value : null,
         }));
 
         posthogClient.capture({
