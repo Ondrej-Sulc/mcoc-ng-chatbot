@@ -6,6 +6,7 @@ A modular Discord bot built with TypeScript, designed for Marvel Contest of Cham
 
 ## Key Features
 
+- **Web Interface:** A modern, visually appealing web interface built with Next.js, Tailwind CSS, and shadcn/ui. It serves as a landing page for the bot, showcasing its features, commands, and providing an FAQ section.
 - **Dynamic Command Loading:** Commands in the `src/commands` directory are automatically registered on startup.
 - **Tiered Command Access:** The bot now implements a granular command access system, categorizing commands into different tiers:
     - **Public:** Accessible to all users by default (e.g., `/champion`, `/glossary`, `/search all`).

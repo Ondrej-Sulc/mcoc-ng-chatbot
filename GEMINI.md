@@ -35,6 +35,10 @@ The production environment for both the bot and its PostgreSQL database is hoste
 *   **Refactoring:** Proactively refactor code to improve its structure and maintainability.
 *   **Discord UI Components:** Prioritize the use of Discord UI Components V2 (e.g., `ContainerBuilder`, `TextDisplayBuilder`, `ActionRowBuilder`) over traditional embeds for rich, interactive, and consistent user interfaces. Always ensure the `MessageFlags.IsComponentsV2` flag is set when using these components.
 
+## Web Interface
+
+The project includes a modern, visually appealing web interface built with Next.js and hosted at `/web`. This interface serves as a landing page for the bot, showcasing its features, commands, and providing an FAQ section. It is styled with Tailwind CSS and uses shadcn/ui for its component library.
+
 ## Building and Running
 
 The project is fully containerized with Docker, so the easiest way to get started is with Docker Compose.
