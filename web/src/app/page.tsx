@@ -14,7 +14,7 @@ export default function Home() {
             <div className="relative flex flex-col justify-center">
               <span className="inline-flex items-center gap-2 text-xs bg-slate-900/50 border border-slate-700/50 rounded-full px-3 py-1 w-fit mb-5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                Online and serving thousands of MCOC players
+                Now available for all MCOC alliances
               </span>
               <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-5 leading-tight">
                 CereBro:
@@ -39,8 +39,8 @@ export default function Home() {
               </div>
               <div className="flex gap-6 items-center">
                 <div>
-                  <p className="text-lg font-bold text-white leading-none">2.4K+</p>
-                  <p className="text-xs text-slate-400">Guilds using CereBro</p>
+                  <p className="text-lg font-bold text-white leading-none">Trusted by Alliances</p>
+                  <p className="text-xs text-slate-400">Worldwide</p>
                 </div>
                 <div className="h-8 w-px bg-slate-700/70"></div>
                 <div>
@@ -49,8 +49,8 @@ export default function Home() {
                 </div>
                 <div className="h-8 w-px bg-slate-700/70"></div>
                 <div>
-                  <p className="text-lg font-bold text-white leading-none">90K+</p>
-                  <p className="text-xs text-slate-400">Daily Commands</p>
+                  <p className="text-lg font-bold text-white leading-none">Powerful</p>
+                  <p className="text-xs text-slate-400">& Feature-Rich</p>
                 </div>
               </div>
             </div>
@@ -179,8 +179,8 @@ export default function Home() {
                 <li className="flex gap-3">
                   <span className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-100 flex items-center justify-center text-[11px] border border-sky-500/20">2</span>
                   <div>
-                    <p className="text-slate-100 text-sm">Run setup wizard</p>
-                    <p className="text-xs text-slate-400">/cerebro setup asks about alliance size, AW/AQ preferences.</p>
+                    <p className="text-slate-100 text-sm">Register Your Profile</p>
+                    <p className="text-xs text-slate-400">Use the /register command to link your MCOC in-game name.</p>
                   </div>
                 </li>
                 <li className="flex gap-3">
@@ -260,12 +260,38 @@ export default function Home() {
           </div>
         </section>
 
+        <section id="support" className="section-offset py-10 lg:py-14">
+          <div className="max-w-4xl mx-auto px-4 lg:px-6 text-center">
+            <p className="text-xs uppercase tracking-wide text-pink-400/80 mb-1">Support the Project</p>
+            <h2 className="text-2xl font-semibold text-white mb-3">Help Keep CereBro Running</h2>
+            <p className="text-sm text-slate-300 max-w-2xl mx-auto mb-8">
+              CereBro is a passion project, offered completely free. If you find the bot useful, please consider supporting its development and hosting costs. Donations are greatly appreciated but never required.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-lg mx-auto">
+              <a href="https://ko-fi.com/cerebrobot" target="_blank" rel="noopener noreferrer" className="glass rounded-xl p-5 border border-slate-800/40 hover:border-pink-500/40 transition card-tilt flex items-center gap-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-pink-300 icon icon-tabler icon-tabler-coffee" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 14c.83 .642 2.077 1.017 3.5 1h9c1.423 .017 2.67 -.358 3.5 -1" /><path d="M8 3a2.4 2.4 0 0 0 -1 2a2.4 2.4 0 0 0 1 2h8a2.4 2.4 0 0 0 1 -2a2.4 2.4 0 0 0 -1 -2h-8z" /><path d="M3 14v3m18 -3v3" /></svg>
+                <div>
+                  <h3 className="text-sm font-semibold text-white text-left">Buy me a Coffee</h3>
+                  <p className="text-xs text-slate-300 text-left">A small, one-time donation through Ko-fi.</p>
+                </div>
+              </a>
+              <a href="#" target="_blank" rel="noopener noreferrer" className="glass rounded-xl p-5 border border-slate-800/40 hover:border-sky-500/40 transition card-tilt flex items-center gap-4">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-sky-300 icon icon-tabler icon-tabler-currency-dollar" width="24" height="24" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16.7 8a3 3 0 0 0 -2.7 -2h-4a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6h-4a3 3 0 0 1 -2.7 -2" /><path d="M12 18v3m0 -18v3" /></svg>
+                <div>
+                  <h3 className="text-sm font-semibold text-white text-left">Donate with PayPal</h3>
+                  <p className="text-xs text-slate-300 text-left">Make a direct donation using PayPal.</p>
+                </div>
+              </a>
+            </div>
+          </div>
+        </section>
+
         <section id="get" className="py-10 pb-16">
           <div className="max-w-6xl mx-auto px-4 lg:px-6">
             <div className="glass rounded-xl border border-slate-800/50 px-6 py-6 md:py-8 flex flex-col md:flex-row items-center justify-between gap-6">
               <div>
                 <h3 className="text-lg font-semibold text-white mb-1">Ready to give your MCOC server a brain?</h3>
-                <p className="text-sm text-slate-300">Invite CereBro now and run /cerebro setup in your #officers channel.</p>
+                <p className="text-sm text-slate-300">Invite CereBro now and use /register to link your account.</p>
               </div>
               <div className="flex gap-3 items-center">
                 <Link href="https://discord.com/oauth2/authorize" target="_blank" className="inline-flex items-center gap-2 bg-gradient-to-r from-sky-500 to-indigo-500 text-white text-sm font-medium px-5 py-2 rounded-lg shadow-lg shadow-sky-500/25">

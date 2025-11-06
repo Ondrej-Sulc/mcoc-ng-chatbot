@@ -105,10 +105,10 @@
   transform: translateY(-4px);
 }
 .faq-item.active .faq-content {
-  max-height: 280px;
+  max-height: 10rem;
 }
 .faq-content {
-  transition: max-height 0.25s ease;
+  transition: max-height 0.3s ease-in-out;
   max-height: 0;
   overflow: hidden;
 }
