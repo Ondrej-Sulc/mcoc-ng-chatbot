@@ -1,47 +1,55 @@
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+"use client";
 import { commandData, CommandInfo } from "@/lib/data/commands";
+import { useEffect } from "react";
 
 export function CommandList() {
-  const groupedCommands: { [key: string]: CommandInfo[] } = {};
-  commandData.forEach(command => {
-    const group = command.group || 'Other';
-    if (!groupedCommands[group]) {
-      groupedCommands[group] = [];
+  useEffect(() => {
+    const searchInput = document.getElementById('commandSearch') as HTMLInputElement;
+    const categorySelect = document.getElementById('commandCategory') as HTMLSelectElement;
+    const commandCards = Array.from(document.querySelectorAll('#commandList > div')) as HTMLDivElement[];
+    const emptyState = document.getElementById('commandsEmpty') as HTMLParagraphElement;
+
+    function filterCommands() {
+      const query = searchInput.value.toLowerCase().trim();
+      const category = categorySelect.value;
+      let visibleCount = 0;
+
+      commandCards.forEach(card => {
+        const text = card.textContent?.toLowerCase() || '';
+        const cardCategory = card.dataset.category;
+        const matchesCategory = category === 'all' || cardCategory === category;
+        const matchesQuery = !query || text.includes(query);
+        const visible = matchesCategory && matchesQuery;
+        card.style.display = visible ? '' : 'none';
+        if (visible) visibleCount++;
+      });
+
+      emptyState.style.display = visibleCount > 0 ? 'none' : 'block';
     }
-    groupedCommands[group].push(command);
-  });
+
+    searchInput.addEventListener('input', filterCommands);
+    categorySelect.addEventListener('change', filterCommands);
+
+    return () => {
+      searchInput.removeEventListener('input', filterCommands);
+      categorySelect.removeEventListener('change', filterCommands);
+    };
+  }, []);
 
   return (
-    <div className="w-full">
-      {Object.entries(groupedCommands).map(([group, commands]) => (
-        <div key={group} className="mb-8">
-          <h3 className="text-2xl font-bold mb-4 text-purple-400">{group}</h3>
-          <Accordion type="single" collapsible className="w-full">
-            {commands.map(command => (
-              <AccordionItem value={command.name} key={command.name}>
-                <AccordionTrigger className="hover:text-blue-400">/{command.name}</AccordionTrigger>
-                <AccordionContent>
-                  <p className="text-muted-foreground mb-4">{command.description}</p>
-                  {command.subcommands.map((sub, index) => (
-                    <div key={index} className="border-l-2 border-purple-400 pl-4 mb-2">
-                      <p className="font-mono text-sm bg-muted p-2 rounded-md">{sub.usage}</p>
-                      <p className="text-sm text-muted-foreground mt-1">{sub.description}</p>
-                      {sub.examples && (
-                        <div className="mt-2">
-                          <h4 className="text-xs font-semibold text-purple-400">Examples:</h4>
-                          <ul className="list-disc list-inside text-xs text-muted-foreground">
-                            {sub.examples.map((ex, i) => <li key={i}>{ex}</li>)}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+    <>
+      {commandData.map(command => (
+        <div key={command.name} className="command-pill rounded-xl border border-slate-800/80 glass px-3 py-2.5 flex flex-col gap-1.5" data-category={command.group?.toLowerCase()}>
+          <div className="flex justify-between items-center gap-2">
+            <span className="font-semibold text-slate-50">/{command.name}</span>
+            <span className={`px-2 py-0.5 rounded-full bg-${command.color}-500/15 text-${command.color}-300 border border-${command.color}-400/50 text-[10px]`}>{command.group}</span>
+          </div>
+          <p className="text-slate-300">{command.description}</p>
+          {command.subcommands.map((sub, index) => (
+            <p key={index} className="text-slate-500">Options: {sub.usage}</p>
+          ))}
         </div>
       ))}
-    </div>
+    </>
   );
 }
