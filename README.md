@@ -1,4 +1,4 @@
-# NG Bot for MCOC
+# CereBro
 
 *This bot is an unofficial fan-made tool and is not affiliated with, endorsed, or sponsored by Marvel or Kabam. All game content and materials are trademarks and copyrights of their respective owners.*
 
@@ -106,7 +106,7 @@ The bot is designed to be run in a Dockerized environment. The `docker-compose.y
 ## Project Structure
 
 ```
-mcoc-ng-chatbot/
+CereBro/
 ├── prisma/ # Prisma schema and migration files
 │ └── schema.prisma
 ├── src/

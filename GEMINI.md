@@ -1,6 +1,6 @@
 # Gemini Code Assistant Context
 
-This document provides context for the Gemini code assistant to understand the MCOC Next-Gen Chatbot project.
+This document provides context for the Gemini code assistant to understand the CereBro project.
 
 ## Project Overview
 
