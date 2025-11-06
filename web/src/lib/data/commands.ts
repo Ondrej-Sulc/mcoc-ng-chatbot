@@ -8,6 +8,7 @@ export interface CommandInfo {
   name: string;
   description: string;
   group?: string;
+  color: string;
   subcommands: SubcommandInfo[];
 }
 
@@ -16,6 +17,7 @@ export const commandData: CommandInfo[] = [
     name: "admin",
     description: "Administrative commands for managing champions, abilities, attacks, and the glossary.",
     group: "BOT_ADMIN",
+    color: "red",
     subcommands: [
       { description: "Admin commands for managing champions.", usage: "/admin champion <subcommand>" },
       { description: "Admin commands for managing champion abilities and immunities.", usage: "/admin ability <subcommand>" },
@@ -28,6 +30,7 @@ export const commandData: CommandInfo[] = [
     name: "alliance",
     description: "Manage your alliance, its features, and AQ schedule.",
     group: "Alliance Tools",
+    color: "sky",
     subcommands: [
       {
         description: "Join an alliance and optionally register your in-game name.",
@@ -53,6 +56,7 @@ export const commandData: CommandInfo[] = [
     name: "aq",
     description: "Alliance Quest (AQ) utilities.",
     group: "Alliance Tools",
+    color: "sky",
     subcommands: [
       {
         description: "Start a new AQ tracker.",
@@ -67,7 +71,7 @@ export const commandData: CommandInfo[] = [
         usage: "/aq end [channel]",
         examples: [
           "/aq end - Ends the active AQ tracker in the current channel.",
-          "/aq end channel:#aq-discussion - Ends the active AQ tracker in #aq-discussion.",
+          "/aq end channel:#aq-discussion - Ends the active AQ-discussion.",
         ],
       },
       {
@@ -80,6 +84,7 @@ export const commandData: CommandInfo[] = [
     name: "aw",
     description: "Commands for Alliance War planning and details.",
     group: "Alliance Tools",
+    color: "sky",
     subcommands: [
       {
         description: "Sends Alliance War plan details from a Google Sheet to player threads.",
@@ -99,6 +104,7 @@ export const commandData: CommandInfo[] = [
     name: "champion",
     description: "Get detailed information about any champion in the game.",
     group: "Information & Search",
+    color: "indigo",
     subcommands: [
       { description: "Display a champion's core details and full abilities.", usage: "/champion info <champion>" },
       { description: "Display a champion's attack types and properties.", usage: "/champion attacks <champion>" },
@@ -113,6 +119,7 @@ export const commandData: CommandInfo[] = [
     name: "glossary",
     description: "Look up MCOC effects, buffs, and debuffs.",
     group: "Information & Search",
+    color: "indigo",
     subcommands: [
       { description: "Look up a specific effect by name.", usage: "/glossary effect <effect>" },
       { description: "List all effects within a specific category.", usage: "/glossary category <category>" },
@@ -123,6 +130,7 @@ export const commandData: CommandInfo[] = [
     name: "prestige",
     description: "Extract prestige values from an MCOC screenshot or view the leaderboard.",
     group: "User Management",
+    color: "pink",
     subcommands: [
       { description: "Update your prestige values by uploading a screenshot.", usage: "/prestige update <image> [player]" },
       { description: "View the server prestige leaderboard.", usage: "/prestige leaderboard" },
@@ -132,6 +140,7 @@ export const commandData: CommandInfo[] = [
     name: "profile",
     description: "Manage your in-game profiles.",
     group: "User Management",
+    color: "pink",
     subcommands: [
       { description: "Displays an interactive dashboard of your active profile.", usage: "/profile view [user]" },
       { description: "Adds a new in-game profile.", usage: "/profile add <name>" },
@@ -146,6 +155,7 @@ export const commandData: CommandInfo[] = [
     name: "register",
     description: "For new users to register their in-game name with the bot.",
     group: "User Management",
+    color: "pink",
     subcommands: [
       {
         description: "Registers your in-game name.",
@@ -158,6 +168,7 @@ export const commandData: CommandInfo[] = [
     name: "roster",
     description: "Manage your MCOC roster.",
     group: "User Management",
+    color: "pink",
     subcommands: [
       {
         description: "Update your roster by uploading one or more screenshots.",
@@ -192,6 +203,7 @@ export const commandData: CommandInfo[] = [
     name: "schedule",
     description: "Manage scheduled tasks.",
     group: "Utilities",
+    color: "emerald",
     subcommands: [
       {
         description: "Add a new scheduled task.",
@@ -216,6 +228,7 @@ export const commandData: CommandInfo[] = [
     name: "search",
     description: "Powerful search for champions based on various criteria.",
     group: "Information & Search",
+    color: "indigo",
     subcommands: [
       {
         description: "Search the entire champion database using a wide range of filters.",
@@ -241,6 +254,7 @@ export const commandData: CommandInfo[] = [
     name: "summarize",
     description: "Summarizes recent messages in a channel or thread using AI.",
     group: "Utilities",
+    color: "emerald",
     subcommands: [
       {
         description: "Summarizes recent messages in a channel or thread using AI.",
