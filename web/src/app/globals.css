@@ -30,7 +30,9 @@
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --radius: 0.5rem;
   }
  
   .dark {
@@ -60,7 +62,23 @@
  
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 217.2 32.6% 17.5%;
+    --radius: 0.5rem;
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
   }
 }
 
@@ -142,8 +160,7 @@
               radial-gradient(circle at 100% 0%, #38bdf811 0, transparent 55%),
               radial-gradient(circle at 0% 100%, #a855f722 0, transparent 55%),
               radial-gradient(circle at 100% 100%, #6366f122 0, transparent 55%),
-              radial-gradient(circle at 20% 40%, #22d3ee11 0, transparent 55%),
-              #020617;
+              radial-gradient(circle at 20% 40%, #22d3ee11 0, transparent 55%);
 }
 .hero-orb {
   background: conic-gradient(from 160deg, #22d3ee, #a855f7, #6366f1, #22c55e, #22d3ee);
@@ -163,4 +180,16 @@
 .edge-blur {
   -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, black 70%, transparent 100%);
   mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, black 60%, transparent 100%);
+}
+
+.command-item.active .command-content {
+  grid-template-rows: 1fr;
+}
+.command-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.6s ease-in-out;
+}
+.command-content > div {
+  overflow: hidden;
 }

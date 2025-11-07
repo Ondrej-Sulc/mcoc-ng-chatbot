@@ -34,15 +34,8 @@ export const command: Command = {
     .setDescription("Look up MCOC effects, buffs, and debuffs.")
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("effect")
-        .setDescription("Look up a specific effect by name.")
-        .addStringOption((option) =>
-          option
-            .setName("effect")
-            .setDescription("The name of the effect.")
-            .setRequired(true)
-            .setAutocomplete(true)
-        )
+        .setName("list")
+        .setDescription("List all effect categories.")
     )
     .addSubcommand((subcommand) =>
       subcommand
@@ -54,26 +47,33 @@ export const command: Command = {
             .setDescription("The name of the category.")
             .setRequired(true)
             .setAutocomplete(true)
+          )
         )
-    )
     .addSubcommand((subcommand) =>
       subcommand
-        .setName("list")
-        .setDescription("List all effect categories.")
+        .setName("effect")
+        .setDescription("Look up a specific effect by name.")
+        .addStringOption((option) =>
+          option
+            .setName("effect")
+            .setDescription("The name of the effect.")
+            .setRequired(true)
+            .setAutocomplete(true)
+        )
     ),
   access: CommandAccess.PUBLIC,
   help: {
     group: "Information & Search",
     color: "indigo",
     subcommands: {
-      effect: {
-        image: "https://storage.googleapis.com/champion-images/feature-showcase/glossary_effect_crush.png",
-      },
-      category: {
-        image: "https://storage.googleapis.com/champion-images/feature-showcase/glossary_category_auto-block.png",
-      },
       list: {
         image: "https://storage.googleapis.com/champion-images/feature-showcase/glossary_list.png",
+      },
+      category: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/glossary_category_evasion.png",
+      },
+      effect: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/glossary_effect_frostbite.png",
       },
     },
   },

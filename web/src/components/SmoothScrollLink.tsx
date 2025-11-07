@@ -8,15 +8,23 @@ interface SmoothScrollLinkProps {
   href: string;
   children: ReactNode;
   className?: string;
+  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
 }
 
-export const SmoothScrollLink = ({ href, children, className }: SmoothScrollLinkProps) => {
+export const SmoothScrollLink = ({ href, children, className, onClick }: SmoothScrollLinkProps) => {
   const { smoothScroll } = useSmoothScroll();
+
+  const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    smoothScroll(e, href);
+    if (onClick) {
+      onClick(e);
+    }
+  };
 
   return (
     <Link
       href={href}
-      onClick={(e) => smoothScroll(e, href)}
+      onClick={handleClick}
       className={className}
     >
       {children}

@@ -4,19 +4,23 @@ import { useState } from "react";
 const faqs = [
   {
     question: "Is CereBro free to use?",
-    answer: "Yes, CereBro is completely free to use. All features, including Alliance War/Quest management, champion lookups, and automated alerts, are available to everyone at no cost."
+    answer: "Yes, CereBro is completely free. All features are available at no cost. If you find the bot useful, you can support its development and hosting costs via the links in the Support section, but it is never required."
   },
   {
-    question: "Does it support multiple alliances in one server?",
-    answer: "Yes. You can name and scope alliances to specific channels and roles, and AQ/AW tasks won’t collide."
+    question: "How does the Roster OCR work?",
+    answer: "You can upload a screenshot of your champion roster from the game. CereBro uses Google's Vision AI to read the image, identify your champions, and automatically update your personal roster associated with your Discord profile. This saves you from manually entering every champion."
   },
   {
-    question: "What permissions does CereBro need?",
-    answer: "It needs Read/Send/Embed Links/Manage Messages for target channels, plus Manage Roles for role-based alerts. You can restrict later."
+    question: "What data does the bot store?",
+    answer: "CereBro stores your Discord user ID, MCOC in-game name, and any roster/prestige data you provide. All data is stored securely and is never shared with third parties. You can request to have your data deleted at any time by contacting us on the support server."
   },
   {
-    question: "How often is champion data updated?",
-    answer: "Usually within 24 hours after Kabam releases balance notes or new champs. Emergency pushes are faster."
+    question: "How do I set up AQ scheduling?",
+    answer: "Once you've registered your alliance, officers can use the /aq schedule command to configure the map, modifiers, and start times. The bot will then automatically create channels and ping relevant members when it's time to move."
+  },
+  {
+    question: "Where does the champion and game data come from?",
+    answer: "Champion ability and stat data is meticulously collected and maintained by our team to ensure accuracy. It is typically updated within 24 hours of a new champion release or balance patch from Kabam."
   }
 ];
 

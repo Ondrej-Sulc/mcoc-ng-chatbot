@@ -21,7 +21,7 @@ export const command: Command = {
     .addSubcommand((sub) =>
       sub
         .setName("start")
-        .setDescription("Start a new AQ tracker")
+        .setDescription("Start a new AQ tracker manually in a channel")
         .addIntegerOption((o) =>
           o
             .setName("day")
@@ -73,8 +73,11 @@ export const command: Command = {
     group: "Alliance Tools",
     color: "sky",
     subcommands: {
+      start: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/aq_start_command.png",
+      },
       schedule: {
-        image: "https://storage.googleapis.com/champion-images/feature-showcase/aq_schedule.png",
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/aq_schedule_overview.png",
       },
     },
   },
