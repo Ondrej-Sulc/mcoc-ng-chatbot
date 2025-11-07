@@ -464,7 +464,7 @@
       {
         "type": 1,
         "name": "start",
-        "description": "Start a new AQ tracker",
+        "description": "Start a new AQ tracker manually in a channel",
         "options": [
           {
             "max_value": 4,
@@ -520,8 +520,11 @@
       }
     ],
     "subcommands": {
+      "start": {
+        "image": "https://storage.googleapis.com/champion-images/feature-showcase/aq_start_command.png"
+      },
       "schedule": {
-        "image": "https://storage.googleapis.com/champion-images/feature-showcase/aq_schedule.png"
+        "image": "https://storage.googleapis.com/champion-images/feature-showcase/aq_schedule_overview.png"
       }
     }
   },
@@ -651,17 +654,9 @@
     "options": [
       {
         "type": 1,
-        "name": "effect",
-        "description": "Look up a specific effect by name.",
-        "options": [
-          {
-            "autocomplete": true,
-            "type": 3,
-            "name": "effect",
-            "description": "The name of the effect.",
-            "required": true
-          }
-        ]
+        "name": "list",
+        "description": "List all effect categories.",
+        "options": []
       },
       {
         "type": 1,
@@ -679,20 +674,28 @@
       },
       {
         "type": 1,
-        "name": "list",
-        "description": "List all effect categories.",
-        "options": []
+        "name": "effect",
+        "description": "Look up a specific effect by name.",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "effect",
+            "description": "The name of the effect.",
+            "required": true
+          }
+        ]
       }
     ],
     "subcommands": {
-      "effect": {
-        "image": "https://storage.googleapis.com/champion-images/feature-showcase/glossary_effect_crush.png"
-      },
-      "category": {
-        "image": "https://storage.googleapis.com/champion-images/feature-showcase/glossary_category_auto-block.png"
-      },
       "list": {
         "image": "https://storage.googleapis.com/champion-images/feature-showcase/glossary_list.png"
+      },
+      "category": {
+        "image": "https://storage.googleapis.com/champion-images/feature-showcase/glossary_category_evasion.png"
+      },
+      "effect": {
+        "image": "https://storage.googleapis.com/champion-images/feature-showcase/glossary_effect_frostbite.png"
       }
     }
   },

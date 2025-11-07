@@ -3,6 +3,41 @@ import commandData from "@/lib/data/commands.json";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 
+// Type Definitions for Command Data
+interface CommandArgumentOption {
+  type: number;
+  name: string;
+  description: string;
+  required: boolean;
+}
+
+interface SubcommandOption {
+  type: 1;
+  name: string;
+  description: string;
+  options?: CommandArgumentOption[];
+}
+
+interface SubcommandGroupOption {
+  type: 2;
+  name: string;
+  description: string;
+  options?: SubcommandOption[];
+}
+
+interface Command {
+  name: string;
+  description: string;
+  group: string;
+  color: string;
+  options?: (SubcommandOption | SubcommandGroupOption | CommandArgumentOption)[];
+  subcommands: {
+    [key: string]: {
+      image?: string;
+    } | undefined;
+  };
+}
+
 export function CommandList() {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
@@ -43,7 +78,7 @@ export function CommandList() {
     };
   }, []);
 
-  const formatArguments = (options: any[] | undefined) => {
+  const formatArguments = (options: CommandArgumentOption[] | undefined) => {
     if (!options) return '';
     return options
       .filter(opt => opt.type > 2) // Filter for actual arguments
@@ -53,7 +88,7 @@ export function CommandList() {
 
   return (
     <>
-      {commandData.map((command, index) => (
+      {(commandData as Command[]).map((command, index) => (
         <div
           key={command.name}
           className={`command-item glass rounded-xl border border-slate-800/80 overflow-hidden transition-all duration-500 ease-in-out hover:border-slate-700 hover:-translate-y-px ${activeIndex === index ? 'active border-cyan-400/50 sm:col-span-2' : ''}`}
@@ -74,15 +109,17 @@ export function CommandList() {
               {(command.options || []).map((option) => {
                 // Type 1: Subcommand
                 if (option.type === 1) {
+                  const subCmd = option as SubcommandOption;
+                  const subcommandDetails = command.subcommands[subCmd.name as keyof typeof command.subcommands];
                   return (
-                    <div key={option.name} className="text-xs">
+                    <div key={subCmd.name} className="text-xs">
                       <p className="font-mono text-cyan-300">
-                        /{command.name} {option.name} {formatArguments(option.options)}
+                        /{command.name} {subCmd.name} {formatArguments(subCmd.options)}
                       </p>
-                      <p className="text-slate-400 text-[11px] mt-0.5">{option.description}</p>
-                      {command.subcommands[option.name as keyof typeof command.subcommands]?.image && (
+                      <p className="text-slate-400 text-[11px] mt-0.5">{subCmd.description}</p>
+                      {subcommandDetails?.image && (
                         <div className="relative group mt-2 rounded-lg overflow-hidden shadow-lg shadow-cyan-500/10 transition-all hover:shadow-cyan-500/20">
-                          <Image src={command.subcommands[option.name as keyof typeof command.subcommands].image!} alt={`${command.name} ${option.name} command preview`} width={500} height={200} className="w-full h-auto rounded-lg" />
+                          <Image src={subcommandDetails.image} alt={`${command.name} ${subCmd.name} command preview`} width={500} height={200} className="w-full h-auto rounded-lg" />
                           <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-transparent to-slate-950/60 rounded-lg"></div>
                         </div>
                       )}
@@ -91,22 +128,26 @@ export function CommandList() {
                 }
                 // Type 2: Subcommand Group
                 if (option.type === 2) {
+                  const subCmdGroup = option as SubcommandGroupOption;
                   return (
-                    <div key={option.name} className="space-y-4">
-                      {(option.options || []).map((subOption) => (
-                        <div key={subOption.name} className="text-xs">
-                          <p className="font-mono text-cyan-300">
-                            /{command.name} {option.name} {subOption.name} {formatArguments(subOption.options)}
-                          </p>
-                          <p className="text-slate-400 text-[11px] mt-0.5">{subOption.description}</p>
-                          {command.subcommands[subOption.name as keyof typeof command.subcommands]?.image && (
-                            <div className="relative group mt-2 rounded-lg overflow-hidden shadow-lg shadow-cyan-500/10 transition-all hover:shadow-cyan-500/20">
-                              <Image src={command.subcommands[subOption.name as keyof typeof command.subcommands].image!} alt={`${command.name} ${subOption.name} command preview`} width={500} height={200} className="w-full h-auto rounded-lg" />
-                              <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-transparent to-slate-950/60 rounded-lg"></div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                    <div key={subCmdGroup.name} className="space-y-4">
+                      {(subCmdGroup.options || []).map((subOption) => {
+                        const subcommandDetails = command.subcommands[subOption.name as keyof typeof command.subcommands];
+                        return (
+                          <div key={subOption.name} className="text-xs">
+                            <p className="font-mono text-cyan-300">
+                              /{command.name} {subCmdGroup.name} {subOption.name} {formatArguments(subOption.options)}
+                            </p>
+                            <p className="text-slate-400 text-[11px] mt-0.5">{subOption.description}</p>
+                            {subcommandDetails?.image && (
+                              <div className="relative group mt-2 rounded-lg overflow-hidden shadow-lg shadow-cyan-500/10 transition-all hover:shadow-cyan-500/20">
+                                <Image src={subcommandDetails.image} alt={`${command.name} ${subOption.name} command preview`} width={500} height={200} className="w-full h-auto rounded-lg" />
+                                <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-transparent to-slate-950/60 rounded-lg"></div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 }
