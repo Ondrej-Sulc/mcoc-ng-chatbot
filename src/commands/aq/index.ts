@@ -74,7 +74,7 @@ export const command: Command = {
     color: "sky",
     subcommands: {
       start: {
-        image: "https://storage.googleapis.com/champion-images/feature-showcase/aq_start_command.png",
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/aq_start.png",
       },
       schedule: {
         image: "https://storage.googleapis.com/champion-images/feature-showcase/aq_schedule_overview.png",
