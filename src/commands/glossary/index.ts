@@ -62,6 +62,21 @@ export const command: Command = {
         .setDescription("List all effect categories.")
     ),
   access: CommandAccess.PUBLIC,
+  help: {
+    group: "Information & Search",
+    color: "indigo",
+    subcommands: {
+      effect: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/glossary_effect_crush.png",
+      },
+      category: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/glossary_category_auto-block.png",
+      },
+      list: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/glossary_list.png",
+      },
+    },
+  },
   autocomplete: handleAutocomplete,
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });

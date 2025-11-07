@@ -6,13 +6,16 @@ import {
   MessageFlags,
   ActionRowBuilder,
   ButtonBuilder,
-  MediaGalleryBuilder, // Import MediaGalleryBuilder
-  MediaGalleryItemBuilder, // Import MediaGalleryItemBuilder
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
   ButtonInteraction,
+  ApplicationCommandOptionType,
 } from "discord.js";
-import { CommandAccess, CommandResult } from "../../types/command";
-import { commandDescriptions, SubcommandInfo } from "./descriptions";
+import { CommandAccess } from "../../types/command";
 import { helpColors } from "./home";
+import { getStyledImagePath } from "../../services/imageStyleService";
+import path from "path";
+import fs from "fs";
 
 function getAccessLevelString(access: CommandAccess): string {
   switch (access) {
@@ -29,14 +32,13 @@ function getAccessLevelString(access: CommandAccess): string {
   }
 }
 
-import { getStyledImagePath } from "../../services/imageStyleService";
-import path from "path";
-
 export async function handleDetail(
   name: string,
   interaction: ButtonInteraction
 ): Promise<void> {
-  const commandInfo = commandDescriptions.get(name);
+  const commandDocsPath = path.resolve(__dirname, '../../../src/data/commands.json');
+  const commandDocs = JSON.parse(fs.readFileSync(commandDocsPath, 'utf-8'));
+  const commandInfo = commandDocs.find((cmd: any) => cmd.name === name);
 
   const applicationCommands = await interaction.client.application.commands.fetch();
   const commandId = applicationCommands.find((cmd) => cmd.name === name)?.id;
@@ -71,52 +73,35 @@ export async function handleDetail(
 
   const filesToAttach: string[] = [];
 
-  if (commandInfo.subcommands.size > 0) {
+  const subcommands = commandInfo.options.filter(
+    (opt: any) =>
+      opt.type === ApplicationCommandOptionType.Subcommand ||
+      opt.type === ApplicationCommandOptionType.SubcommandGroup
+  );
+
+  if (subcommands.length > 0) {
     container.addSeparatorComponents(
       new SeparatorBuilder().setSpacing(SeparatorSpacingSize.Large)
     );
 
-    let isFirstSubcommand = true;
-    for (const [subName, subInfo] of commandInfo.subcommands) {
-      if (!isFirstSubcommand) {
+    for (const [index, sub] of subcommands.entries()) {
+      if (index > 0) {
         container.addSeparatorComponents(new SeparatorBuilder());
       }
-      isFirstSubcommand = false;
 
       const subCommandMention = commandId
-        ? `</${name} ${subName}:${commandId}>`
-        : `\`/${name} ${subName}\``;
-      let subcommandContent = `## ${subCommandMention}\n*${subInfo.description}*`;
+        ? `</${name} ${sub.name}:${commandId}>`
+        : `\`/${name} ${sub.name}\``;
 
-      if (subInfo.usage) {
-        subcommandContent += `\n- **Usage:** \`${subInfo.usage}\``;
-      }
+      let subcommandContent = `## ${subCommandMention}\n*${sub.description}*`;
 
-      if (subInfo.filters && subInfo.filters.size > 0) {
-        subcommandContent += `\n- **Filters:**`;
-        for (const [filterName, filterDesc] of subInfo.filters) {
-          subcommandContent += `\n  - \`${filterName}\`: ${filterDesc}`;
-        }
-      }
+      const subHelp = commandInfo.subcommands?.[sub.name];
 
-      if (subInfo.andOrLogic) {
-        subcommandContent += `\n- **AND/OR Logic:** ${subInfo.andOrLogic}`;
-      }
-
-      if (subInfo.examples && subInfo.examples.length > 0) {
-        subcommandContent += `\n- **Examples:**`;
-        for (const example of subInfo.examples) {
-          subcommandContent += `\n  - \`${example}\``;
-        }
-      }
-
-      const subcommandDisplay = new TextDisplayBuilder().setContent(
-        subcommandContent
-      );
+      const subcommandDisplay = new TextDisplayBuilder().setContent(subcommandContent);
       container.addTextDisplayComponents(subcommandDisplay);
 
-      if (subInfo.image) {
-        const styledImagePath = await getStyledImagePath(subInfo.image);
+      if (subHelp?.image) {
+        const styledImagePath = await getStyledImagePath(subHelp.image);
         if (styledImagePath) {
           const filename = path.basename(styledImagePath);
           const imageGallery = new MediaGalleryBuilder().addItems(
@@ -126,7 +111,7 @@ export async function handleDetail(
           filesToAttach.push(styledImagePath);
         } else {
           const imageGallery = new MediaGalleryBuilder().addItems(
-            new MediaGalleryItemBuilder().setURL(subInfo.image)
+            new MediaGalleryItemBuilder().setURL(subHelp.image)
           );
           container.addMediaGalleryComponents(imageGallery);
         }

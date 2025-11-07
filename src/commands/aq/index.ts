@@ -69,6 +69,15 @@ export const command: Command = {
         .setDescription("Manage the automated AQ schedule.")
     ),
   access: CommandAccess.USER,
+  help: {
+    group: "Alliance Tools",
+    color: "sky",
+    subcommands: {
+      schedule: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/aq_schedule.png",
+      },
+    },
+  },
   async autocomplete(interaction: AutocompleteInteraction) {
     const focused = interaction.options.getFocused(true);
 

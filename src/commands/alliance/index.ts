@@ -46,6 +46,11 @@ export const command: Command = {
     ),
   access: CommandAccess.USER, // Set base access to USER
 
+  help: {
+    group: "Alliance Tools",
+    color: "sky",
+  },
+
   async execute(interaction: ChatInputCommandInteraction) {
     const subcommand = interaction.options.getSubcommand(true);
     const subcommandGroup = interaction.options.getSubcommandGroup();

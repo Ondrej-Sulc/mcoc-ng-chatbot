@@ -47,6 +47,10 @@ export const command: Command = {
         )
     ),
   access: CommandAccess.FEATURE,
+  help: {
+    group: "Alliance Tools",
+    color: "sky",
+  },
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.isChatInputCommand()) return;
 

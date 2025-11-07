@@ -14,6 +14,10 @@ export const command: Command = {
     .setName("help")
     .setDescription("Displays an interactive help guide for all bot commands."),
   access: CommandAccess.PUBLIC,
+  help: {
+    group: "Information & Search",
+    color: "pink",
+  },
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
     const result = await handleHome(interaction);

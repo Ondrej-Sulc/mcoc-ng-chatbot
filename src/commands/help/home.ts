@@ -8,9 +8,10 @@ import {
   TextDisplayBuilder,
   MessageFlags,
 } from 'discord.js';
-import { commands } from '../../utils/commandHandler';
 import { Command, CommandAccess } from '../../types/command';
 import { prisma } from '../../services/prismaService';
+import fs from "fs";
+import path from "path";
 
 export const helpColors = {
   buttons: {
@@ -44,7 +45,7 @@ async function getUserAccess(interaction: ChatInputCommandInteraction): Promise<
   };
 }
 
-function hasAccess(command: Command, access: UserAccess): boolean {
+function hasAccess(command: any, access: UserAccess): boolean {
   switch (command.access) {
     case CommandAccess.PUBLIC:
       return true;
@@ -55,47 +56,49 @@ function hasAccess(command: Command, access: UserAccess): boolean {
     case CommandAccess.BOT_ADMIN:
       return access.isBotAdmin;
     case CommandAccess.FEATURE:
-      return access.enabledFeatureCommands.includes(command.data.name);
+      return access.enabledFeatureCommands.includes(command.name);
     default:
       return false;
   }
 }
 
 export async function handleHome(interaction: ChatInputCommandInteraction) {
+  const commandDocsPath = path.resolve(__dirname, '../../../src/data/commands.json');
+  const commandDocs = JSON.parse(fs.readFileSync(commandDocsPath, 'utf-8'));
+
   const userAccess = await getUserAccess(interaction);
 
-  const commandList = Array.from(commands.values());
+  const categories: Record<string, any[]> = {};
+  for (const command of commandDocs) {
+    if (!categories[command.group]) {
+      categories[command.group] = [];
+    }
+    categories[command.group].push(command);
+  }
 
-  const categories: Record<string, Command[]> = {
-    'Public': commandList.filter(c => c.access === CommandAccess.PUBLIC),
-    'User': commandList.filter(c => c.access === CommandAccess.USER),
-    'Alliance Admin': commandList.filter(c => c.access === CommandAccess.ALLIANCE_ADMIN),
-    'Bot Admin': commandList.filter(c => c.access === CommandAccess.BOT_ADMIN),
-    'Features': commandList.filter(c => c.access === CommandAccess.FEATURE),
-  };
+  const categoryOrder = ["Alliance Tools", "User Management", "Information & Search", "Utilities", "BOT_ADMIN"];
 
   const container = new ContainerBuilder();
 
-  for (const category in categories) {
-    if (categories[category].length > 0) {
-      const title = new TextDisplayBuilder().setContent(`# ${category} Commands`);
+  for (const categoryName of categoryOrder) {
+    const categoryCommands = categories[categoryName];
+    if (categoryCommands && categoryCommands.length > 0) {
+      const title = new TextDisplayBuilder().setContent(`# ${categoryName}`);
       container.addTextDisplayComponents(title);
 
       const description = new TextDisplayBuilder().setContent(
-        categories[category].map(c => `\`/${c.data.name}\` - ${c.data.description}`).join('\n')
+        categoryCommands.map(c => `\`/${c.name}\` - ${c.description}`).join('\n')
       );
       container.addTextDisplayComponents(description);
 
-      // Create action rows with a maximum of 5 buttons per row
-      const categoryCommands = categories[category];
       for (let i = 0; i < categoryCommands.length; i += 5) {
         const row = new ActionRowBuilder<ButtonBuilder>();
         const rowCommands = categoryCommands.slice(i, i + 5);
 
         rowCommands.forEach(command => {
           const button = new ButtonBuilder()
-            .setCustomId(`help:${command.data.name}`)
-            .setLabel(command.data.name)
+            .setCustomId(`help:${command.name}`)
+            .setLabel(command.name)
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(!hasAccess(command, userAccess));
           row.addComponents(button);

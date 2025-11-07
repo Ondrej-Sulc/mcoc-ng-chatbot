@@ -54,6 +54,11 @@ export const command: Command = {
     ),
   access: CommandAccess.PUBLIC,
 
+  help: {
+    group: "Utilities",
+    color: "emerald",
+  },
+
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 

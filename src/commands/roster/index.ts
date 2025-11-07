@@ -187,6 +187,10 @@ export const command: Command = {
         )
     ),
   access: CommandAccess.USER,
+  help: {
+    group: "User Management",
+    color: "pink",
+  },
   async autocomplete(interaction: AutocompleteInteraction) {
     const focusedValue = interaction.options.getFocused();
     const player = await getActivePlayer(interaction.user.id);

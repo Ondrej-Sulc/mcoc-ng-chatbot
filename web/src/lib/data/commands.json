@@ -1,0 +1,1433 @@
+[
+  {
+    "name": "admin",
+    "description": "Administrative commands.",
+    "access": 3,
+    "group": "BOT_ADMIN",
+    "color": "red",
+    "options": [
+      {
+        "type": 2,
+        "name": "champion",
+        "description": "Admin commands for managing champions.",
+        "options": [
+          {
+            "type": 1,
+            "name": "add",
+            "description": "Adds a new champion to the database.",
+            "options": []
+          },
+          {
+            "type": 1,
+            "name": "update_images",
+            "description": "Updates the images for an existing champion.",
+            "options": [
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "name",
+                "description": "Name of the champion to update.",
+                "required": true
+              },
+              {
+                "type": 3,
+                "name": "primary_image",
+                "description": "URL of the new primary image.",
+                "required": false
+              },
+              {
+                "type": 3,
+                "name": "secondary_image",
+                "description": "URL of the new secondary image.",
+                "required": false
+              },
+              {
+                "type": 3,
+                "name": "hero_image",
+                "description": "URL of the new hero image.",
+                "required": false
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "update_tags",
+            "description": "Updates the tags for an existing champion.",
+            "options": [
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "name",
+                "description": "Name of the champion to update.",
+                "required": true
+              },
+              {
+                "type": 3,
+                "name": "tags_image",
+                "description": "URL of the new tags image.",
+                "required": true
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "sync-sheet",
+            "description": "Syncs the champion database with Google Sheets.",
+            "options": []
+          }
+        ]
+      },
+      {
+        "type": 2,
+        "name": "ability",
+        "description": "Admin commands for managing champion abilities.",
+        "options": [
+          {
+            "type": 1,
+            "name": "add",
+            "description": "Adds an ability or immunity to a champion.",
+            "options": [
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "champion",
+                "description": "Name of the champion.",
+                "required": true
+              },
+              {
+                "type": 3,
+                "choices": [
+                  {
+                    "name": "Ability",
+                    "value": "ABILITY"
+                  },
+                  {
+                    "name": "Immunity",
+                    "value": "IMMUNITY"
+                  }
+                ],
+                "name": "type",
+                "description": "Type of link.",
+                "required": true
+              },
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "ability",
+                "description": "Name of the ability or immunity.",
+                "required": true
+              },
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "source",
+                "description": "Source of the ability (e.g., Signature Ability, SP1, Synergy).",
+                "required": false
+              },
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "synergy-champions",
+                "description": "Comma-separated list of synergy champion names.",
+                "required": false
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "remove",
+            "description": "Removes an ability or immunity from a champion.",
+            "options": [
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "champion",
+                "description": "Name of the champion.",
+                "required": true
+              },
+              {
+                "type": 3,
+                "choices": [
+                  {
+                    "name": "Ability",
+                    "value": "ABILITY"
+                  },
+                  {
+                    "name": "Immunity",
+                    "value": "IMMUNITY"
+                  }
+                ],
+                "name": "type",
+                "description": "Type of link to remove.",
+                "required": true
+              },
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "ability",
+                "description": "Name of the ability or immunity.",
+                "required": true
+              },
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "source",
+                "description": "Source of the ability.",
+                "required": false
+              },
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "synergy-champions",
+                "description": "Comma-separated list of synergy champion names to remove.",
+                "required": false
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "draft",
+            "description": "Drafts abilities and immunities for a champion using AI.",
+            "options": [
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "champion",
+                "description": "Name of the champion.",
+                "required": true
+              },
+              {
+                "type": 3,
+                "name": "model",
+                "description": "The name of the model to use for the draft.",
+                "required": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": 2,
+        "name": "attack",
+        "description": "Admin commands for managing champion attacks.",
+        "options": [
+          {
+            "type": 1,
+            "name": "add",
+            "description": "Adds an attack to a champion.",
+            "options": [
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "champion",
+                "description": "Name of the champion.",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": 2,
+        "name": "glossary",
+        "description": "Admin commands for managing the glossary.",
+        "options": [
+          {
+            "type": 1,
+            "name": "link",
+            "description": "Links an ability to a category.",
+            "options": [
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "ability",
+                "description": "The name of the ability.",
+                "required": true
+              },
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "category",
+                "description": "The name of the category.",
+                "required": true
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "unlink",
+            "description": "Unlinks an ability from a category.",
+            "options": [
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "ability",
+                "description": "The name of the ability.",
+                "required": true
+              },
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "category",
+                "description": "The name of the category.",
+                "required": true
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "update-ability",
+            "description": "Adds or updates a glossary ability.",
+            "options": [
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "ability",
+                "description": "The name of the ability.",
+                "required": true
+              },
+              {
+                "type": 3,
+                "name": "description",
+                "description": "The description of the ability.",
+                "required": true
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "update-category",
+            "description": "Adds or updates a glossary category.",
+            "options": [
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "category",
+                "description": "The name of the category.",
+                "required": true
+              },
+              {
+                "type": 3,
+                "name": "description",
+                "description": "The description of the category.",
+                "required": true
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "emoji-set",
+            "description": "Sets an emoji for a glossary ability.",
+            "options": [
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "ability",
+                "description": "The ability to set the emoji for.",
+                "required": true
+              },
+              {
+                "name": "image",
+                "description": "The image for the emoji.",
+                "required": true,
+                "type": 11
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "emoji-remove",
+            "description": "Removes an emoji from a glossary ability.",
+            "options": [
+              {
+                "autocomplete": true,
+                "type": 3,
+                "name": "ability",
+                "description": "The ability to remove the emoji from.",
+                "required": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": 2,
+        "name": "bot-admin",
+        "description": "Manage bot administrators.",
+        "options": [
+          {
+            "type": 1,
+            "name": "add",
+            "description": "Adds a bot administrator.",
+            "options": [
+              {
+                "name": "user",
+                "description": "The user to add as a bot administrator.",
+                "required": true,
+                "type": 6
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "remove",
+            "description": "Removes a bot administrator.",
+            "options": [
+              {
+                "name": "user",
+                "description": "The user to remove as a bot administrator.",
+                "required": true,
+                "type": 6
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": 2,
+        "name": "duel",
+        "description": "Admin commands for managing duels.",
+        "options": [
+          {
+            "type": 1,
+            "name": "upload",
+            "description": "Uploads duel data from a CSV file.",
+            "options": [
+              {
+                "name": "csv",
+                "description": "The CSV file to upload.",
+                "required": true,
+                "type": 11
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "subcommands": {}
+  },
+  {
+    "name": "alliance",
+    "description": "Manage your alliance settings.",
+    "access": 1,
+    "group": "Alliance Tools",
+    "color": "sky",
+    "options": [
+      {
+        "type": 1,
+        "name": "toggle-feature",
+        "description": "Enable or disable a feature for your alliance.",
+        "options": [
+          {
+            "type": 3,
+            "name": "feature",
+            "description": "The feature to toggle.",
+            "required": true
+          },
+          {
+            "name": "enabled",
+            "description": "Whether the feature should be enabled or disabled.",
+            "required": true,
+            "type": 5
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "join",
+        "description": "Join the alliance associated with this server.",
+        "options": []
+      },
+      {
+        "type": 1,
+        "name": "name",
+        "description": "Update your alliance's name.",
+        "options": [
+          {
+            "type": 3,
+            "name": "name",
+            "description": "The new name for the alliance.",
+            "required": true
+          }
+        ]
+      }
+    ],
+    "subcommands": {}
+  },
+  {
+    "name": "aq",
+    "description": "Alliance Quest utilities",
+    "access": 1,
+    "group": "Alliance Tools",
+    "color": "sky",
+    "options": [
+      {
+        "type": 1,
+        "name": "start",
+        "description": "Start a new AQ tracker",
+        "options": [
+          {
+            "max_value": 4,
+            "min_value": 1,
+            "type": 4,
+            "name": "day",
+            "description": "Current AQ day (1-4)",
+            "required": true
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "role",
+            "description": "Select the battlegroup role",
+            "required": true
+          },
+          {
+            "channel_types": [
+              0,
+              11,
+              12
+            ],
+            "name": "channel",
+            "description": "Target channel (defaults to current)",
+            "required": false,
+            "type": 7
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "end",
+        "description": "End the active AQ tracker in a channel",
+        "options": [
+          {
+            "channel_types": [
+              0,
+              11,
+              12
+            ],
+            "name": "channel",
+            "description": "Channel to end (defaults to current)",
+            "required": false,
+            "type": 7
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "schedule",
+        "description": "Manage the automated AQ schedule.",
+        "options": []
+      }
+    ],
+    "subcommands": {
+      "schedule": {
+        "image": "https://storage.googleapis.com/champion-images/feature-showcase/aq_schedule.png"
+      }
+    }
+  },
+  {
+    "name": "aw",
+    "description": "Commands for Alliance War planning and details.",
+    "access": 4,
+    "group": "Alliance Tools",
+    "color": "sky",
+    "options": [
+      {
+        "type": 1,
+        "name": "plan",
+        "description": "Sends AW plan details from sheet to player threads.",
+        "options": [
+          {
+            "max_value": 3,
+            "min_value": 1,
+            "type": 4,
+            "name": "battlegroup",
+            "description": "The battlegroup to send the plan for.",
+            "required": true
+          },
+          {
+            "name": "player",
+            "description": "A specific player to send the plan to.",
+            "required": false,
+            "type": 6
+          },
+          {
+            "name": "image",
+            "description": "An image to send along with the plan.",
+            "required": false,
+            "type": 11
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "details",
+        "description": "Get detailed information about your AW assignments.",
+        "options": [
+          {
+            "type": 3,
+            "name": "node",
+            "description": "A specific node to get details for.",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "subcommands": {}
+  },
+  {
+    "name": "debug",
+    "description": "Debugging commands, restricted access.",
+    "access": 3,
+    "group": "BOT_ADMIN",
+    "color": "red",
+    "options": [
+      {
+        "type": 1,
+        "name": "roster",
+        "description": "Debug roster processing from one or more screenshots.",
+        "options": [
+          {
+            "name": "image1",
+            "description": "A screenshot of your champion roster.",
+            "required": true,
+            "type": 11
+          },
+          {
+            "name": "image2",
+            "description": "Another screenshot.",
+            "required": false,
+            "type": 11
+          },
+          {
+            "name": "image3",
+            "description": "Another screenshot.",
+            "required": false,
+            "type": 11
+          },
+          {
+            "name": "image4",
+            "description": "Another screenshot.",
+            "required": false,
+            "type": 11
+          },
+          {
+            "name": "image5",
+            "description": "Another screenshot.",
+            "required": false,
+            "type": 11
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "prestige",
+        "description": "Debug prestige extraction from a screenshot.",
+        "options": [
+          {
+            "name": "image",
+            "description": "Screenshot of MCOC profile showing prestige values.",
+            "required": true,
+            "type": 11
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "player",
+            "description": "The player to update prestige for (for debug context).",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "subcommands": {}
+  },
+  {
+    "name": "glossary",
+    "description": "Look up MCOC effects, buffs, and debuffs.",
+    "access": 0,
+    "group": "Information & Search",
+    "color": "indigo",
+    "options": [
+      {
+        "type": 1,
+        "name": "effect",
+        "description": "Look up a specific effect by name.",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "effect",
+            "description": "The name of the effect.",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "category",
+        "description": "List all effects within a given category.",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "category",
+            "description": "The name of the category.",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "list",
+        "description": "List all effect categories.",
+        "options": []
+      }
+    ],
+    "subcommands": {
+      "effect": {
+        "image": "https://storage.googleapis.com/champion-images/feature-showcase/glossary_effect_crush.png"
+      },
+      "category": {
+        "image": "https://storage.googleapis.com/champion-images/feature-showcase/glossary_category_auto-block.png"
+      },
+      "list": {
+        "image": "https://storage.googleapis.com/champion-images/feature-showcase/glossary_list.png"
+      }
+    }
+  },
+  {
+    "name": "help",
+    "description": "Displays an interactive help guide for all bot commands.",
+    "access": 0,
+    "group": "Information & Search",
+    "color": "pink",
+    "options": [],
+    "subcommands": {}
+  },
+  {
+    "name": "champion",
+    "description": "Get information about a specific champion.",
+    "access": 0,
+    "group": "Information & Search",
+    "color": "indigo",
+    "options": [
+      {
+        "type": 1,
+        "name": "info",
+        "description": "Display a champion's core details and full abilities.",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "champion",
+            "description": "The name of the champion.",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "attacks",
+        "description": "Display a champion's attack types and properties.",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "champion",
+            "description": "The name of the champion.",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "abilities",
+        "description": "List all of a champion's abilities.",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "champion",
+            "description": "The name of the champion.",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "immunities",
+        "description": "List all of a champion's immunities.",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "champion",
+            "description": "The name of the champion.",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "tags",
+        "description": "List all of a champion's tags.",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "champion",
+            "description": "The name of the champion.",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "overview",
+        "description": "Display a champion's abilities, immunities, and tags.",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "champion",
+            "description": "The name of the champion.",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "duel",
+        "description": "Get duel targets for a champion.",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "champion",
+            "description": "The name of the champion.",
+            "required": true
+          }
+        ]
+      }
+    ],
+    "subcommands": {
+      "abilities": {
+        "image": "https://storage.googleapis.com/champion-images/feature-showcase/abilities_hulkling.png"
+      },
+      "immunities": {
+        "image": "https://storage.googleapis.com/champion-images/feature-showcase/immunities_onslaught.png"
+      },
+      "tags": {
+        "image": "https://storage.googleapis.com/champion-images/feature-showcase/tags_dracula.png"
+      }
+    }
+  },
+  {
+    "name": "prestige",
+    "description": "Extract prestige values from an MCOC screenshot or view the leaderboard.",
+    "access": 1,
+    "group": "User Management",
+    "color": "pink",
+    "options": [
+      {
+        "type": 1,
+        "name": "update",
+        "description": "Extract prestige values from an MCOC screenshot.",
+        "options": [
+          {
+            "name": "image",
+            "description": "Screenshot of your MCOC profile showing prestige values.",
+            "required": true,
+            "type": 11
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "player",
+            "description": "The player to update prestige for.",
+            "required": false
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "leaderboard",
+        "description": "Shows the server prestige leaderboard.",
+        "options": []
+      }
+    ],
+    "subcommands": {}
+  },
+  {
+    "name": "profile",
+    "description": "Manage your in-game profiles.",
+    "access": 1,
+    "group": "User Management",
+    "color": "pink",
+    "options": [
+      {
+        "type": 1,
+        "name": "add",
+        "description": "Add a new in-game profile.",
+        "options": [
+          {
+            "type": 3,
+            "name": "name",
+            "description": "Your in-game name for the new profile.",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "remove",
+        "description": "Remove one of your in-game profiles.",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "name",
+            "description": "The in-game name of the profile to remove.",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "rename",
+        "description": "Rename one of your in-game profiles.",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "current_name",
+            "description": "The current name of the profile to rename.",
+            "required": true
+          },
+          {
+            "type": 3,
+            "name": "new_name",
+            "description": "The new name for the profile.",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "switch",
+        "description": "Switch your active in-game profile.",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "name",
+            "description": "The in-game name of the profile to switch to.",
+            "required": true
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "list",
+        "description": "List all of your in-game profiles.",
+        "options": []
+      },
+      {
+        "type": 1,
+        "name": "view",
+        "description": "View a player's active profile.",
+        "options": [
+          {
+            "name": "user",
+            "description": "The user to view.",
+            "required": false,
+            "type": 6
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "timezone",
+        "description": "Set your local timezone for your active profile.",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "timezone",
+            "description": "Your timezone (e.g., America/New_York).",
+            "required": true
+          }
+        ]
+      }
+    ],
+    "subcommands": {
+      "view": {
+        "image": "https://storage.googleapis.com/champion-images/feature-showcase/profile_view.png"
+      }
+    }
+  },
+  {
+    "name": "register",
+    "description": "Register your first in-game profile with the bot.",
+    "access": 0,
+    "group": "User Management",
+    "color": "pink",
+    "options": [
+      {
+        "type": 3,
+        "name": "name",
+        "description": "Your in-game name.",
+        "required": true
+      }
+    ],
+    "subcommands": {}
+  },
+  {
+    "name": "roster",
+    "description": "Manage your MCOC roster.",
+    "access": 1,
+    "group": "User Management",
+    "color": "pink",
+    "options": [
+      {
+        "type": 1,
+        "name": "update",
+        "description": "Update your roster from one or more screenshots.",
+        "options": [
+          {
+            "max_value": 7,
+            "min_value": 1,
+            "type": 4,
+            "name": "stars",
+            "description": "The star level of the champions in the screenshot.",
+            "required": true
+          },
+          {
+            "max_value": 5,
+            "min_value": 1,
+            "type": 4,
+            "name": "rank",
+            "description": "The rank of the champions in the screenshot.",
+            "required": true
+          },
+          {
+            "name": "image1",
+            "description": "A screenshot of your champion roster.",
+            "required": true,
+            "type": 11
+          },
+          {
+            "name": "is_ascended",
+            "description": "Whether the champions are ascended.",
+            "required": false,
+            "type": 5
+          },
+          {
+            "name": "image2",
+            "description": "Another screenshot.",
+            "required": false,
+            "type": 11
+          },
+          {
+            "name": "image3",
+            "description": "Another screenshot.",
+            "required": false,
+            "type": 11
+          },
+          {
+            "name": "image4",
+            "description": "Another screenshot.",
+            "required": false,
+            "type": 11
+          },
+          {
+            "name": "image5",
+            "description": "Another screenshot.",
+            "required": false,
+            "type": 11
+          },
+          {
+            "name": "player",
+            "description": "The player to update the roster for (defaults to you).",
+            "required": false,
+            "type": 6
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "view",
+        "description": "View a player's roster.",
+        "options": [
+          {
+            "max_value": 7,
+            "min_value": 1,
+            "type": 4,
+            "name": "stars",
+            "description": "Filter by star level.",
+            "required": false
+          },
+          {
+            "max_value": 5,
+            "min_value": 1,
+            "type": 4,
+            "name": "rank",
+            "description": "Filter by rank.",
+            "required": false
+          },
+          {
+            "name": "is_ascended",
+            "description": "Filter by ascended status.",
+            "required": false,
+            "type": 5
+          },
+          {
+            "name": "player",
+            "description": "The player whose roster to view (defaults to you).",
+            "required": false,
+            "type": 6
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "delete",
+        "description": "Delete a player's roster, or parts of it.",
+        "options": [
+          {
+            "name": "player",
+            "description": "The player whose roster to delete (defaults to you).",
+            "required": false,
+            "type": 6
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "champion",
+            "description": "The champion to delete.",
+            "required": false
+          },
+          {
+            "max_value": 7,
+            "min_value": 1,
+            "type": 4,
+            "name": "stars",
+            "description": "Filter by star level.",
+            "required": false
+          },
+          {
+            "max_value": 5,
+            "min_value": 1,
+            "type": 4,
+            "name": "rank",
+            "description": "Filter by rank.",
+            "required": false
+          },
+          {
+            "name": "is_ascended",
+            "description": "Filter by ascended status.",
+            "required": false,
+            "type": 5
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "summary",
+        "description": "Display a summary of a player's roster.",
+        "options": [
+          {
+            "name": "player",
+            "description": "The player whose roster to summarize (defaults to you).",
+            "required": false,
+            "type": 6
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "export",
+        "description": "Export a player's roster to a CSV file.",
+        "options": [
+          {
+            "name": "player",
+            "description": "The player whose roster to export (defaults to you).",
+            "required": false,
+            "type": 6
+          }
+        ]
+      }
+    ],
+    "subcommands": {}
+  },
+  {
+    "name": "search",
+    "description": "Powerful search for champions based on various criteria.",
+    "access": 0,
+    "group": "Information & Search",
+    "color": "indigo",
+    "options": [
+      {
+        "type": 1,
+        "name": "all",
+        "description": "Search from all champions in the game",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "abilities",
+            "description": "Search by abilities (use 'and'/'or')",
+            "required": false
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "immunities",
+            "description": "Search by immunities (use 'and'/'or')",
+            "required": false
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "tags",
+            "description": "Search by tags (use 'and'/'or')",
+            "required": false
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "class",
+            "description": "Search by class (use 'and'/'or')",
+            "required": false
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "ability-category",
+            "description": "Search by ability category (use 'and'/'or')",
+            "required": false
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "attack-type",
+            "description": "Syntax: [all|any] [group] [props...]. e.g. 'all basic energy' or 's1 non-contact'",
+            "required": false
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "roster",
+        "description": "Search from a player roster",
+        "options": [
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "abilities",
+            "description": "Search by abilities (use 'and'/'or')",
+            "required": false
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "immunities",
+            "description": "Search by immunities (use 'and'/'or')",
+            "required": false
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "tags",
+            "description": "Search by tags (use 'and'/'or')",
+            "required": false
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "class",
+            "description": "Search by class (use 'and'/'or')",
+            "required": false
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "ability-category",
+            "description": "Search by ability category (use 'and'/'or')",
+            "required": false
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "attack-type",
+            "description": "Syntax: [all|any] [group] [props...]. e.g. 'all basic energy' or 's1 non-contact'",
+            "required": false
+          },
+          {
+            "name": "player",
+            "description": "The player whose roster to search",
+            "required": false,
+            "type": 6
+          }
+        ]
+      }
+    ],
+    "subcommands": {
+      "all": {
+        "image": "https://storage.googleapis.com/champion-images/feature-showcase/search_crush.png"
+      },
+      "roster": {
+        "image": "https://storage.googleapis.com/champion-images/feature-showcase/search_roster_complex.png"
+      }
+    }
+  },
+  {
+    "name": "schedule",
+    "description": "Manage scheduled tasks",
+    "access": 0,
+    "group": "Utilities",
+    "color": "emerald",
+    "options": [
+      {
+        "type": 1,
+        "name": "add",
+        "description": "Add a new scheduled task for a command or message",
+        "options": [
+          {
+            "type": 3,
+            "name": "name",
+            "description": "Label for this schedule (e.g., 'Morning Reminder')",
+            "required": true
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "frequency",
+            "description": "Frequency: daily, weekly, monthly, every",
+            "required": true
+          },
+          {
+            "type": 3,
+            "name": "time",
+            "description": "Time(s), e.g. 09:00 or 09:00,18:00",
+            "required": true
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "command",
+            "description": "Command to run (e.g., /today, /exercise pullup). Leave empty if using 'message'.",
+            "required": false
+          },
+          {
+            "type": 3,
+            "name": "message",
+            "description": "Custom message to send (optional, overrides command if provided)",
+            "required": false
+          },
+          {
+            "type": 3,
+            "name": "target_channel_id",
+            "description": "Target channel ID (optional)",
+            "required": false
+          },
+          {
+            "type": 3,
+            "name": "target_user_id",
+            "description": "Target user ID (optional)",
+            "required": false
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "day",
+            "description": "Day of week (for weekly) or day of month (for monthly)",
+            "required": false
+          },
+          {
+            "type": 3,
+            "name": "interval",
+            "description": "Interval for 'every' frequency, e.g. 2",
+            "required": false
+          },
+          {
+            "autocomplete": true,
+            "type": 3,
+            "name": "unit",
+            "description": "Unit for 'every' frequency: days, weeks",
+            "required": false
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "list",
+        "description": "List all active scheduled tasks",
+        "options": []
+      },
+      {
+        "type": 1,
+        "name": "remove",
+        "description": "Remove a scheduled task by its ID or list number",
+        "options": [
+          {
+            "type": 3,
+            "name": "id",
+            "description": "ID of the schedule to remove (see /schedule list)",
+            "required": false
+          },
+          {
+            "type": 4,
+            "name": "number",
+            "description": "List number of the schedule to remove (see /schedule list)",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "subcommands": {}
+  },
+  {
+    "name": "summarize",
+    "description": "Summarizes recent messages in a channel/thread.",
+    "access": 0,
+    "group": "Utilities",
+    "color": "emerald",
+    "options": [
+      {
+        "autocomplete": true,
+        "type": 3,
+        "name": "timeframe",
+        "description": "How far back to look (e.g., '4h', '2d', 'today', 'yesterday', 'lastweek').",
+        "required": true
+      },
+      {
+        "channel_types": [
+          0,
+          11,
+          12,
+          10
+        ],
+        "name": "channel",
+        "description": "The channel to summarize. Defaults to current channel.",
+        "required": false,
+        "type": 7
+      },
+      {
+        "autocomplete": true,
+        "type": 3,
+        "name": "language",
+        "description": "Language for the summary (default: English).",
+        "required": false
+      },
+      {
+        "type": 3,
+        "name": "custom_prompt",
+        "description": "Custom prompt for the summarization. Overrides the default prompt.",
+        "required": false
+      }
+    ],
+    "subcommands": {}
+  }
+]

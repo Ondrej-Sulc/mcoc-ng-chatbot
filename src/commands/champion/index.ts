@@ -108,6 +108,21 @@ export const command: Command = {
         )
     ),
   access: CommandAccess.PUBLIC,
+  help: {
+    group: "Information & Search",
+    color: "indigo",
+    subcommands: {
+      abilities: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/abilities_hulkling.png",
+      },
+      immunities: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/immunities_onslaught.png",
+      },
+      tags: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/tags_dracula.png",
+      },
+    },
+  },
   async autocomplete(interaction) {
     const focusedValue = interaction.options.getFocused().toLowerCase();
     const filtered = championList.filter((champion) =>

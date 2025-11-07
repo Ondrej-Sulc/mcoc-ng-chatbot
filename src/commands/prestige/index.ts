@@ -74,6 +74,10 @@ export const command: Command = {
         .setDescription("Shows the server prestige leaderboard.")
     ),
   access: CommandAccess.USER,
+  help: {
+    group: "User Management",
+    color: "pink",
+  },
   async execute(interaction: ChatInputCommandInteraction) {
     const subcommand = interaction.options.getSubcommand();
     if (subcommand === "update") {

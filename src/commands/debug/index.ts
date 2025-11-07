@@ -76,6 +76,10 @@ export const command: Command = {
         )
     ),
   access: CommandAccess.BOT_ADMIN,
+  help: {
+    group: "BOT_ADMIN",
+    color: "red",
+  },
   async execute(interaction: ChatInputCommandInteraction) {
     if (
       authorizedUsers.length === 0 ||

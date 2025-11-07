@@ -106,6 +106,18 @@ export const command: Command = {
         )
     ),
   access: CommandAccess.PUBLIC,
+  help: {
+    group: "Information & Search",
+    color: "indigo",
+    subcommands: {
+      all: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/search_crush.png",
+      },
+      roster: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/search_roster_complex.png",
+      },
+    },
+  },
   async autocomplete(interaction: AutocompleteInteraction) {
     await handleAutocomplete(interaction);
   },

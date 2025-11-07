@@ -371,6 +371,10 @@ export const command: Command = {
         )
     ),
   access: CommandAccess.BOT_ADMIN,
+  help: {
+    group: "BOT_ADMIN",
+    color: "red",
+  },
   async execute(interaction) {
     if (!interaction.isChatInputCommand()) return;
 

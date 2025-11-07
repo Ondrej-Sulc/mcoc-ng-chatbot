@@ -90,6 +90,16 @@ export const command: Command = {
     ),
   access: CommandAccess.USER,
 
+  help: {
+    group: "User Management",
+    color: "pink",
+    subcommands: {
+      view: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/profile_view.png",
+      },
+    },
+  },
+
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const subcommand = interaction.options.getSubcommand();

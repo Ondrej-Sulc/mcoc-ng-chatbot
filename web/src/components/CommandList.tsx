@@ -1,5 +1,5 @@
 "use client";
-import { commandData, CommandInfo } from "@/lib/data/commands";
+import commandData from "@/lib/data/commands.json";
 import { useEffect } from "react";
 
 export function CommandList() {
@@ -45,8 +45,11 @@ export function CommandList() {
             <span className={`px-2 py-0.5 rounded-full bg-${command.color}-500/15 text-${command.color}-300 border border-${command.color}-400/50 text-[10px]`}>{command.group}</span>
           </div>
           <p className="text-slate-300">{command.description}</p>
-          {command.subcommands.map((sub, index) => (
-            <p key={index} className="text-slate-500">Options: {sub.usage}</p>
+          {command.options.filter(opt => opt.type === 1 || opt.type === 2) /* SUB_COMMAND or SUB_COMMAND_GROUP */
+            .map((sub, index) => (
+            <p key={index} className="text-slate-500 text-[10px]">
+              <span className="font-semibold text-slate-400">/{command.name} {sub.name}</span> - {sub.description}
+            </p>
           ))}
         </div>
       ))}

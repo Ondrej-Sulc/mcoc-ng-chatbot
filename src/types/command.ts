@@ -30,12 +30,31 @@ export interface CommandResult {
   flags?: number;
 }
 
+export interface SubcommandHelp {
+  image?: string;
+}
+
+export interface CommandHelp {
+  group:
+    | "Information & Search"
+    | "User Management"
+    | "Alliance Tools"
+    | "Utilities"
+    | "BOT_ADMIN";
+  color?: string;
+  image?: string; // Fallback image
+  subcommands?: {
+    [name: string]: SubcommandHelp;
+  };
+}
+
 export interface Command {
   data:
     | SlashCommandBuilder
     | SlashCommandSubcommandsOnlyBuilder
     | SlashCommandOptionsOnlyBuilder;
   access: CommandAccess;
+  help?: CommandHelp;
   execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
   autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
   cooldown?: number;

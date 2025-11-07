@@ -39,8 +39,9 @@ A modular Discord bot built with TypeScript, designed for Marvel Contest of Cham
 - **Dockerized Environment:** Fully containerized with Docker Compose for consistent development and easy deployment, including a PostgreSQL database service.
 - **AI Capabilities:** Integration with OpenRouter for advanced AI features, including champion ability drafting and tag extraction.
 - **Dynamic Thumbnail Generation:** A sophisticated service (`src/utils/thumbnailGenerator.ts`) that generates custom, visually rich thumbnails for champion-related commands. It uses a champion's class to theme the image with unique colors and intricate SVG background patterns. These patterns are highly configurable, allowing for easy adjustments to their scale and opacity to fine-tune the final look.
-- **Product Analytics:** Deep integration with PostHog for detailed, user-centric analytics. Captures events for all command executions, button clicks, and modal submissions to provide insights into feature usage and user engagement.
+    - **Product Analytics:** Deep integration with PostHog for detailed, user-centric analytics. Captures events for all command executions, button clicks, and modal submissions to provide insights into feature usage and user engagement.
 
+- **Single Source of Truth for Documentation:** Command documentation (descriptions, usage, examples) is now defined directly within each command's source code. A build script automatically generates a master `commands.json` file, which is used to power both the in-bot `/help` command and the website's command reference, ensuring documentation is always in sync with the code.
 ## Technology Stack
 
 - **Language:** TypeScript (Strict Mode)

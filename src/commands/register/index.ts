@@ -15,6 +15,11 @@ export const command: Command = {
     ),
   access: CommandAccess.PUBLIC,
 
+  help: {
+    group: "User Management",
+    color: "pink",
+  },
+
   async execute(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ ephemeral: true });
     const ingameName = interaction.options.getString("name", true);
