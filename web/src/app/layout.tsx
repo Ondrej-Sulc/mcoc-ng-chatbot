@@ -30,7 +30,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased text-slate-100 min-h-screen scroll-smooth bg-slate-950`}
       >
         <Starfield />
-        <div className="relative z-10 min-h-screen gradient-bg">
+        <div className="relative z-0 min-h-screen">
           <Header />
           {children}
         </div>

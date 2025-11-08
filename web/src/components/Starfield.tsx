@@ -31,21 +31,25 @@ export const Starfield = () => {
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-
       ctx.beginPath();
+
       for (let i = 0; i < numStars; i++) {
         const star = stars[i];
+        
+        star.z -= 0.7; // Speed of stars
+
+        if (star.z <= 0) {
+          star.z = canvas.width;
+          star.x = Math.random() * canvas.width;
+          star.y = Math.random() * canvas.height;
+        }
+
         const x = (star.x - canvas.width / 2) * (canvas.width / star.z) + canvas.width / 2;
         const y = (star.y - canvas.height / 2) * (canvas.width / star.z) + canvas.height / 2;
         const r = Math.max(0.1, 2.5 * (1 - star.z / canvas.width));
 
         ctx.moveTo(x, y);
         ctx.arc(x, y, r, 0, Math.PI * 2);
-
-        star.z -= 0.7; // Speed of stars
-        if (star.z <= 0) {
-          star.z = canvas.width;
-        }
       }
       ctx.fill();
     };
@@ -74,9 +78,11 @@ export const Starfield = () => {
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="fixed top-0 left-0 w-full h-full z-0 opacity-20 pointer-events-none"
-    />
+    <div className="fixed inset-0 z-0 pointer-events-none">
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full opacity-30 mix-blend-screen gradient-bg"
+      />
+    </div>
   );
 };

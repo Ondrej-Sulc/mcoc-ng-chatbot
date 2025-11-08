@@ -8,8 +8,8 @@
 - [DONE] on glossary effect and category pages if user has roster also add buttons to search through players roster
 - [DONE] Fix glossary search bugs and improve UI (search emoji, separators, empty results handling).
 - possibly add buttons in the /help command to go try some of the commands
-- feature web page about the bot
-- war videos database (attacker, defender, node number, season, war tier?, player?, death?, anything else?)
+- [DONE] feature page about the bot under /web/ hosted on railway
+- war videos database (attacker, defender, node number, season, war tier?, player?, death?, prefight?, anything else?)
     - commands to look up videos
     - process existing videos from google drive / discord links other sources possibly and add to database (upload to YT from drive)
     - command for video upload, general one, second as part of /aw plan feature in each plan we already know about player/matchups and everything (should also include war, season), redirect to a page with UI (part of bot page) to upload videos for each matchup. then gets automatically uploaded to YT through their API and added to war db

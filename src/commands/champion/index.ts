@@ -113,13 +113,25 @@ export const command: Command = {
     color: "indigo",
     subcommands: {
       abilities: {
-        image: "https://storage.googleapis.com/champion-images/feature-showcase/abilities_hulkling.png",
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/champion_abilities_shangchi.png",
       },
       immunities: {
-        image: "https://storage.googleapis.com/champion-images/feature-showcase/immunities_onslaught.png",
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/champion_immunities_absorbingman.png",
+      },
+      attacks: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/champion_attacks_cassandra.png",
       },
       tags: {
-        image: "https://storage.googleapis.com/champion-images/feature-showcase/tags_dracula.png",
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/champion_tags_nicominoru.png",
+      },
+      duel: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/champion_duel_darkphoenix.png",
+      },
+      info: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/champion_info_wintersoldier.png",
+      },
+      overview: {
+        image: "https://storage.googleapis.com/champion-images/feature-showcase/champion_overview_hulk.png",
       },
     },
   },
