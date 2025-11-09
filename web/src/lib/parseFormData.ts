@@ -11,7 +11,8 @@ interface ParsedFormData {
 
 export const parseFormData = (req: NextRequest): Promise<ParsedFormData> => {
   return new Promise((resolve, reject) => {
-    const bb = busboy({ headers: req.headers as any });
+    const headers = Object.fromEntries(req.headers.entries());
+    const bb = busboy({ headers: headers });
     const fields: Record<string, string> = {};
     let tempFilePath: string | null = null;
 

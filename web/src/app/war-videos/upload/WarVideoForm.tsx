@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -152,48 +151,62 @@ export function WarVideoForm({
     formData.append('fights', JSON.stringify(fights));
 
     try {
-      const response = await axios.post('/api/war-videos/upload', formData, {
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total ?? 1));
-          setUploadProgress(percentCompleted);
-        },
-      });
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
 
-      if (response.status === 200) {
-        const result = response.data;
-        toast({
-          title: 'Success!',
-          description: result.message,
-        });
-        // Redirect to the first uploaded video
-        if (result.videoIds && result.videoIds.length > 0) {
-          router.push(`/war-videos/${result.videoIds[0]}`);
-        } else {
-          router.push('/war-videos');
-        }
-      } else {
-        const errorData = response.data;
-        toast({
-          title: 'Upload Failed',
-          description: errorData.error || 'An unknown error occurred.',
-          variant: 'destructive',
-        });
-      }
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const percentCompleted = Math.round((event.loaded * 100) / event.total);
+            setUploadProgress(percentCompleted);
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const result = JSON.parse(xhr.responseText);
+            toast({
+              title: 'Success!',
+              description: result.message,
+            });
+            if (result.videoIds && result.videoIds.length > 0) {
+              router.push(`/war-videos/${result.videoIds[0]}`);
+            } else {
+              router.push('/war-videos');
+            }
+            resolve();
+          } else {
+            const errorData = JSON.parse(xhr.responseText);
+            toast({
+              title: 'Upload Failed',
+              description: errorData.error || 'An unknown error occurred.',
+              variant: 'destructive',
+            });
+            reject(new Error(errorData.error || 'Upload failed'));
+          }
+        };
+
+        xhr.onerror = () => {
+          toast({
+            title: 'Error',
+            description: 'Network error or server unreachable.',
+            variant: 'destructive',
+          });
+          reject(new Error('Network error'));
+        };
+
+        xhr.open('POST', '/api/war-videos/upload', true);
+        xhr.send(formData);
+      });
     } catch (error: any) {
       console.error('Submission error:', error);
-      const errorDescription = error.response?.data?.error || 'Network error or server unreachable.';
-      toast({
-        title: 'Error',
-        description: errorDescription,
-        variant: 'destructive',
-      });
+      // The toast for specific errors is already handled in the promise rejection
     } finally {
       setIsSubmitting(false);
     }
   }, [token, videoFile, fights, season, warNumber, warTier, visibility, description, playerInVideoId, isSubmitting, router, toast, isOffseason, initialChampions]);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6 relative">
       <div>
         <Label>Video File</Label>
         <div className="flex items-center gap-4 mt-2">
@@ -339,9 +352,9 @@ export function WarVideoForm({
       </div>
 
       {isSubmitting && (
-        <div className="space-y-2">
-          <Label>Uploading...</Label>
-          <Progress value={uploadProgress} />
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+          <Label className="text-lg font-medium mb-4">Uploading Video...</Label>
+          <Progress value={uploadProgress} className="w-1/2" />
         </div>
       )}
 

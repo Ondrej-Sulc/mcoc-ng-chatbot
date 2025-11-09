@@ -2,12 +2,25 @@ import { prisma } from '@cerebro/core/services/prismaService';
 import { notFound } from 'next/navigation';
 import WarVideoDisplay from './WarVideoDisplay';
 
-export default async function WarVideoPage(props: any) {
-  const { params, searchParams } = props;
-  // TODO: Replace this with a proper authentication mechanism
-  const isAdmin = searchParams.admin === 'true';
+export const dynamic = 'force-dynamic';
 
-  const { videoId } = params;
+export default async function WarVideoPage({
+  params,
+  searchParams,
+}: {
+  params: { videoId: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  // TODO: Replace this with a proper authentication mechanism
+  const resolvedSearchParams = await (searchParams as any);
+  const isAdmin = resolvedSearchParams.admin === 'true';
+
+  const resolvedParams = await (params as any);
+  const { videoId } = resolvedParams;
+
+  if (!videoId) {
+    notFound();
+  }
 
   const warVideo = await prisma.warVideo.findUnique({
     where: { id: videoId },

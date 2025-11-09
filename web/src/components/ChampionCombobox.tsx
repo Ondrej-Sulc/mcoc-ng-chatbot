@@ -68,7 +68,7 @@ export const ChampionCombobox = React.memo(function ChampionCombobox({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent position="popper" sideOffset={4} className="w-[--radix-popover-trigger-width] p-0">
+      <PopoverContent sideOffset={4} className="w-[--radix-popover-trigger-width] p-0">
         <Command>
           <CommandInput
             placeholder="Search champion..."
