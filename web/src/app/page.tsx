@@ -4,15 +4,17 @@ import Link from "next/link";
 import { CommandList } from "@/components/CommandList";
 import { Faq } from "@/components/Faq";
 import commandData from "@/lib/data/commands.json";
+import PageBackground from "@/components/PageBackground";
 
 export default function Home() {
   const commandGroups = Array.from(
     new Set(commandData.map((c) => c.group))
   ).sort();
   return (
-    <div className="min-h-screen hero-bg">
+    <div className="min-h-screen relative">
+      <PageBackground />
       <main>
-        <section className="pt-24 lg:pt-28 pb-12">
+        <section className="pt-12 lg:pt-12 pb-12">
           <div className="max-w-6xl mx-auto px-4 lg:px-6 grid grid-cols-3 gap-x-6 sm:gap-x-10 gap-y-4 hero-grid">
             {/* Title */}
             <div className="col-span-2 col-start-1 lg:row-start-1 flex flex-col justify-center">
@@ -498,7 +500,7 @@ export default function Home() {
                 </svg>
                 <div>
                   <h3 className="text-sm font-semibold text-white text-left">
-                    Buy me a Coffee
+                    Buy me a snack
                   </h3>
                   <p className="text-xs text-slate-300 text-left">
                     A small, one-time donation through Ko-fi.

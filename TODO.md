@@ -8,7 +8,6 @@
 - [DONE] on glossary effect and category pages if user has roster also add buttons to search through players roster
 - [DONE] Fix glossary search bugs and improve UI (search emoji, separators, empty results handling).
 - possibly add buttons in the /help command to go try some of the commands
-- [DONE] feature page about the bot under /web/ hosted on railway
 - war videos database (attacker, defender, node number, season, war tier?, player?, death?, prefight?, anything else?)
     - commands to look up videos
     - process existing videos from google drive / discord links other sources possibly and add to database (upload to YT from drive)
@@ -21,3 +20,6 @@
 - possibly using admin / debug commands only in dev version of bot
 - schedule view handle pagination for 40+ components
 - reduce /profile commands, add interactive stuff
+- improve ux with the roster update command (maybe a clickable link to prefill the command to add more chamions)
+    - alternative way to upload roster through web UI. 
+- In the AQ tracker, disable buttons after they are clicked.

@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: '../',
   images: {
     remotePatterns: [
       {
@@ -11,6 +12,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  transpilePackages: ['@cerebro/core'],
 };
 
 export default nextConfig;

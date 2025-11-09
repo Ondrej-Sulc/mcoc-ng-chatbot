@@ -32,6 +32,7 @@ A modular Discord bot built with TypeScript, designed for Marvel Contest of Cham
     - `/search all`: Performs a global search across all champions in the database based on a wide range of criteria, including abilities, immunities, tags, classes, ability categories, and attack types.
     - `/search roster`: Allows users to search within their own personal roster, making it easy to find specific champions they own.
 - **AQ Management:** An interactive `/aq` command to manage Alliance Quest (AQ) trackers. Users can `start` and `end` trackers, and progress is updated through interactive buttons, providing a real-time view of the AQ status. It also includes a comprehensive, interactive `/aq schedule` command for Alliance Admins to manage the automated AQ schedule for their alliance.
+- **War Videos Database:** A new feature allowing users to upload Alliance War videos through a web interface. These videos are stored and managed by the bot, providing a centralized database for war strategies and analysis.
 - **PostgreSQL Database:** Uses a robust PostgreSQL database managed with Prisma for persistent data storage.
 - **Google Sheets Integration:** Utilizes Google Sheets for data storage and retrieval (e.g., for scheduling).
 - **Advanced Scheduling:** Schedule commands or custom messages with flexible timing (e.g., daily, weekly, monthly) via `/schedule`.

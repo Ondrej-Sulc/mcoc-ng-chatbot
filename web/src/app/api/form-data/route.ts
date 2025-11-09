@@ -1,0 +1,72 @@
+import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const token = searchParams.get('token');
+
+  if (!token) {
+    return NextResponse.json({ error: 'Missing upload token' }, { status: 400 });
+  }
+
+  try {
+    // 1. Validate the token and find the user
+    const uploadToken = await prisma.uploadToken.findUnique({
+      where: { token },
+      include: { player: true },
+    });
+
+    if (!uploadToken || uploadToken.expiresAt < new Date()) {
+      return NextResponse.json({ error: 'Invalid or expired upload token' }, { status: 403 });
+    }
+
+    const user = uploadToken.player;
+    if (!user) {
+      return NextResponse.json({ error: 'User not found for this token' }, { status: 404 });
+    }
+
+    // 2. Fetch all data in parallel
+    const [champions, nodes, alliancePlayers] = await Promise.all([
+      prisma.champion.findMany({
+        orderBy: { name: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          images: true,
+          abilities: {
+            select: {
+              ability: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      prisma.warNode.findMany({
+        orderBy: { nodeNumber: 'asc' },
+      }),
+      user.allianceId
+        ? prisma.player.findMany({
+            where: { allianceId: user.allianceId },
+            orderBy: { ingameName: 'asc' },
+          })
+        : Promise.resolve([user]), // If user has no alliance, only return the user themselves
+    ]);
+
+    // 3. Return all data
+    return NextResponse.json({
+      user,
+      champions,
+      nodes,
+      players: alliancePlayers,
+    });
+
+  } catch (error) {
+    console.error('Error fetching form data:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

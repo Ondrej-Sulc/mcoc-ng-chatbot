@@ -1,34 +1,22 @@
-export interface ChampionImages {
-  p_32: string;
-  p_64: string;
-  s_32: string;
-  s_64: string;
-  p_128: string;
-  s_128: string;
-  full_primary: string;
-  full_secondary: string;
-  hero: string;
-}
+import { ChampionImages } from '@/types/champion';
 
 export function getChampionImageUrl(
-  images: any,
+  images: ChampionImages,
   size: "32" | "64" | "128" | "full" = "full",
   type: "primary" | "secondary" | "hero" = "primary"
 ): string {
-  const parsedImages = images as ChampionImages;
-
   if (type === "hero") {
-    return parsedImages.hero;
+    return images.hero;
   }
 
   if (size === "full") {
     return type === "primary"
-      ? parsedImages.full_primary
-      : parsedImages.full_secondary;
+      ? images.full_primary
+      : images.full_secondary;
   }
 
   const key = `${type.charAt(0)}_${size}` as keyof ChampionImages;
-  return parsedImages[key];
+  return images[key];
 }
 
 export function normalizeChampionName(name: string): string {
