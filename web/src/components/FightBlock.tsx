@@ -1,0 +1,153 @@
+import { useState, useEffect, useMemo } from 'react';
+import Image from 'next/image';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ChampionCombobox } from '@/components/ChampionCombobox';
+import { MultiChampionCombobox } from '@/components/MultiChampionCombobox';
+import { NodeCombobox } from '@/components/NodeCombobox';
+import { Swords, Shield, Skull, Diamond, X } from 'lucide-react';
+import { getChampionImageUrl } from '@/lib/championHelper';
+import { ChampionImages } from '@/types/champion';
+import { Button } from './ui/button';
+import { cn } from '@/lib/utils';
+
+interface Champion {
+  id: number;
+  name: string;
+  images: ChampionImages;
+  abilities: { ability: { name: string } }[];
+}
+
+interface WarNode {
+  id: number;
+  nodeNumber: number;
+  description?: string;
+}
+
+export interface FightData {
+  id: string;
+  nodeId: string;
+  attackerId: string;
+  defenderId: string;
+  prefightChampionIds: string[];
+  death: boolean;
+}
+
+interface FightBlockProps {
+  fight: FightData;
+  onFightChange: (fight: FightData) => void;
+  onRemove: (fightId: string) => void;
+  canRemove: boolean;
+  initialChampions: Champion[];
+  initialNodes: WarNode[];
+  prefightChampions: Champion[];
+}
+
+export function FightBlock({
+  fight,
+  onFightChange,
+  onRemove,
+  canRemove,
+  initialChampions,
+  initialNodes,
+  prefightChampions,
+}: FightBlockProps) {
+  const [nodeId, setNodeId] = useState(fight.nodeId);
+  const [attackerId, setAttackerId] = useState(fight.attackerId);
+  const [defenderId, setDefenderId] = useState(fight.defenderId);
+  const [prefightChampionIds, setPrefightChampionIds] = useState(fight.prefightChampionIds);
+  const [death, setDeath] = useState(fight.death);
+
+  useEffect(() => {
+    onFightChange({
+      id: fight.id,
+      nodeId,
+      attackerId,
+      defenderId,
+      prefightChampionIds,
+      death,
+    });
+  }, [nodeId, attackerId, defenderId, prefightChampionIds, death, fight.id, onFightChange]);
+
+  const selectedAttacker = useMemo(() => initialChampions.find(c => String(c.id) === attackerId), [initialChampions, attackerId]);
+  const selectedDefender = useMemo(() => initialChampions.find(c => String(c.id) === defenderId), [initialChampions, defenderId]);
+
+  return (
+    <Card className={cn(
+      "bg-muted/50 relative transition-colors",
+      death && "border-red-500/75"
+    )}>
+      {canRemove && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 right-2 h-6 w-6 z-10"
+          onClick={() => onRemove(fight.id)}
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Remove fight</span>
+        </Button>
+      )}
+      <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+        <div className="flex items-center gap-2">
+          <Label htmlFor={`node-${fight.id}`} className="text-lg font-semibold">Node</Label>
+          <NodeCombobox
+            nodes={initialNodes}
+            value={nodeId}
+            onSelect={setNodeId}
+            placeholder="Select..."
+          />
+        </div>
+        <div className="flex items-center space-x-2 justify-end">
+          <Checkbox id={`death-${fight.id}`} checked={death} onCheckedChange={(checked) => setDeath(Boolean(checked))} />
+          <div className="flex items-center gap-2">
+            <Skull className="h-5 w-5 text-muted-foreground" />
+            <Label htmlFor={`death-${fight.id}`}>Attacker Died?</Label>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-1">
+        <div className="grid grid-cols-1 lg:grid-cols-[65%,35%] gap-3">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-4 p-3 border rounded-lg bg-background">
+            <div className="flex flex-col items-center gap-3 w-full min-w-0">
+              <div className="flex items-center gap-2 text-lg font-semibold text-red-500">
+                <Swords className="h-6 w-6" />
+                <h3>Attacker</h3>
+              </div>
+              <div className="flex items-center gap-2 w-full">
+                {selectedAttacker && <Image src={getChampionImageUrl(selectedAttacker.images, '128', 'primary')} alt={selectedAttacker.name} width={50} height={50} className="rounded-full" />}
+                <ChampionCombobox champions={initialChampions} value={attackerId} onSelect={setAttackerId} placeholder="Select attacker..." />
+              </div>
+            </div>
+            <div className="font-bold text-2xl text-muted-foreground hidden md:block">VS</div>
+            <hr className="w-full md:hidden" />
+            <div className="flex flex-col items-center gap-3 w-full min-w-0">
+              <div className="flex items-center gap-2 text-lg font-semibold text-blue-500">
+                <Shield className="h-6 w-6" />
+                <h3>Defender</h3>
+              </div>
+              <div className="flex items-center gap-2 w-full">
+                {selectedDefender && <Image src={getChampionImageUrl(selectedDefender.images, '128', 'primary')} alt={selectedDefender.name} width={50} height={50} className="rounded-full" />}
+                <ChampionCombobox champions={initialChampions} value={defenderId} onSelect={setDefenderId} placeholder="Select defender..." />
+              </div>
+            </div>
+          </div>
+          <div className="p-3 border rounded-lg bg-background">
+            <div className="flex items-center gap-2 mb-2">
+              <Diamond className="h-5 w-5 text-muted-foreground" />
+              <Label>Prefight Champions</Label>
+            </div>
+            <MultiChampionCombobox
+              champions={prefightChampions}
+              selectedIds={prefightChampionIds}
+              onSelectionChange={setPrefightChampionIds}
+              placeholder="Select active prefights..."
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

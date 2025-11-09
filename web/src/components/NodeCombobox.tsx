@@ -18,39 +18,39 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { ChampionImages } from "@/types/champion"
 
-interface Champion {
+interface WarNode {
   id: number;
-  name: string;
-  images: ChampionImages;
+  nodeNumber: number;
+  description?: string;
 }
 
-interface ChampionComboboxProps {
-  champions: Champion[];
+interface NodeComboboxProps {
+  nodes: WarNode[];
   value: string;
   onSelect: (value: string) => void;
   placeholder?: string;
 }
 
-export const ChampionCombobox = React.memo(function ChampionCombobox({
-  champions,
+export const NodeCombobox = React.memo(function NodeCombobox({
+  nodes,
   value,
   onSelect,
-  placeholder = "Select a champion...",
-}: ChampionComboboxProps) {
+  placeholder = "Select a node...",
+}: NodeComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
 
-  const handleSelect = React.useCallback((championId: string) => {
-    onSelect(championId);
+  const handleSelect = React.useCallback((nodeId: string) => {
+    onSelect(nodeId);
     setOpen(false);
   }, [onSelect]);
 
-  const filteredChampions = React.useMemo(() =>
-    champions.filter(champion =>
-      champion.name.toLowerCase().includes(search.toLowerCase())
-    ), [champions, search]
+  const filteredNodes = React.useMemo(() =>
+    nodes.filter(node =>
+      String(node.nodeNumber).includes(search) ||
+      node.description?.toLowerCase().includes(search.toLowerCase())
+    ), [nodes, search]
   );
 
   return (
@@ -63,37 +63,37 @@ export const ChampionCombobox = React.memo(function ChampionCombobox({
           className="w-full justify-between"
         >
           <span className="truncate">
-            {value ? champions.find((c) => String(c.id) === value)?.name : placeholder}
+            {value ? `${nodes.find((n) => String(n.id) === value)?.nodeNumber}` : placeholder}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent position="popper" sideOffset={4} className="w-[--radix-popover-trigger-width] p-0">
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command>
           <CommandInput
-            placeholder="Search champion..."
+            placeholder="Search node..."
             value={search}
             onValueChange={setSearch}
           />
-          <CommandEmpty>No champion found.</CommandEmpty>
+          <CommandEmpty>No node found.</CommandEmpty>
           <CommandGroup>
             {open && (
                 <Virtuoso
                     style={{ height: "288px" }}
-                    data={filteredChampions}
-                    itemContent={(index, champion) => (
+                    data={filteredNodes}
+                    itemContent={(index, node) => (
                         <CommandItem
-                            key={champion.id}
-                            value={champion.name}
-                            onSelect={() => handleSelect(String(champion.id))}
+                            key={node.id}
+                            value={String(node.nodeNumber)}
+                            onSelect={() => handleSelect(String(node.id))}
                         >
                             <Check
                                 className={cn(
                                     "mr-2 h-4 w-4",
-                                    value === String(champion.id) ? "opacity-100" : "opacity-0"
+                                    value === String(node.id) ? "opacity-100" : "opacity-0"
                                 )}
                             />
-                            {champion.name}
+                            {node.nodeNumber}
                         </CommandItem>
                     )}
                 />

@@ -343,11 +343,12 @@ model WarNode {
 }
 
 model WarVideo {
-  id          Int            @id @default(autoincrement())
+  id          String         @id @default(cuid())
   youtubeUrl  String         @unique
   status      WarVideoStatus @default(PENDING)
   visibility  String         @default("public") // "public" or "alliance"
   season      Int
+  warNumber   Int?
   warTier     Int
   death       Boolean
   createdAt   DateTime       @default(now())

@@ -2,6 +2,7 @@ import { SlashCommandBuilder, CommandInteraction, PermissionFlagsBits } from 'di
 import { prisma } from '../../services/prismaService';
 import loggerService from '../../services/loggerService';
 import { youTubeService } from '../../services/youtubeService';
+import { WarVideo, Player } from '@prisma/client';
 
 export const data = new SlashCommandBuilder()
   .setName('admin-war-video')
@@ -11,7 +12,7 @@ export const data = new SlashCommandBuilder()
     subcommand
       .setName('approve')
       .setDescription('Approves a pending war video and trusts the uploader.')
-      .addIntegerOption(option =>
+      .addStringOption(option =>
         option.setName('video_id')
           .setDescription('The ID of the video to approve.')
           .setRequired(true)
@@ -21,7 +22,7 @@ export const data = new SlashCommandBuilder()
     subcommand
       .setName('reject')
       .setDescription('Rejects a pending war video.')
-      .addIntegerOption(option =>
+      .addStringOption(option =>
         option.setName('video_id')
           .setDescription('The ID of the video to reject.')
           .setRequired(true)
@@ -32,12 +33,12 @@ export async function execute(interaction: CommandInteraction) {
   if (!interaction.isChatInputCommand()) return;
 
   const subcommand = interaction.options.getSubcommand();
-  const videoId = interaction.options.getInteger('video_id', true);
+  const videoId = interaction.options.getString('video_id', true);
 
   await interaction.deferReply({ ephemeral: true });
 
   try {
-    const warVideo = await prisma.warVideo.findUnique({
+    const warVideo: (WarVideo & { submittedBy: Player }) | null = await prisma.warVideo.findUnique({
       where: { id: videoId },
       include: { submittedBy: true },
     });
@@ -54,7 +55,11 @@ export async function execute(interaction: CommandInteraction) {
       }
 
       // 1. Update video on YouTube to 'unlisted'
-      const youtubeId = warVideo.youtubeUrl.split('v=')[1];
+      const youtubeId = youTubeService.getVideoId(warVideo.youtubeUrl);
+      if (!youtubeId) {
+        await interaction.editReply('Could not parse YouTube video ID from URL.');
+        return;
+      }
       await youTubeService.updateVideoPrivacy(youtubeId, 'unlisted');
 
       // 2. Update player to be a trusted uploader
@@ -74,7 +79,11 @@ export async function execute(interaction: CommandInteraction) {
 
     } else if (subcommand === 'reject') {
       // 1. Delete video from YouTube
-      const youtubeId = warVideo.youtubeUrl.split('v=')[1];
+      const youtubeId = youTubeService.getVideoId(warVideo.youtubeUrl);
+      if (!youtubeId) {
+        await interaction.editReply('Could not parse YouTube video ID from URL.');
+        return;
+      }
       await youTubeService.deleteVideo(youtubeId);
 
       // 2. Delete video from DB

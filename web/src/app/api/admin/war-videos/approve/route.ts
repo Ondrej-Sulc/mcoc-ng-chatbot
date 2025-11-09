@@ -1,0 +1,33 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@cerebro/core/services/prismaService';
+import loggerService from '@cerebro/core/services/loggerService';
+
+export async function POST(req: NextRequest) {
+  // TODO: Add authentication to ensure only admins can access this endpoint
+  try {
+    const { videoId } = await req.json();
+
+    if (!videoId) {
+      return NextResponse.json({ error: 'Missing videoId' }, { status: 400 });
+    }
+
+    const updatedVideo = await prisma.warVideo.update({
+      where: { id: videoId },
+      data: { status: 'APPROVED' },
+      include: { submittedBy: true },
+    });
+
+    if (updatedVideo.submittedBy) {
+      await prisma.player.update({
+        where: { id: updatedVideo.submittedById },
+        data: { isTrustedUploader: true },
+      });
+    }
+
+    loggerService.info({ videoId }, 'War video approved');
+    return NextResponse.json({ message: 'Video approved' }, { status: 200 });
+  } catch (error) {
+    loggerService.error({ err: error }, 'Error approving video');
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

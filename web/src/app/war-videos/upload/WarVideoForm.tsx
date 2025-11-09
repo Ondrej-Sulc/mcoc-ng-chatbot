@@ -1,21 +1,21 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { ChampionCombobox } from '@/components/ChampionCombobox';
-import { MultiChampionCombobox } from '@/components/MultiChampionCombobox';
+import { v4 as uuidv4 } from 'uuid';
 import { MemoizedSelect } from '@/components/MemoizedSelect';
-import { Swords, Shield, Skull, UploadCloud } from 'lucide-react';
+import { FightBlock, FightData } from '@/components/FightBlock';
+import { UploadCloud, Plus } from 'lucide-react';
 import { ChampionImages } from '@/types/champion';
-import { getChampionImageUrl } from '@/lib/championHelper';
 import { cn } from '@/lib/utils';
 
 // Define types for props
@@ -57,18 +57,19 @@ export function WarVideoForm({
 
   // Form state
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [attackerId, setAttackerId] = useState<string>('');
-  const [defenderId, setDefenderId] = useState<string>('');
-  const [nodeId, setNodeId] = useState<string>('');
-  const [prefightChampionIds, setPrefightChampionIds] = useState<string[]>([]);
+  const [fights, setFights] = useState<FightData[]>([
+    { id: uuidv4(), nodeId: '', attackerId: '', defenderId: '', prefightChampionIds: [], death: false },
+  ]);
   const [season, setSeason] = useState<string>('');
   const [warNumber, setWarNumber] = useState<string>('');
   const [warTier, setWarTier] = useState<string>('');
-  const [death, setDeath] = useState<boolean>(false);
   const [playerInVideoId, setPlayerInVideoId] = useState<string>(initialUserId);
   const [visibility, setVisibility] = useState<"public" | "alliance">('public');
   const [description, setDescription] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isOffseason, setIsOffseason] = useState<boolean>(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Memoized derived data
   const prefightChampions = useMemo(() => {
@@ -76,14 +77,6 @@ export function WarVideoForm({
       champ.abilities?.some((link) => link.ability.name === 'Pre-Fight Ability')
     );
   }, [initialChampions]);
-
-  const selectedAttacker = useMemo(() => initialChampions.find(c => String(c.id) === attackerId), [initialChampions, attackerId]);
-  const selectedDefender = useMemo(() => initialChampions.find(c => String(c.id) === defenderId), [initialChampions, defenderId]);
-
-  const nodeOptions = useMemo(() => initialNodes.map(node => ({
-    value: String(node.id),
-    label: `Node ${node.nodeNumber} ${node.description ? `(${node.description})` : ''}`
-  })), [initialNodes]);
 
   const warNumberOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => ({
     value: String(i + 1),
@@ -100,61 +93,104 @@ export function WarVideoForm({
     label: player.ingameName
   })), [initialPlayers]);
 
+  const handleFightChange = useCallback((updatedFight: FightData) => {
+    setFights(prevFights =>
+      prevFights.map(fight => (fight.id === updatedFight.id ? updatedFight : fight))
+    );
+  }, []);
+
+  const handleAddFight = useCallback(() => {
+    setFights(prevFights => [
+      ...prevFights,
+      { id: uuidv4(), nodeId: '', attackerId: '', defenderId: '', prefightChampionIds: [], death: false },
+    ]);
+  }, []);
+
+  const handleRemoveFight = useCallback((fightId: string) => {
+    setFights(prevFights => prevFights.filter(fight => fight.id !== fightId));
+  }, []);
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    if (!videoFile) newErrors.videoFile = 'Video file is required.';
+    if (!season) newErrors.season = 'Season is required.';
+    if (!isOffseason && !warNumber) newErrors.warNumber = 'War number is required.';
+    if (!warTier) newErrors.warTier = 'War tier is required.';
+
+    fights.forEach(fight => {
+      if (!fight.attackerId) newErrors[`attackerId-${fight.id}`] = 'Attacker is required.';
+      if (!fight.defenderId) newErrors[`defenderId-${fight.id}`] = 'Defender is required.';
+      if (!fight.nodeId) newErrors[`nodeId-${fight.id}`] = 'War node is required.';
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!token || !videoFile || !selectedAttacker || !selectedDefender || isSubmitting) return;
+    if (!validateForm() || isSubmitting) return;
     setIsSubmitting(true);
+    setUploadProgress(0);
 
-    const autoTitle = `MCOC AW: S${season} W${warNumber} T${warTier} - ${selectedAttacker.name} vs ${selectedDefender.name}`;
+    const fight = fights[0];
+    const selectedAttacker = initialChampions.find(c => String(c.id) === fight.attackerId);
+    const selectedDefender = initialChampions.find(c => String(c.id) === fight.defenderId);
+
+    const autoTitle = `MCOC AW: S${season} W${isOffseason ? 'Offseason' : warNumber} T${warTier} - ${fights[0].attackerId} vs ${fights[0].defenderId}`;
 
     const formData = new FormData();
     formData.append('token', token);
-    formData.append('videoFile', videoFile);
-    formData.append('attackerId', attackerId);
-    formData.append('defenderId', defenderId);
-    formData.append('nodeId', nodeId);
+    formData.append('videoFile', videoFile!);
     formData.append('season', season);
-    formData.append('warNumber', warNumber);
+    if (!isOffseason) formData.append('warNumber', warNumber);
     formData.append('warTier', warTier);
-    formData.append('death', String(death));
     formData.append('visibility', visibility);
     formData.append('title', autoTitle);
     formData.append('description', description);
     if (playerInVideoId) formData.append('playerId', playerInVideoId);
-    prefightChampionIds.forEach(id => formData.append('prefightChampionIds[]', id));
+    formData.append('fights', JSON.stringify(fights));
 
     try {
-      const response = await fetch('/api/war-videos/upload', {
-        method: 'POST',
-        body: formData,
+      const response = await axios.post('/api/war-videos/upload', formData, {
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total ?? 1));
+          setUploadProgress(percentCompleted);
+        },
       });
 
-      if (response.ok) {
-        const result = await response.json();
+      if (response.status === 200) {
+        const result = response.data;
         toast({
           title: 'Success!',
           description: result.message,
         });
-        router.push(`/war-videos/${result.videoId}`);
+        // Redirect to the first uploaded video
+        if (result.videoIds && result.videoIds.length > 0) {
+          router.push(`/war-videos/${result.videoIds[0]}`);
+        } else {
+          router.push('/war-videos');
+        }
       } else {
-        const errorData = await response.json();
+        const errorData = response.data;
         toast({
           title: 'Upload Failed',
           description: errorData.error || 'An unknown error occurred.',
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Submission error:', error);
+      const errorDescription = error.response?.data?.error || 'Network error or server unreachable.';
       toast({
         title: 'Error',
-        description: 'Network error or server unreachable.',
+        description: errorDescription,
         variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
     }
-  }, [token, videoFile, selectedAttacker, selectedDefender, season, warNumber, warTier, death, visibility, description, playerInVideoId, prefightChampionIds, isSubmitting, router, toast]);
+  }, [token, videoFile, fights, season, warNumber, warTier, visibility, description, playerInVideoId, isSubmitting, router, toast, isOffseason, initialChampions]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -170,88 +206,108 @@ export function WarVideoForm({
           <Input id="videoFile" type="file" accept="video/*" onChange={(e) => setVideoFile(e.target.files ? e.target.files[0] : null)} required className="hidden" />
           {videoFile && <p className="text-sm text-muted-foreground">{videoFile.name}</p>}
         </div>
+        {errors.videoFile && <p className="text-sm text-red-500 mt-1">{errors.videoFile}</p>}
       </div>
 
-      <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 p-4 border rounded-lg bg-muted/20">
-        <div className="flex flex-col items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2 text-lg font-semibold text-red-500">
-            <Swords className="h-6 w-6" />
-            <h3>Attacker</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            {selectedAttacker && <Image src={getChampionImageUrl(selectedAttacker.images, '128', 'primary')} alt={selectedAttacker.name} width={50} height={50} className="rounded-full" />}
-            <ChampionCombobox champions={initialChampions} value={attackerId} onSelect={setAttackerId} placeholder="Select attacker..." />
-          </div>
-        </div>
-        <div className="font-bold text-2xl text-muted-foreground hidden md:block">VS</div>
-        <hr className="w-full md:hidden" />
-        <div className="flex flex-col items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2 text-lg font-semibold text-blue-500">
-            <Shield className="h-6 w-6" />
-            <h3>Defender</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            {selectedDefender && <Image src={getChampionImageUrl(selectedDefender.images, '128', 'primary')} alt={selectedDefender.name} width={50} height={50} className="rounded-full" />}
-            <ChampionCombobox champions={initialChampions} value={defenderId} onSelect={setDefenderId} placeholder="Select defender..." />
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <Label>Prefight Champions</Label>
-        <MultiChampionCombobox
-          champions={prefightChampions}
-          selectedIds={prefightChampionIds}
-          onSelectionChange={setPrefightChampionIds}
-          placeholder="Select prefight champions..."
+      {fights.map((fight, index) => (
+        <FightBlock
+          key={fight.id}
+          fight={fight}
+          onFightChange={handleFightChange}
+          onRemove={handleRemoveFight}
+          canRemove={fights.length > 1}
+          initialChampions={initialChampions}
+          initialNodes={initialNodes}
+          prefightChampions={prefightChampions}
         />
-      </div>
+      ))}
 
-      <div>
-        <Label htmlFor="node">War Node</Label>
-        <MemoizedSelect
-          value={nodeId}
-          onValueChange={setNodeId}
-          placeholder="Select war node"
-          options={nodeOptions}
-          required
-        />
-      </div>
+      <Button type="button" variant="outline" onClick={handleAddFight}>
+        <Plus className="mr-2 h-4 w-4" />
+        Add Another Fight
+      </Button>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <Label htmlFor="season">Season</Label>
-          <Input id="season" type="text" inputMode="numeric" pattern="[0-9]*" value={season} onChange={(e) => setSeason(e.target.value)} required />
-        </div>
-        <div>
-          <Label htmlFor="warNumber">War Number</Label>
-          <MemoizedSelect
-            value={warNumber}
-            onValueChange={setWarNumber}
-            placeholder="Select number..."
-            options={warNumberOptions}
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="warTier">War Tier</Label>
-          <MemoizedSelect
-            value={warTier}
-            onValueChange={setWarTier}
-            placeholder="Select tier..."
-            options={warTierOptions}
-            required
-          />
-        </div>
-      </div>
+            <div className="space-y-4 border rounded-lg p-4">
 
-      <div className="flex items-center space-x-2">
-        <Checkbox id="death" checked={death} onCheckedChange={(checked) => setDeath(Boolean(checked))} />
-        <div className="flex items-center gap-2">
-          <Skull className="h-5 w-5 text-muted-foreground" />
-          <Label htmlFor="death">Attacker Died?</Label>
-        </div>
-      </div>
+              <div className="flex justify-between items-center">
+
+                <h3 className="text-lg font-medium">War Details</h3>
+
+                <div className="flex items-center space-x-2">
+
+                  <Checkbox id="isOffseason" checked={isOffseason} onCheckedChange={(checked) => setIsOffseason(Boolean(checked))} />
+
+                  <Label htmlFor="isOffseason">Offseason</Label>
+
+                </div>
+
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                <div>
+
+                  <Label htmlFor="season">Season</Label>
+
+                  <Input id="season" type="text" inputMode="numeric" pattern="[0-9]*" value={season} onChange={(e) => setSeason(e.target.value)} required />
+
+                  {errors.season && <p className="text-sm text-red-500 mt-1">{errors.season}</p>}
+
+                </div>
+
+                <div>
+
+                  <Label htmlFor="warNumber">War Number</Label>
+
+                  <MemoizedSelect
+
+                    value={warNumber}
+
+                    onValueChange={setWarNumber}
+
+                    placeholder="Select number..."
+
+                    options={warNumberOptions}
+
+                    required={!isOffseason}
+
+                    disabled={isOffseason}
+
+                    contentClassName="max-h-60 overflow-y-auto"
+
+                  />
+
+                  {errors.warNumber && <p className="text-sm text-red-500 mt-1">{errors.warNumber}</p>}
+
+                </div>
+
+                <div>
+
+                  <Label htmlFor="warTier">War Tier</Label>
+
+                  <MemoizedSelect
+
+                    value={warTier}
+
+                    onValueChange={setWarTier}
+
+                    placeholder="Select tier..."
+
+                    options={warTierOptions}
+
+                    required
+
+                    contentClassName="max-h-60 overflow-y-auto"
+
+                  />
+
+                  {errors.warTier && <p className="text-sm text-red-500 mt-1">{errors.warTier}</p>}
+
+                </div>
+
+              </div>
+
+            </div>
 
       <div>
         <Label htmlFor="playerInVideo">Player in Video</Label>
@@ -281,6 +337,13 @@ export function WarVideoForm({
         <Label htmlFor="description">Video Description (Optional)</Label>
         <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Add any relevant details about the fight, prefights used, etc." />
       </div>
+
+      {isSubmitting && (
+        <div className="space-y-2">
+          <Label>Uploading...</Label>
+          <Progress value={uploadProgress} />
+        </div>
+      )}
 
       <Button type="submit" disabled={isSubmitting || !token || !videoFile}>
         {isSubmitting ? 'Uploading...' : 'Upload Video'}

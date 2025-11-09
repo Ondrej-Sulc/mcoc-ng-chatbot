@@ -25,7 +25,9 @@ const REDIRECT_URI = 'https://developers.google.com/oauthplayground';
 // It allows the application to generate new access tokens without user interaction.
 // 1. Go to https://developers.google.com/oauthplayground
 // 2. In the top-right settings gear, check "Use your own OAuth credentials" and provide your CLIENT_ID and CLIENT_SECRET.
-// 3. On the left, find "YouTube Data API v3" and select the scope: "https://www.googleapis.com/auth/youtube.upload"
+// 3. On the left, find "YouTube Data API v3" and select both scopes:
+//    - "https://www.googleapis.com/auth/youtube.upload"
+//    - "https://www.googleapis.com/auth/youtube" (This is required for deleting videos)
 // 4. Click "Authorize APIs".
 // 5. Exchange authorization code for tokens.
 // 6. Copy the "Refresh token" and paste it here or in your .env file.
@@ -190,6 +192,16 @@ class YouTubeService {
    */
   public getVideoUrl(videoId: string): string {
     return `https://www.youtube.com/watch?v=${videoId}`;
+  }
+
+  public getVideoId(url: string): string | null {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.searchParams.get('v');
+    } catch (error) {
+      loggerService.error({ error, url }, 'Failed to parse YouTube URL');
+      return null;
+    }
   }
 }
 

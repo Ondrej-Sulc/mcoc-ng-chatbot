@@ -41,8 +41,9 @@ export default function UploadWarVideoPage() {
   const [token, setToken] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData | null>(null);
 
+  const urlToken = searchParams.get('token');
+
   useEffect(() => {
-    const urlToken = searchParams.get('token');
     if (!urlToken) {
       setErrorMessage('No upload token found in URL.');
       setPageStatus('error');
@@ -67,7 +68,7 @@ export default function UploadWarVideoPage() {
       }
     };
     fetchData();
-  }, [searchParams]);
+  }, [urlToken]);
 
   const renderContent = () => {
     switch (pageStatus) {
@@ -97,7 +98,7 @@ export default function UploadWarVideoPage() {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-3xl">
+    <div className="container mx-auto p-4 max-w-4xl">
       <Card>
         <CardHeader>
           <CardTitle>Upload Alliance War Video</CardTitle>

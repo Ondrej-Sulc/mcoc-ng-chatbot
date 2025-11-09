@@ -14,7 +14,9 @@ interface MemoizedSelectProps {
   placeholder: string;
   options: Option[];
   required?: boolean;
+  disabled?: boolean;
   className?: string;
+  contentClassName?: string;
 }
 
 export const MemoizedSelect = React.memo(function MemoizedSelect({
@@ -23,14 +25,16 @@ export const MemoizedSelect = React.memo(function MemoizedSelect({
   placeholder,
   options,
   required,
+  disabled,
   className,
+  contentClassName,
 }: MemoizedSelectProps) {
   return (
-    <Select onValueChange={onValueChange} value={value} required={required}>
+    <Select onValueChange={onValueChange} value={value} required={required} disabled={disabled}>
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className={contentClassName}>
         {options.map((option) => (
           <SelectItem key={option.value} value={option.value}>
             {option.label}
