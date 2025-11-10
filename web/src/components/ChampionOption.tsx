@@ -13,7 +13,7 @@ interface ChampionOptionProps {
 // Using React.memo to prevent re-rendering if the champion prop does not change.
 export const ChampionOption = React.memo(function ChampionOption({ champion }: ChampionOptionProps) {
   return (
-    <SelectItem key={champion.id} value={String(champion.id)}>
+    <SelectItem value={String(champion.id)}>
       {champion.name}
     </SelectItem>
   );

@@ -43,4 +43,14 @@ export const MemoizedSelect = React.memo(function MemoizedSelect({
       </SelectContent>
     </Select>
   );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.value === nextProps.value &&
+    prevProps.placeholder === nextProps.placeholder &&
+    prevProps.required === nextProps.required &&
+    prevProps.disabled === nextProps.disabled &&
+    prevProps.className === nextProps.className &&
+    prevProps.contentClassName === nextProps.contentClassName &&
+    JSON.stringify(prevProps.options) === JSON.stringify(nextProps.options)
+  );
 });

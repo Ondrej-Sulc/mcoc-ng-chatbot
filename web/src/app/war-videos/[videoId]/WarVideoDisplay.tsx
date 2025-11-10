@@ -37,8 +37,39 @@ interface WarVideoDisplayProps {
 }
 
 function getYouTubeVideoId(url: string): string | null {
-  const urlObj = new URL(url);
-  return urlObj.searchParams.get('v');
+  if (!url) return null;
+
+  let videoId: string | null = null;
+
+  // Regex to match YouTube video IDs from various URL formats.
+  const patterns = [
+    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/(?:watch\?v=|embed\/|v\/|)([\w-]{11})/,
+    /(?:https?:\/\/)?youtu\.be\/([\w-]{11})/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      videoId = match[1];
+      break;
+    }
+  }
+
+  // Fallback for cases where the ID might just be in the path
+  if (!videoId) {
+    try {
+      const urlObj = new URL(url.startsWith('http') ? url : `https://` + url);
+      const pathSegments = urlObj.pathname.split('/');
+      const potentialId = pathSegments[pathSegments.length - 1];
+      if (potentialId && potentialId.length === 11) {
+        videoId = potentialId;
+      }
+    } catch (e) {
+      // Ignore URL parsing errors if regex fails
+    }
+  }
+
+  return videoId;
 }
 
 export default function WarVideoDisplay({ warVideo, isAdmin }: WarVideoDisplayProps) {

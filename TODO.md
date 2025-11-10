@@ -20,6 +20,6 @@
 - possibly using admin / debug commands only in dev version of bot
 - schedule view handle pagination for 40+ components
 - reduce /profile commands, add interactive stuff
-- improve ux with the roster update command (maybe a clickable link to prefill the command to add more chamions)
-    - alternative way to upload roster through web UI. 
+- improve ux with the roster update command (maybe a clickable link to prefill the command to add more champions)
+  - alternative way to upload roster through web UI. 
 - In the AQ tracker, disable buttons after they are clicked.

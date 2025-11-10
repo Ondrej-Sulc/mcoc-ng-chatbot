@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@cerebro/core/services/prismaService';
+import { prisma } from '@/lib/prisma';
 import { youTubeService } from '@cerebro/core/services/youtubeService';
 import { parseFormData } from '@/lib/parseFormData';
 import { existsSync } from 'fs';
@@ -12,114 +12,122 @@ export async function POST(req: NextRequest) {
   try {
     const { token, season, warNumber, warTier, playerId, visibility, title, description, fights: fightsJson, mode } = fields;
 
+    // --- 1. Authentication & Authorization ---
     if (!token) {
       return NextResponse.json({ error: 'Missing upload token' }, { status: 400 });
     }
-
     const uploadToken = await prisma.uploadToken.findUnique({
       where: { token },
       include: { player: true },
     });
-
     if (!uploadToken || uploadToken.expiresAt < new Date()) {
-      if (uploadToken) {
-        await prisma.uploadToken.delete({ where: { id: uploadToken.id } });
-      }
+      if (uploadToken) await prisma.uploadToken.delete({ where: { id: uploadToken.id } });
       return NextResponse.json({ error: 'Invalid or expired upload token' }, { status: 401 });
     }
-
     const { player } = uploadToken;
     const isTrusted = player.isTrustedUploader;
 
+    // --- 2. File Validation ---
     if (!tempFilePath || !existsSync(tempFilePath)) {
       return NextResponse.json({ error: 'No video file uploaded or file not found' }, { status: 400 });
     }
 
-    const fights = JSON.parse(fightsJson);
+    // --- 3. Input Validation & Sanitization ---
+    let fights;
+    try {
+      fights = JSON.parse(fightsJson);
+    } catch (e) {
+      return NextResponse.json({ error: 'Invalid fights data format.' }, { status: 400 });
+    }
+
+    if (!Array.isArray(fights) || fights.length === 0) {
+      return NextResponse.json({ error: 'Fights data must be a non-empty array.' }, { status: 400 });
+    }
+
+    const numSeason = parseInt(season, 10);
+    const numWarTier = parseInt(warTier, 10);
+    const numWarNumber = warNumber ? parseInt(warNumber, 10) : null;
+
+    if (isNaN(numSeason) || isNaN(numWarTier)) {
+      return NextResponse.json({ error: 'Season and War Tier must be valid numbers.' }, { status: 400 });
+    }
+    if (warNumber && numWarNumber === null) { // Check for NaN on optional warNumber
+        return NextResponse.json({ error: 'War Number must be a valid number.' }, { status: 400 });
+    }
+
+    // --- 4. Upload & DB Creation Logic ---
     const createdVideoIds: string[] = [];
 
     if (mode === 'single') {
-      // 1. Upload video to YouTube ONCE
-      const privacyStatus = 'unlisted';
-      const youtubeVideoId = await youTubeService.uploadVideo(
-        tempFilePath,
-        title || `MCOC War Video - ${player.ingameName}`,
-        description || `War video submitted by ${player.ingameName}`,
-        privacyStatus
-      );
-
-      if (!youtubeVideoId) {
-        return NextResponse.json({ error: 'Failed to upload video to YouTube' }, { status: 500 });
-      }
+      const youtubeVideoId = await youTubeService.uploadVideo(tempFilePath, title, description, 'unlisted');
+      if (!youtubeVideoId) throw new Error('YouTube upload failed to return an ID.');
       const youtubeUrl = youTubeService.getVideoUrl(youtubeVideoId);
 
-      // 2. Loop through fights and create a DB record for each
-      for (const fight of fights) {
-        const { attackerId, defenderId, nodeId, death, prefightChampionIds } = fight;
-        const videoStatus = isTrusted ? 'APPROVED' : 'PENDING';
-        const newWarVideo = await prisma.warVideo.create({
+      const createOperations = fights.map(fight => {
+        const numAttackerId = parseInt(fight.attackerId, 10);
+        const numDefenderId = parseInt(fight.defenderId, 10);
+        const numNodeId = parseInt(fight.nodeId, 10);
+        if (isNaN(numAttackerId) || isNaN(numDefenderId) || isNaN(numNodeId)) {
+          throw new Error(`Invalid ID for fight ${fight.id}.`);
+        }
+        const prefightIds = (fight.prefightChampionIds || []).map((id: string) => ({ id: parseInt(id, 10) })).filter((item: { id: number }) => !isNaN(item.id));
+
+        return prisma.warVideo.create({
           data: {
-            youtubeUrl, // Use the same URL for all
-            status: videoStatus,
+            youtubeUrl,
+            status: isTrusted ? 'APPROVED' : 'PENDING',
             visibility: visibility || 'public',
-            season: parseInt(season),
-            warNumber: warNumber ? parseInt(warNumber) : null,
-            warTier: parseInt(warTier),
-            death: death,
-            attacker: { connect: { id: parseInt(attackerId) } },
-            defender: { connect: { id: parseInt(defenderId) } },
-            node: { connect: { id: parseInt(nodeId) } },
+            season: numSeason,
+            warNumber: numWarNumber,
+            warTier: numWarTier,
+            death: !!fight.death,
+            attacker: { connect: { id: numAttackerId } },
+            defender: { connect: { id: numDefenderId } },
+            node: { connect: { id: numNodeId } },
             player: playerId ? { connect: { id: playerId } } : undefined,
             submittedBy: { connect: { id: uploadToken.playerId } },
-            prefightChampions: {
-              connect: prefightChampionIds.map((id: string) => ({ id: parseInt(id) })),
-            },
+            prefightChampions: { connect: prefightIds },
           },
         });
-        createdVideoIds.push(newWarVideo.id);
-      }
+      });
+
+      const createdVideos = await prisma.$transaction(createOperations);
+      createdVideoIds.push(...createdVideos.map((video) => video.id));
     } else { // 'multiple' mode
-      // The frontend sends one fight at a time, so fights array will have 1 element
       const fight = fights[0];
-      const { attackerId, defenderId, nodeId, death, prefightChampionIds } = fight;
-
-      const privacyStatus = 'unlisted';
-      const youtubeVideoId = await youTubeService.uploadVideo(
-        tempFilePath,
-        title || `MCOC War Video - ${player.ingameName}`,
-        description || `War video submitted by ${player.ingameName}`,
-        privacyStatus
-      );
-
-      if (!youtubeVideoId) {
-        return NextResponse.json({ error: 'Failed to upload video to YouTube' }, { status: 500 });
+      const numAttackerId = parseInt(fight.attackerId, 10);
+      const numDefenderId = parseInt(fight.defenderId, 10);
+      const numNodeId = parseInt(fight.nodeId, 10);
+      if (isNaN(numAttackerId) || isNaN(numDefenderId) || isNaN(numNodeId)) {
+        return NextResponse.json({ error: `Invalid ID for fight ${fight.id}.` }, { status: 400 });
       }
+      const prefightIds = (fight.prefightChampionIds || []).map((id: string) => parseInt(id, 10)).filter((id: number) => !isNaN(id));
+
+      const youtubeVideoId = await youTubeService.uploadVideo(tempFilePath, title, description, 'unlisted');
+      if (!youtubeVideoId) throw new Error('YouTube upload failed to return an ID.');
       const youtubeUrl = youTubeService.getVideoUrl(youtubeVideoId);
 
-      const videoStatus = isTrusted ? 'APPROVED' : 'PENDING';
       const newWarVideo = await prisma.warVideo.create({
         data: {
           youtubeUrl,
-          status: videoStatus,
+          status: isTrusted ? 'APPROVED' : 'PENDING',
           visibility: visibility || 'public',
-          season: parseInt(season),
-          warNumber: warNumber ? parseInt(warNumber) : null,
-          warTier: parseInt(warTier),
-          death: death,
-          attacker: { connect: { id: parseInt(attackerId) } },
-          defender: { connect: { id: parseInt(defenderId) } },
-          node: { connect: { id: parseInt(nodeId) } },
+          season: numSeason,
+          warNumber: numWarNumber,
+          warTier: numWarTier,
+          death: !!fight.death,
+          attacker: { connect: { id: numAttackerId } },
+          defender: { connect: { id: numDefenderId } },
+          node: { connect: { id: numNodeId } },
           player: playerId ? { connect: { id: playerId } } : undefined,
           submittedBy: { connect: { id: uploadToken.playerId } },
-          prefightChampions: {
-            connect: prefightChampionIds.map((id: string) => ({ id: parseInt(id) })),
-          },
+          prefightChampions: { connect: prefightIds.map((id: number) => ({ id })) },
         },
       });
       createdVideoIds.push(newWarVideo.id);
     }
 
-    // 5. Delete the temporary file
+    // --- 5. Cleanup ---
     await fs.unlink(tempFilePath);
 
     return NextResponse.json({ message: 'Videos uploaded successfully', videoIds: createdVideoIds }, { status: 200 });

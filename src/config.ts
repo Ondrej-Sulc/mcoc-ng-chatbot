@@ -88,6 +88,15 @@ const createConfig = (): Config => {
     if (!value) throw new Error(`❌ ${key} is missing`);
   });
 
+  // Validate BOT_BASE_URL format
+  const botBaseUrl = required.BOT_BASE_URL!;
+  if (!botBaseUrl.startsWith('http://') && !botBaseUrl.startsWith('https://')) {
+    throw new Error(`❌ BOT_BASE_URL must start with http:// or https://`);
+  }
+  if (botBaseUrl.endsWith('/')) {
+    throw new Error(`❌ BOT_BASE_URL should not end with a trailing slash`);
+  }
+
   let credentials;
   try {
     const credentialsJson = getEnv("GOOGLE_CREDENTIALS_JSON");

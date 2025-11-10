@@ -3,6 +3,7 @@ import busboy, { FileInfo } from 'busboy';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 
 interface ParsedFormData {
   fields: Record<string, string>;
@@ -19,7 +20,13 @@ export const parseFormData = (req: NextRequest): Promise<ParsedFormData> => {
     bb.on('file', (fieldname: string, file: NodeJS.ReadableStream, info: FileInfo) => {
       const { filename } = info;
       const tempDir = os.tmpdir();
-      tempFilePath = path.join(tempDir, `upload-${Date.now()}-${filename}`);
+      
+      // Generate a secure, random filename to prevent path traversal.
+      const randomName = crypto.randomBytes(16).toString('hex');
+      const extension = path.extname(filename);
+      const safeFilename = randomName + extension;
+      tempFilePath = path.join(tempDir, safeFilename);
+
       const writeStream = fs.createWriteStream(tempFilePath);
       file.pipe(writeStream);
 

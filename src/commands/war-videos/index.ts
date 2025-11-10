@@ -3,36 +3,19 @@ import { Command, CommandAccess } from '../../types/command';
 import { prisma } from '../../services/prismaService';
 import { config } from '../../config';
 import loggerService from '../../services/loggerService';
+import crypto from 'crypto';
 
 async function handleUploadSubcommand(interaction: CommandInteraction) {
-  if (!interaction.isChatInputCommand()) return;
-
-  await interaction.deferReply({ ephemeral: true });
-
-  const discordId = interaction.user.id;
-
-  try {
-    const player = await prisma.player.findFirst({
-      where: { discordId: discordId },
-    });
-
-    if (!player) {
-      await interaction.editReply({
-        content: 'You need to register your in-game name first using the `/register` command.',
-      });
+//...
+//...
       return;
     }
 
-    const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     await prisma.uploadToken.create({
-      data: {
-        token: token,
-        playerId: player.id,
-        expiresAt: expiresAt,
-      },
-    });
+//...
 
     const uploadUrl = `${config.botBaseUrl}/war-videos/upload?token=${token}`;
 

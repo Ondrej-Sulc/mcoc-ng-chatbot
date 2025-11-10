@@ -162,6 +162,7 @@ class YouTubeService {
         error: errorMessage,
         videoId,
       }, 'Failed to update video privacy.');
+      throw error;
     }
   }
 
@@ -182,6 +183,7 @@ class YouTubeService {
         error: errorMessage,
         videoId,
       }, 'Failed to delete video from YouTube.');
+      throw error;
     }
   }
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getFromCache } from '@/lib/cache';
+import loggerService from '@cerebro/core/services/loggerService';
 
 export async function GET() {
   try {
@@ -27,7 +28,7 @@ export async function GET() {
     });
     return NextResponse.json(champions, { status: 200 });
   } catch (error) {
-    console.error('Error fetching champions:', error);
+    loggerService.error({ err: error }, 'Error fetching champions');
     return NextResponse.json({ error: 'Failed to fetch champions' }, { status: 500 });
   }
 }

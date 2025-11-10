@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getFromCache } from '@/lib/cache';
+import loggerService from '@cerebro/core/services/loggerService';
 
 export async function GET() {
   try {
@@ -18,7 +19,7 @@ export async function GET() {
     });
     return NextResponse.json(nodes, { status: 200 });
   } catch (error) {
-    console.error('Error fetching war nodes:', error);
+    loggerService.error({ err: error }, 'Error fetching war nodes');
     return NextResponse.json({ error: 'Failed to fetch war nodes' }, { status: 500 });
   }
 }
