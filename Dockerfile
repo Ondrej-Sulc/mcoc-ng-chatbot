@@ -1,54 +1,57 @@
-# ---- Base Stage ----
-# Common setup for both builder and final stages
-FROM node:18 AS base
-WORKDIR /usr/src/app
-# Install pnpm
-RUN npm install -g pnpm
+# Dockerfile
 
-# ---- Builder Stage ----
-# This stage builds both the bot and the web app
-FROM base AS builder
-# Copy all package files from the monorepo
-COPY package.json pnpm-lock.yaml* ./
-COPY src/package.json ./src/
-COPY web/package.json ./web/
-# Install all dependencies for all workspaces
-RUN pnpm install --frozen-lockfile
+# ---- Stage 1: Builder ----
+# This stage builds the TypeScript code
+FROM node:18 AS builder
+
+WORKDIR /usr/src/app
+
+# Copy package files and install ALL dependencies (including dev)
+COPY package*.json ./
+RUN npm install
+
 # Copy the rest of the source code
 COPY . .
-# Generate Prisma Client
-RUN pnpm --filter @cerebro/core exec prisma generate
-# Build both the bot and the web app
-RUN pnpm run build --filter @cerebro/root && pnpm run build --filter web
 
-# ---- Final Stage: Bot ----
-# This stage creates the final, lean image for the bot
-FROM base AS bot
+# Fetch display fonts (Bebas Neue) so runtime doesn't need external network
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    mkdir -p assets/fonts && \
+    curl -L -o assets/fonts/BebasNeue-Regular.ttf https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bebasneue/BebasNeue-Regular.ttf && \
+    curl -L -o assets/fonts/BebasNeue-Regular.woff2 https://fonts.gstatic.com/s/bebasneue/v10/JTUSjIg69CK48gW7PXoo9Wlhyw.woff2 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Run the build script to compile TypeScript to JavaScript
+RUN npm run build
+
+# ---- Stage 2: Production ----
+# This stage creates the final, lean image
+FROM node:18 AS production
+
 WORKDIR /usr/src/app
-# Copy production dependencies from the builder stage
-COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY --from=builder /usr/src/app/package.json ./
-# Copy the prisma schema and generated client
+
+# Copy package files and install ONLY production dependencies
+COPY package*.json ./
+RUN npm install --only=production
+
+# Copy the prisma schema and generated client from the 'builder' stage
 COPY --from=builder /usr/src/app/prisma ./prisma
 COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /usr/src/app/node_modules/@prisma/client ./node_modules/@prisma/client
-# Copy the built bot code
+
+# Copy the built code from the 'builder' stage
 COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/assets ./assets
+
+# Install fonts for image generation
+USER root
+RUN apt-get update && apt-get install -y fonts-dejavu-core fonts-noto-color-emoji && rm -rf /var/lib/apt/lists/*
+
 # Set the user to a non-root user for better security
 USER node
+
 # Command to run the application
 CMD ["node", "dist/index.js"]
-
-# ---- Final Stage: Web ----
-# This stage creates the final, lean image for the web app
-FROM base AS web
-WORKDIR /usr/src/app
-# Copy only the web app's production dependencies
-COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY --from=builder /usr/src/app/web/package.json ./web/
-COPY --from=builder /usr/src/app/web/.next ./web/.next
-COPY --from=builder /usr/src/app/web/public ./web/public
-# Set the user to a non-root user for better security
-USER node
-# Command to run the application
-CMD ["pnpm", "run", "start", "--filter", "web"]
