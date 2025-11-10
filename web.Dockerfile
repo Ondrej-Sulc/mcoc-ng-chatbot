@@ -35,7 +35,7 @@ COPY --from=builder /usr/src/app/package.json ./
 COPY --from=builder /usr/src/app/src ./src
 COPY --from=builder /usr/src/app/web ./web
 # Deploy the web app to a clean directory named 'app'
-RUN pnpm deploy --prod --filter web ./app
+RUN pnpm deploy --prod --filter web --legacy ./app
 
 # ---- Final Stage ----
 # This is the final, lean image
