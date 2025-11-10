@@ -133,7 +133,7 @@ class YouTubeService {
         error: errorMessage,
         title,
       }, 'Failed to upload video to YouTube.');
-      return null;
+      throw error;
     }
   }
 
