@@ -8,6 +8,9 @@
     "./web"
   ],
   "main": "index.js",
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  },
   "scripts": {
     "test": "vitest",
     "build": "tsc && node scripts/generate-docs.js",

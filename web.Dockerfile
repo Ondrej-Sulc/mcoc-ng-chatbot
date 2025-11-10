@@ -2,7 +2,7 @@
 
 # ---- Base Stage ----
 # Common setup for both builder and final stages
-FROM node:18 AS base
+FROM node:20 AS base
 WORKDIR /usr/src/app
 # Install pnpm for efficient monorepo support
 RUN npm install -g pnpm
@@ -20,9 +20,9 @@ RUN pnpm install --frozen-lockfile
 # Copy the rest of the source code
 COPY . .
 # Generate Prisma Client (needed by shared code)
-RUN pnpm --filter @cerebro/core exec prisma generate
+RUN pnpm --filter @cerebro/core exec prisma generate --schema=../prisma/schema.prisma
 # Build the web app
-RUN pnpm run build --filter web
+RUN pnpm --filter web run build
 
 # ---- Final Stage: Production Web ----
 # This stage creates the final, lean image for the web app
