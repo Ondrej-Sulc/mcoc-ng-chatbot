@@ -176,6 +176,9 @@ importers:
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.4.0
+      typescript:
+        specifier: ^5
+        version: 5.9.3
       uuid:
         specifier: ^10.0.0
         version: 10.0.0
@@ -219,9 +222,6 @@ importers:
       tsconfig-paths-webpack-plugin:
         specifier: ^4.2.0
         version: 4.2.0
-      typescript:
-        specifier: ^5
-        version: 5.9.3
 
 packages:
 
