@@ -45,5 +45,7 @@ FROM base
 WORKDIR /usr/src/app
 # Copy the deployed app from the deploy-stage
 COPY --from=deploy-stage /tmp/app .
+# Set correct permissions for the .next folder
+RUN chown -R node:node .next
 USER node
 CMD ["pnpm", "start"]
