@@ -30,13 +30,14 @@
     "cmdk": "^1.1.1",
     "lucide-react": "^0.552.0",
     "next": "16.0.1",
+    "posthog-js": "^1.290.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-virtuoso": "^4.14.1",
     "tailwind-merge": "^3.3.1",
-    "uuid": "^10.0.0",
+    "tsconfig-paths-webpack-plugin": "^4.2.0",
     "typescript": "^5",
-    "tsconfig-paths-webpack-plugin": "^4.2.0"
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "@types/busboy": "^1.5.4",
