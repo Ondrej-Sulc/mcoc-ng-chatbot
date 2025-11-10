@@ -38,6 +38,9 @@ COPY --from=builder /usr/src/app/web ./web
 RUN pnpm deploy --prod --filter web --legacy ./app
 # Explicitly copy the .next build output into the deployed app
 COPY --from=builder /usr/src/app/web/.next ./app/.next
+# Explicitly copy the generated prisma client
+COPY --from=builder /usr/src/app/node_modules/.prisma ./app/node_modules/.prisma
+COPY --from=builder /usr/src/app/node_modules/@prisma/client ./app/node_modules/@prisma/client
 
 # ---- Final Stage ----
 # This is the final, lean image
