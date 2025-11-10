@@ -21,8 +21,6 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 # Generate Prisma Client (needed by shared code)
 RUN pnpm exec prisma generate
-RUN ls -la /usr/src/app/node_modules
-RUN find /usr/src/app -name ".prisma"
 # Build the web app
 RUN pnpm --filter web run build
 
@@ -40,9 +38,6 @@ COPY --from=builder /usr/src/app/web ./web
 RUN pnpm deploy --prod --filter web --legacy ./app
 # Explicitly copy the .next build output into the deployed app
 COPY --from=builder /usr/src/app/web/.next ./app/.next
-# Explicitly copy the generated prisma client
-COPY --from=builder /usr/src/app/node_modules/.prisma ./app/node_modules/.prisma
-COPY --from=builder /usr/src/app/node_modules/@prisma/client ./app/node_modules/@prisma/client
 
 # ---- Final Stage ----
 # This is the final, lean image
