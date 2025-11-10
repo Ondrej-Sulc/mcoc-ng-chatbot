@@ -4,15 +4,17 @@ import Link from "next/link";
 import { CommandList } from "@/components/CommandList";
 import { Faq } from "@/components/Faq";
 import commandData from "@/lib/data/commands.json";
+import PageBackground from "@/components/PageBackground";
 
 export default function Home() {
   const commandGroups = Array.from(
     new Set(commandData.map((c) => c.group))
   ).sort();
   return (
-    <div className="min-h-screen hero-bg">
+    <div className="min-h-screen relative">
+      <PageBackground />
       <main>
-        <section className="pt-24 lg:pt-28 pb-12">
+        <section className="pt-12 lg:pt-12 pb-12">
           <div className="max-w-6xl mx-auto px-4 lg:px-6 grid grid-cols-3 gap-x-6 sm:gap-x-10 gap-y-4 hero-grid">
             {/* Title */}
             <div className="col-span-2 col-start-1 lg:row-start-1 flex flex-col justify-center">
@@ -364,7 +366,7 @@ export default function Home() {
         </section>
 
         <section id="howitworks" className="section-offset py-10 lg:py-14">
-          <div className="max-w-6xl mx-auto px-4 lg:px-6 grid gap-7 md:grid-cols-2">
+          <div className="max-w-6xl mx-auto px-4 lg:px-6 gap-7 text-center md:text-left md:max-w-xl">
             <div>
               <p className="text-xs uppercase tracking-wide text-sky-400/80 mb-1">
                 How it works
@@ -404,19 +406,6 @@ export default function Home() {
                 <li className="flex gap-3">
                   <span className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-100 flex items-center justify-center text-[11px] border border-sky-500/20">
                     3
-                  </span>
-                  <div>
-                    <p className="text-slate-100 text-sm">
-                      Enable smart alerts
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      Members get pinged only when they are relevant.
-                    </p>
-                  </div>
-                </li>
-                <li className="flex gap-3">
-                  <span className="w-6 h-6 rounded-full bg-sky-500/20 text-sky-100 flex items-center justify-center text-[11px] border border-sky-500/20">
-                    4
                   </span>
                   <div>
                     <p className="text-slate-100 text-sm">Review dashboards</p>
@@ -498,7 +487,7 @@ export default function Home() {
                 </svg>
                 <div>
                   <h3 className="text-sm font-semibold text-white text-left">
-                    Buy me a Coffee
+                    Buy me a snack
                   </h3>
                   <p className="text-xs text-slate-300 text-left">
                     A small, one-time donation through Ko-fi.

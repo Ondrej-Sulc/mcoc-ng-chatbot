@@ -1444,5 +1444,21 @@
       }
     ],
     "subcommands": {}
+  },
+  {
+    "name": "war-videos",
+    "description": "Commands for the Alliance War video library.",
+    "access": 1,
+    "group": "Alliance Tools",
+    "color": "gold",
+    "options": [
+      {
+        "type": 1,
+        "name": "upload",
+        "description": "Generates a link to upload a new Alliance War video.",
+        "options": []
+      }
+    ],
+    "subcommands": {}
   }
 ]

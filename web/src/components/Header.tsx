@@ -32,10 +32,10 @@ export default function Header() {
   }, []);
 
   return (
-    <header className={`fixed top-0 inset-x-0 z-40 nav-blur transition-colors duration-300 ${isScrolled ? 'bg-slate-950/80 border-b border-slate-800/70' : 'bg-transparent border-b border-transparent'}`}>
+    <header className={`sticky top-0 inset-x-0 z-40 nav-blur transition-colors duration-300 ${isScrolled ? 'bg-slate-950/80 border-b border-slate-800/70' : 'bg-transparent border-b border-transparent'}`}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="#top" className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3">
             <Image src="/CereBro_logo_256.png" alt="CereBro Logo" width={36} height={36} className="rounded-2xl" />
             <div className="hidden sm:block">
               <p className="font-semibold tracking-tight text-sm">CereBro</p>

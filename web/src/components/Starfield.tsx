@@ -29,6 +29,7 @@ export const Starfield = () => {
     };
 
     const draw = () => {
+      if (!ctx) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
       ctx.beginPath();
@@ -78,10 +79,10 @@ export const Starfield = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-0 pointer-events-none">
+    <div className="absolute inset-0 z-0">
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full opacity-30 mix-blend-screen gradient-bg"
+        className="w-full h-full opacity-30 mix-blend-screen"
       />
     </div>
   );

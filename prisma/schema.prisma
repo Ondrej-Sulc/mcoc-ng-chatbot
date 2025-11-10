@@ -38,6 +38,12 @@ enum AttackType {
   S2
 }
 
+enum WarVideoStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // --- Models ---
 
 // RENAMED from GlossaryCategory and re-linked
@@ -78,6 +84,9 @@ model Champion {
   roster             Roster[]
   synergyProviderFor ChampionAbilitySynergy[]
   duels              Duel[]
+  asAttacker         WarVideo[]    @relation("AttackerRelation")
+  asDefender         WarVideo[]    @relation("DefenderRelation")
+  usedAsPrefight     WarVideo[]    @relation("PrefightChampions")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -199,11 +208,12 @@ model AQState {
 // --- Player and Prestige Logging ---
 
 model Player {
-  id         String  @id @default(cuid())
-  discordId  String
-  ingameName String
-  isActive   Boolean @default(false)
-  timezone   String?
+  id                 String    @id @default(cuid())
+  discordId          String
+  ingameName         String
+  isActive           Boolean   @default(false)
+  timezone           String?
+  isTrustedUploader  Boolean   @default(false)
 
   summonerPrestige Int?
   championPrestige Int?
@@ -212,9 +222,13 @@ model Player {
 
   roster          Roster[]
   prestigeHistory PrestigeLog[]
+  uploadTokens    UploadToken[]
 
   alliance   Alliance? @relation(fields: [allianceId], references: [id], onDelete: SetNull)
   allianceId String?
+
+  submittedVideos WarVideo[] @relation("SubmittedBy")
+  playedInVideos  WarVideo[] @relation("PlayerInVideo")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -317,4 +331,54 @@ model Roster {
   @@unique([playerId, championId, stars])
   @@index([playerId])
   @@index([championId])
+}
+
+// --- War Video Models ---
+
+model WarNode {
+  id          Int        @id @default(autoincrement())
+  nodeNumber  Int        @unique
+  description String?
+  videos      WarVideo[]
+}
+
+model WarVideo {
+  id          String         @id @default(cuid())
+  youtubeUrl  String         @unique
+  status      WarVideoStatus @default(PENDING)
+  visibility  String         @default("public") // "public" or "alliance"
+  season      Int
+  warNumber   Int?
+  warTier     Int
+  death       Boolean
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  attackerId Int
+  attacker   Champion @relation("AttackerRelation", fields: [attackerId], references: [id])
+
+  defenderId Int
+  defender   Champion @relation("DefenderRelation", fields: [defenderId], references: [id])
+
+  nodeId Int
+  node   WarNode @relation(fields: [nodeId], references: [id])
+
+  prefightChampions Champion[] @relation("PrefightChampions")
+
+  playerId   String? // The player in the video
+  player     Player?  @relation("PlayerInVideo", fields: [playerId], references: [id])
+
+  submittedById String
+  submittedBy   Player @relation("SubmittedBy", fields: [submittedById], references: [id])
+}
+
+model UploadToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([playerId])
 }

@@ -12,6 +12,7 @@ This is a TypeScript-based Discord bot for the mobile game Marvel Contest of Cha
 *   **Roster Management:** Users can manage their MCOC rosters.
 *   **Scheduling:** The bot can be used to schedule reminders and other events.
 *   **AQ Management:** The bot has features to help with Alliance Quest (AQ) management.
+*   **War Videos Database:** Users can upload Marvel Contest of Champions (MCOC) Alliance War videos via a web interface. These videos are stored and managed by the bot, providing a centralized database for war strategies and analysis.
 
 The bot is built with a modern tech stack, including:
 

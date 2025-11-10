@@ -23,6 +23,7 @@ export interface Config {
   GCS_BUCKET_NAME: string;
   POSTHOG_API_KEY?: string;
   POSTHOG_HOST?: string;
+  botBaseUrl: string; // Added botBaseUrl
 
   // Alliance War Settings
   allianceWar: {
@@ -80,11 +81,21 @@ const createConfig = (): Config => {
     GOOGLE_CREDENTIALS_JSON: process.env.GOOGLE_CREDENTIALS_JSON,
     MCOC_SHEET_ID: process.env.MCOC_SHEET_ID,
     CHAMPION_SHEET_ID: process.env.CHAMPION_SHEET_ID,
+    BOT_BASE_URL: process.env.BOT_BASE_URL, // Added BOT_BASE_URL
   };
 
   Object.entries(required).forEach(([key, value]) => {
     if (!value) throw new Error(`❌ ${key} is missing`);
   });
+
+  // Validate BOT_BASE_URL format
+  const botBaseUrl = required.BOT_BASE_URL!;
+  if (!botBaseUrl.startsWith('http://') && !botBaseUrl.startsWith('https://')) {
+    throw new Error(`❌ BOT_BASE_URL must start with http:// or https://`);
+  }
+  if (botBaseUrl.endsWith('/')) {
+    throw new Error(`❌ BOT_BASE_URL should not end with a trailing slash`);
+  }
 
   let credentials;
   try {
@@ -131,6 +142,7 @@ const createConfig = (): Config => {
     DEV_USER_IDS: getEnv("DEV_USER_IDS", "").split(",").filter(Boolean),
     POSTHOG_API_KEY: getEnv("POSTHOG_API_KEY", ""),
     POSTHOG_HOST: getEnv("POSTHOG_HOST", ""),
+    botBaseUrl: getEnv("BOT_BASE_URL"), // Retrieved BOT_BASE_URL
 
     // Alliance War Settings
     allianceWar: {
