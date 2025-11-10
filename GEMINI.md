@@ -95,3 +95,21 @@ The bot should now be running and connected to Discord and the database.
 ## Important Note on Discord.js Ephemeral Replies
 
 **NEVER** use `ephemeral: true` in Discord.js interaction replies or deferrals. This option is deprecated and can lead to `InteractionAlreadyReplied` errors and other unexpected behavior. Always use `flags: MessageFlags.Ephemeral` instead to ensure correct and consistent ephemeral messaging.
+
+## Web Application Deployment on Railway
+
+Deploying the Next.js web application (`/web`) to Railway requires a specific setup due to the `pnpm` monorepo structure. The following are key learnings and configuration requirements:
+
+*   **Monorepo Setup:** The project is a `pnpm` monorepo. The web app (`web`) depends on the bot's code (`src`), which is referenced as a workspace dependency.
+*   **`pnpm-workspace.yaml`:** This file is essential for `pnpm` to identify the workspaces and must be present at the project root.
+*   **`pnpm-lock.yaml`:** The lockfile is the single source of truth for dependencies. It **must** be kept up-to-date by running `pnpm install` locally and committing the changes after any modification to a `package.json` file. Failure to do so will cause the build to fail with an `ERR_PNPM_OUTDATED_LOCKFILE` error in CI/CD environments.
+*   **`web.Dockerfile`:** A dedicated, multi-stage `web.Dockerfile` in the project root is used to build and deploy the web service.
+*   **Node.js Version:** Next.js has specific Node.js version requirements (e.g., Node 20+). This must be set as the base image in the Dockerfile (e.g., `FROM node:20 AS base`).
+*   **Prisma Generation:** When running `prisma generate` from a workspace subdirectory, the `--schema` flag is required to point to the correct location of the schema file (e.g., `RUN pnpm --filter @cerebro/core exec prisma generate --schema=../prisma/schema.prisma`).
+*   **`pnpm` Command Syntax:** The correct syntax for running a script in a specific workspace is `pnpm --filter <workspace> <command>` (e.g., `pnpm --filter web run build`).
+*   **Runtime Dependencies in `next.config.ts`:** Any packages imported and used by `next.config.ts` (e.g., `typescript`, `tsconfig-paths-webpack-plugin`) must be listed as regular `dependencies`, not `devDependencies`. This is because Next.js processes this file at runtime, and production builds prune `devDependencies`.
+*   **`pnpm deploy` Nuances:** This is the idiomatic way to create a production-ready build for a `pnpm` workspace, but it has several requirements:
+    *   **`--legacy` flag:** This flag is required for workspaces that do not use the `inject-workspace-packages=true` setting.
+    *   **Empty Target Directory:** The command requires the target directory to be empty. The Dockerfile handles this by using an intermediate `deploy-stage` with an empty target directory.
+    *   **Build Artifacts (`.next`):** `pnpm deploy` does **not** copy build artifacts by default. The `.next` directory must be explicitly copied from the `builder` stage into the deployed application.
+    *   **File Structure:** `pnpm deploy` creates a flat file structure in the target directory, copying the *contents* of the workspace package. `COPY` paths and the final `WORKDIR` must be adjusted to match this flat structure.

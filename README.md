@@ -56,6 +56,17 @@ A modular Discord bot built with TypeScript, designed for Marvel Contest of Cham
 
 The production instance of the bot and its PostgreSQL database are hosted on [Railway](https://railway.app/).
 
+### Web Application Deployment
+
+The Next.js web application, located in the `/web` directory, is deployed as a separate service on Railway. It is part of a `pnpm` monorepo and its deployment is handled by a dedicated, multi-stage `web.Dockerfile` located in the project root.
+
+The Docker build process is optimized for monorepo deployments and consists of three main stages:
+1.  **Builder Stage:** Installs all dependencies across all workspaces (`pnpm install`) and builds the Next.js application (`pnpm --filter web run build`).
+2.  **Deploy Stage:** Uses the `pnpm deploy` command to create a clean, production-only version of the `web` workspace in a temporary directory. This stage also explicitly copies the `.next` build output from the builder stage.
+3.  **Final Stage:** Creates the final, lean production image by copying the pruned application from the deploy stage. This image is then used to run the web service on Railway.
+
+This multi-stage approach ensures a small, secure, and efficient production image containing only the necessary files and dependencies to run the web application.
+
 ## Commands
 
 | Command | Description | Access |
