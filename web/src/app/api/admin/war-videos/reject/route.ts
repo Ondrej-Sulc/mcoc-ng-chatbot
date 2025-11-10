@@ -23,7 +23,15 @@ export async function POST(req: NextRequest) {
     // Delete from YouTube
     const youtubeId = youTubeService.getVideoId(warVideo.youtubeUrl);
     if (youtubeId) {
-      await youTubeService.deleteVideo(youtubeId);
+      try {
+        await youTubeService.deleteVideo(youtubeId);
+      } catch (ytError) {
+        loggerService.error({ err: ytError, youtubeId }, 'Failed to delete YouTube video');
+        return NextResponse.json({ 
+          error: 'Failed to delete video from YouTube', 
+          details: 'Database record retained for manual cleanup' 
+        }, { status: 500 });
+      }
     }
 
     // Delete from DB
