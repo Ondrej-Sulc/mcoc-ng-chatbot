@@ -28,13 +28,14 @@ RUN pnpm --filter web run build
 # This stage creates the final, lean image for the web app
 FROM base AS production-web
 WORKDIR /usr/src/app
-# Copy only the necessary production files from the builder stage
-COPY --from=builder /usr/src/app/node_modules ./node_modules
-COPY --from=builder /usr/src/app/web/package.json ./web/package.json
-COPY --from=builder /usr/src/app/web/.next ./web/.next
-COPY --from=builder /usr/src/app/web/public ./web/public
+# Copy only the files needed for deployment from the builder
+COPY --from=builder /usr/src/app/pnpm-lock.yaml ./
+COPY --from=builder /usr/src/app/pnpm-workspace.yaml ./
 COPY --from=builder /usr/src/app/package.json ./
-# Set the user to a non-root user for better security
+COPY --from=builder /usr/src/app/src ./src
+COPY --from=builder /usr/src/app/web ./web
+# Use pnpm deploy to create a clean production-only build of the web app
+RUN pnpm deploy --prod --filter web .
 USER node
-# Command to run the application
-CMD ["pnpm", "--filter", "web", "run", "start"]
+WORKDIR /usr/src/app/web
+CMD ["pnpm", "start"]
