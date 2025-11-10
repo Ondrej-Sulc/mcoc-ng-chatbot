@@ -20,7 +20,7 @@ RUN pnpm install --frozen-lockfile
 # Copy the rest of the source code
 COPY . .
 # Generate Prisma Client (needed by shared code)
-RUN pnpm --filter @cerebro/core exec prisma generate --schema=../prisma/schema.prisma
+RUN pnpm exec prisma generate
 # Build the web app
 RUN pnpm --filter web run build
 
