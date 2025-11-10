@@ -7,8 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getChampionImageUrl } from '@/lib/championHelper';
-import { Champion, WarNode, Player } from '@prisma/client';
-import { Check, Trash } from 'lucide-react';
+import { WarNode, Player, ChampionClass } from '@prisma/client';
+import { Check, Trash, Swords, Shield, Diamond } from 'lucide-react';
+import { getChampionClassColors } from '@/lib/championClassHelper';
+import { cn } from '@/lib/utils';
+import { Champion, ChampionImages } from '@/types/champion';
 
 interface WarVideo {
   id: string;
@@ -16,10 +19,12 @@ interface WarVideo {
   status: string;
   visibility: string;
   season: number;
+  warNumber: number | null;
   warTier: number;
   death: boolean;
   attacker: Champion;
   defender: Champion;
+  prefightChampions: Champion[];
   node: WarNode;
   player: Player | null;
   submittedBy: Player;
@@ -77,7 +82,7 @@ export default function WarVideoDisplay({ warVideo, isAdmin }: WarVideoDisplayPr
     <div className="container mx-auto p-4 max-w-4xl">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{`MCOC AW: S${warVideo.season} W? T${warVideo.warTier} - ${warVideo.attacker.name} vs ${warVideo.defender.name}`}</CardTitle>
+          <CardTitle className="text-2xl">{`MCOC AW: S${warVideo.season} W${warVideo.warNumber || '?'} T${warVideo.warTier} - ${warVideo.attacker.name} vs ${warVideo.defender.name}`}</CardTitle>
           <CardDescription>
             Submitted by {warVideo.submittedBy.ingameName} on {new Date(warVideo.createdAt).toISOString().split('T')[0]}
           </CardDescription>
@@ -109,46 +114,81 @@ export default function WarVideoDisplay({ warVideo, isAdmin }: WarVideoDisplayPr
             </div>
           )}
 
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 p-4 border rounded-lg bg-muted/20">
-            <div className="flex flex-col items-center gap-3">
-              <h3 className="text-lg font-semibold text-red-500">Attacker</h3>
-              <div className="flex items-center gap-2">
-                <Image src={getChampionImageUrl(warVideo.attacker.images as any, '128', 'primary')} alt={warVideo.attacker.name} width={50} height={50} className="rounded-full" />
-                <span>{warVideo.attacker.name}</span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="flex flex-col items-center justify-center gap-4 p-4 border rounded-lg bg-muted/20 h-full">
+                <div className="flex flex-col items-center gap-3">
+                  <h3 className="flex items-center gap-2 text-lg font-semibold">
+                    <Swords className="h-6 w-6" /> Attacker
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <Image src={getChampionImageUrl(warVideo.attacker.images as any, '128', 'primary')} alt={warVideo.attacker.name} width={50} height={50} className={cn("rounded-full", getChampionClassColors(warVideo.attacker.class as ChampionClass).border)} />
+                    <span className={cn("font-semibold", getChampionClassColors(warVideo.attacker.class as ChampionClass).text)}>{warVideo.attacker.name}</span>
+                  </div>
+                </div>
+                <div className="font-bold text-2xl text-muted-foreground">VS</div>
+                <div className="flex flex-col items-center gap-3">
+                  <h3 className="flex items-center gap-2 text-lg font-semibold text-blue-500">
+                    <Shield className="h-6 w-6" /> Defender
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <Image src={getChampionImageUrl(warVideo.defender.images as any, '128', 'primary')} alt={warVideo.defender.name} width={50} height={50} className={cn("rounded-full", getChampionClassColors(warVideo.defender.class as ChampionClass).border)} />
+                    <span className={cn("font-semibold", getChampionClassColors(warVideo.defender.class as ChampionClass).text)}>{warVideo.defender.name}</span>
+                  </div>
+                </div>
+              </div>
+
+            <div className="space-y-4">
+              <div className="p-4 border rounded-lg bg-muted/20">
+                <h3 className="text-lg font-medium mb-4">Fight Details</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center mb-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Season</p>
+                    <p className="font-semibold">{warVideo.season}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">War</p>
+                    <p className="font-semibold">{warVideo.warNumber || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tier</p>
+                    <p className="font-semibold">{warVideo.warTier}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Node</p>
+                    <p className="font-semibold">{warVideo.node.nodeNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Player</p>
+                    <p className="font-semibold truncate">{warVideo.player?.ingameName || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Died?</p>
+                    <p className="font-semibold">{warVideo.death ? 'Yes' : 'No'}</p>
+                  </div>
+                </div>
+                 <div className="flex justify-center gap-2">
+                  <Badge variant={warVideo.status === 'APPROVED' ? 'default' : 'secondary'}>{warVideo.status}</Badge>
+                  <Badge variant="outline">{warVideo.visibility}</Badge>
+                </div>
+              </div>
+              <div className="p-4 border rounded-lg bg-muted/20">
+                <h3 className="flex items-center gap-2 text-lg font-medium mb-2">
+                  <Diamond className="h-5 w-5 text-muted-foreground" /> Prefight Champions
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {warVideo.prefightChampions.length > 0 ? (
+                    warVideo.prefightChampions.map(champ => (
+                      <Badge key={champ.id} variant="outline" className="flex items-center gap-2">
+                        <Image src={getChampionImageUrl(champ.images as any, '64', 'primary')} alt={champ.name} width={20} height={20} className="rounded-full" />
+                        {champ.name}
+                      </Badge>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No prefight champions were used.</p>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="font-bold text-2xl text-muted-foreground">VS</div>
-            <div className="flex flex-col items-center gap-3">
-              <h3 className="text-lg font-semibold text-blue-500">Defender</h3>
-              <div className="flex items-center gap-2">
-                <Image src={getChampionImageUrl(warVideo.defender.images as any, '128', 'primary')} alt={warVideo.defender.name} width={50} height={50} className="rounded-full" />
-                <span>{warVideo.defender.name}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-            <div>
-              <p className="text-sm text-muted-foreground">Season</p>
-              <p className="font-semibold">{warVideo.season}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">War Tier</p>
-              <p className="font-semibold">{warVideo.warTier}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Node</p>
-              <p className="font-semibold">{warVideo.node.nodeNumber}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Attacker Died?</p>
-              <p className="font-semibold">{warVideo.death ? 'Yes' : 'No'}</p>
-            </div>
-          </div>
-
-          <div className="flex justify-center gap-2">
-            <Badge variant={warVideo.status === 'APPROVED' ? 'default' : 'secondary'}>{warVideo.status}</Badge>
-            <Badge variant="outline">{warVideo.visibility}</Badge>
           </div>
         </CardContent>
       </Card>

@@ -5,15 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle } from 'lucide-react';
 import { WarVideoForm } from './WarVideoForm';
+import { Champion } from '@/types/champion';
 
 // Define types for fetched data
-interface Champion {
-  id: number;
-  name: string;
-  images: any; // Simplified for brevity, actual type in form component
-  abilities: { ability: { name: string } }[];
-}
-
 interface WarNode {
   id: number;
   nodeNumber: number;

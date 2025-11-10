@@ -8,16 +8,11 @@ import { MultiChampionCombobox } from '@/components/MultiChampionCombobox';
 import { NodeCombobox } from '@/components/NodeCombobox';
 import { Swords, Shield, Skull, Diamond, X } from 'lucide-react';
 import { getChampionImageUrl } from '@/lib/championHelper';
-import { ChampionImages } from '@/types/champion';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
-
-interface Champion {
-  id: number;
-  name: string;
-  images: ChampionImages;
-  abilities: { ability: { name: string } }[];
-}
+import { ChampionClass } from '@prisma/client';
+import { getChampionClassColors } from '@/lib/championClassHelper';
+import { Champion, ChampionImages } from '@/types/champion';
 
 interface WarNode {
   id: number;
@@ -112,13 +107,13 @@ export function FightBlock({
         <div className="grid grid-cols-1 lg:grid-cols-[65%,35%] gap-3">
           <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-4 p-3 border rounded-lg bg-background">
             <div className="flex flex-col items-center gap-3 w-full min-w-0">
-              <div className="flex items-center gap-2 text-lg font-semibold text-red-500">
+              <div className="flex items-center gap-2 text-lg font-semibold">
                 <Swords className="h-6 w-6" />
                 <h3>Attacker</h3>
               </div>
               <div className="flex items-center gap-2 w-full">
-                {selectedAttacker && <Image src={getChampionImageUrl(selectedAttacker.images, '128', 'primary')} alt={selectedAttacker.name} width={50} height={50} className="rounded-full" />}
-                <ChampionCombobox champions={initialChampions} value={attackerId} onSelect={setAttackerId} placeholder="Select attacker..." />
+                {selectedAttacker && <Image src={getChampionImageUrl(selectedAttacker.images, '128', 'primary')} alt={selectedAttacker.name} width={50} height={50} className={cn("rounded-full", getChampionClassColors(selectedAttacker?.class).border)} />}
+                <ChampionCombobox champions={initialChampions} value={attackerId} onSelect={setAttackerId} placeholder="Select attacker..." className={getChampionClassColors(selectedAttacker?.class).text} />
               </div>
             </div>
             <div className="font-bold text-2xl text-muted-foreground hidden md:block">VS</div>
@@ -129,15 +124,15 @@ export function FightBlock({
                 <h3>Defender</h3>
               </div>
               <div className="flex items-center gap-2 w-full">
-                {selectedDefender && <Image src={getChampionImageUrl(selectedDefender.images, '128', 'primary')} alt={selectedDefender.name} width={50} height={50} className="rounded-full" />}
-                <ChampionCombobox champions={initialChampions} value={defenderId} onSelect={setDefenderId} placeholder="Select defender..." />
+                {selectedDefender && <Image src={getChampionImageUrl(selectedDefender.images, '128', 'primary')} alt={selectedDefender.name} width={50} height={50} className={cn("rounded-full", getChampionClassColors(selectedDefender?.class).border)} />}
+                <ChampionCombobox champions={initialChampions} value={defenderId} onSelect={setDefenderId} placeholder="Select defender..." className={getChampionClassColors(selectedDefender?.class).text} />
               </div>
             </div>
           </div>
           <div className="p-3 border rounded-lg bg-background">
             <div className="flex items-center gap-2 mb-2">
               <Diamond className="h-5 w-5 text-muted-foreground" />
-              <Label>Prefight Champions</Label>
+              <h3>Prefight Champions</h3>
             </div>
             <MultiChampionCombobox
               champions={prefightChampions}

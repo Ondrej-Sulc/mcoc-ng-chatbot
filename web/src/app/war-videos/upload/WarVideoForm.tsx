@@ -14,16 +14,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { MemoizedSelect } from '@/components/MemoizedSelect';
 import { FightBlock, FightData } from '@/components/FightBlock';
 import { UploadCloud, Plus } from 'lucide-react';
-import { ChampionImages } from '@/types/champion';
+import { Champion } from '@/types/champion';
 import { cn } from '@/lib/utils';
-
-// Define types for props
-interface Champion {
-  id: number;
-  name: string;
-  images: ChampionImages;
-  abilities: { ability: { name: string } }[];
-}
 
 interface WarNode {
   id: number;
@@ -135,8 +127,15 @@ export function WarVideoForm({
     const fight = fights[0];
     const selectedAttacker = initialChampions.find(c => String(c.id) === fight.attackerId);
     const selectedDefender = initialChampions.find(c => String(c.id) === fight.defenderId);
+    const selectedNode = initialNodes.find(n => String(n.id) === fight.nodeId);
+    const selectedPlayer = initialPlayers.find(p => p.id === playerInVideoId);
 
-    const autoTitle = `MCOC AW: S${season} W${isOffseason ? 'Offseason' : warNumber} T${warTier} - ${fights[0].attackerId} vs ${fights[0].defenderId}`;
+    const attackerName = selectedAttacker?.name || 'Unknown Attacker';
+    const defenderName = selectedDefender?.name || 'Unknown Defender';
+    const nodeNumber = selectedNode?.nodeNumber || '??';
+    const playerName = selectedPlayer?.ingameName || 'Unknown Player';
+
+    const autoTitle = `MCOC AW: S${season} W${isOffseason ? 'Offseason' : warNumber} T${warTier} - ${attackerName} vs ${defenderName} on Node ${nodeNumber} by ${playerName}`;
 
     const formData = new FormData();
     formData.append('token', token);

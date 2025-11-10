@@ -5,7 +5,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative z-10 min-h-screen">
       <Header />
-      <main className="pt-20">
+      <main className="">
         {children}
       </main>
     </div>

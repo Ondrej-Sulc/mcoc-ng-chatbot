@@ -18,19 +18,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { ChampionImages } from "@/types/champion"
-
-interface Champion {
-  id: number;
-  name: string;
-  images: ChampionImages;
-}
+import { Champion } from "@/types/champion"
 
 interface ChampionComboboxProps {
   champions: Champion[];
   value: string;
   onSelect: (value: string) => void;
   placeholder?: string;
+  className?: string;
 }
 
 export const ChampionCombobox = React.memo(function ChampionCombobox({
@@ -38,6 +33,7 @@ export const ChampionCombobox = React.memo(function ChampionCombobox({
   value,
   onSelect,
   placeholder = "Select a champion...",
+  className,
 }: ChampionComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
@@ -60,7 +56,7 @@ export const ChampionCombobox = React.memo(function ChampionCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className={cn("w-full justify-between", className)}
         >
           <span className="truncate">
             {value ? champions.find((c) => String(c.id) === value)?.name : placeholder}

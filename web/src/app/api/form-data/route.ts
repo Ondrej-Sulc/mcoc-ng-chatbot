@@ -34,6 +34,7 @@ export async function GET(request: Request) {
         select: {
           id: true,
           name: true,
+          class: true,
           images: true,
           abilities: {
             select: {
