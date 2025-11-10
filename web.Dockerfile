@@ -38,6 +38,8 @@ COPY --from=builder /usr/src/app/web ./web
 RUN pnpm deploy --prod --filter web --legacy ./app
 # Explicitly copy the .next build output into the deployed web app
 COPY --from=builder /usr/src/app/web/.next ./app/web/.next
+# DIAGNOSTIC: List all files to ensure .next is present
+RUN ls -laR ./app
 
 # ---- Final Stage ----
 # This is the final, lean image
