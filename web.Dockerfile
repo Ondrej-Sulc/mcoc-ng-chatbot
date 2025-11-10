@@ -11,7 +11,8 @@ RUN npm install -g pnpm
 # This stage builds the web app, including shared dependencies
 FROM base AS builder
 # Copy all package files from the monorepo
-COPY package.json pnpm-lock.yaml* ./
+COPY pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 COPY src/package.json ./src/
 COPY web/package.json ./web/
 # Install all dependencies for all workspaces
