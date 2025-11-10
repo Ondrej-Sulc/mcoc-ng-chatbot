@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "description": "",
   "workspaces": [
-    "src",
-    "web"
+    "./src",
+    "./web"
   ],
   "main": "index.js",
   "scripts": {
