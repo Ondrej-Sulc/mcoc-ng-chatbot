@@ -36,10 +36,8 @@ COPY --from=builder /usr/src/app/src ./src
 COPY --from=builder /usr/src/app/web ./web
 # Deploy the web app to a clean directory named 'app'
 RUN pnpm deploy --prod --filter web --legacy ./app
-# Explicitly copy the .next build output into the deployed web app
-COPY --from=builder /usr/src/app/web/.next ./app/web/.next
-# DIAGNOSTIC: List all files to ensure .next is present
-RUN ls -laR ./app
+# Explicitly copy the .next build output into the deployed app
+COPY --from=builder /usr/src/app/web/.next ./app/.next
 
 # ---- Final Stage ----
 # This is the final, lean image
@@ -48,5 +46,4 @@ WORKDIR /usr/src/app
 # Copy the deployed app from the deploy-stage
 COPY --from=deploy-stage /tmp/app .
 USER node
-WORKDIR /usr/src/app/web
 CMD ["pnpm", "start"]
