@@ -1,7 +1,10 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
+import path from 'path';
 
 const nextConfig: NextConfig = {
-  outputFileTracingRoot: '../',
+  experimental: {
+    outputFileTracingRoot: path.join(__dirname, '../../'),
+  },
   images: {
     remotePatterns: [
       {
@@ -11,6 +14,11 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  webpack: (config, { isServer }) => {
+    // Ensure webpack resolves modules from the root
+    config.resolve.modules.push(path.resolve('./'));
+    return config;
   },
   transpilePackages: ['@cerebro/core'],
 };
