@@ -36,6 +36,8 @@ COPY --from=builder /usr/src/app/src ./src
 COPY --from=builder /usr/src/app/web ./web
 # Deploy the web app to a clean directory named 'app'
 RUN pnpm deploy --prod --filter web --legacy ./app
+# Explicitly copy the .next build output into the deployed web app
+COPY --from=builder /usr/src/app/web/.next ./app/web/.next
 
 # ---- Final Stage ----
 # This is the final, lean image
