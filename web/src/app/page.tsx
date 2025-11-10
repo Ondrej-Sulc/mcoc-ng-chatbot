@@ -589,38 +589,6 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="py-6 border-t border-slate-800/30">
-        <div className="max-w-6xl mx-auto px-4 lg:px-6 flex flex-col md:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-slate-500">
-            © {new Date().getFullYear()} CereBro Bot. Not affiliated with Kabam
-            or Marvel Contest of Champions.
-          </p>
-          <div className="flex gap-3 text-xs text-slate-400">
-            <Link href="#features" className="hover:text-slate-100">
-              Features
-            </Link>
-            <Link href="#commands" className="hover:text-slate-100">
-              Commands
-            </Link>
-            <Link href="#howitworks" className="hover:text-slate-100">
-              How it works
-            </Link>
-            <Link href="#faq" className="hover:text-slate-100">
-              FAQ
-            </Link>
-            <Link href="#support" className="hover:text-slate-100">
-              Support
-            </Link>
-            <Link
-              href="https://discord.com"
-              target="_blank"
-              className="hover:text-slate-100"
-            >
-              Discord
-            </Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
