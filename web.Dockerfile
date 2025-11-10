@@ -37,4 +37,4 @@ COPY --from=builder /usr/src/app/package.json ./
 # Set the user to a non-root user for better security
 USER node
 # Command to run the application
-CMD ["pnpm", "run", "start", "--filter", "web"]
+CMD ["pnpm", "--filter", "web", "run", "start"]
