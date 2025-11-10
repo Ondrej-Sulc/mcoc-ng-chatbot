@@ -24,18 +24,25 @@ RUN pnpm --filter @cerebro/core exec prisma generate --schema=../prisma/schema.p
 # Build the web app
 RUN pnpm --filter web run build
 
-# ---- Final Stage: Production Web ----
-# This stage creates the final, lean image for the web app
-FROM base AS production-web
-WORKDIR /usr/src/app
-# Copy only the files needed for deployment from the builder
+# ---- Deploy Stage ----
+# This stage creates the clean production deployment in a separate directory
+FROM base AS deploy-stage
+WORKDIR /tmp
+# Copy the necessary files from the builder stage
 COPY --from=builder /usr/src/app/pnpm-lock.yaml ./
 COPY --from=builder /usr/src/app/pnpm-workspace.yaml ./
 COPY --from=builder /usr/src/app/package.json ./
 COPY --from=builder /usr/src/app/src ./src
 COPY --from=builder /usr/src/app/web ./web
-# Use pnpm deploy to create a clean production-only build of the web app
-RUN pnpm deploy --prod --filter web .
+# Deploy the web app to a clean directory named 'app'
+RUN pnpm deploy --prod --filter web ./app
+
+# ---- Final Stage ----
+# This is the final, lean image
+FROM base
+WORKDIR /usr/src/app
+# Copy the deployed app from the deploy-stage
+COPY --from=deploy-stage /tmp/app .
 USER node
 WORKDIR /usr/src/app/web
 CMD ["pnpm", "start"]
