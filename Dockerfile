@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && \
     curl -L -o assets/fonts/BebasNeue-Regular.ttf https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bebasneue/BebasNeue-Regular.ttf && \
     curl -L -o assets/fonts/BebasNeue-Regular.woff2 https://fonts.gstatic.com/s/bebasneue/v10/JTUSjIg69CK48gW7PXoo9Wlhyw.woff2 && \
     rm -rf /var/lib/apt/lists/*
+RUN chown -R node:node .
 USER node
 
 # Generate Prisma Client (needed by shared code)
