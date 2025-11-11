@@ -164,6 +164,9 @@ importers:
       posthog-js:
         specifier: ^1.290.0
         version: 1.290.0
+      prisma:
+        specifier: ^6.14.0
+        version: 6.19.0(typescript@5.9.3)
       react:
         specifier: 19.2.0
         version: 19.2.0
