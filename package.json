@@ -11,6 +11,18 @@
   "prisma": {
     "schema": "prisma/schema.prisma"
   },
+  "pnpm": {
+    "allowed-scripts": {
+      "@prisma/client": true,
+      "@prisma/engines": true,
+      "core-js": true,
+      "esbuild": true,
+      "prisma": true,
+      "protobufjs": true,
+      "sharp": true,
+      "unrs-resolver": true
+    }
+  },
   "scripts": {
     "test": "vitest",
     "build": "tsc && node scripts/generate-docs.js",
