@@ -19,6 +19,16 @@ COPY web/package.json ./web/
 RUN pnpm install --frozen-lockfile
 # Copy the rest of the source code
 COPY . .
+
+# Fetch display fonts (Bebas Neue) so runtime doesn't need external network
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends curl && \
+    mkdir -p assets/fonts && \
+    curl -L -o assets/fonts/BebasNeue-Regular.ttf https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bebasneue/BebasNeue-Regular.ttf && \
+    curl -L -o assets/fonts/BebasNeue-Regular.woff2 https://fonts.gstatic.com/s/bebasneue/v10/JTUSjIg69CK48gW7PXoo9Wlhyw.woff2 && \
+    rm -rf /var/lib/apt/lists/*
+USER node
+
 # Generate Prisma Client (needed by shared code)
 RUN pnpm exec prisma generate
 # Build the bot's typescript code
@@ -27,6 +37,13 @@ RUN pnpm run build
 # ---- Final Stage ----
 # This is the final, lean image for production deployment
 FROM base
+WORKDIR /usr/src/app
+
+# Switch to root to install dependencies
+USER root
+RUN apt-get update && apt-get install -y fonts-dejavu-core fonts-noto-color-emoji && rm -rf /var/lib/apt/lists/*
+# Switch back to non-root user
+USER node
 WORKDIR /usr/src/app
 
 # Copy over the pnpm lockfile and workspace files for installation.
@@ -46,6 +63,7 @@ COPY --from=builder /usr/src/app/node_modules/@prisma/client ./node_modules/@pri
 
 # Copy the compiled application code from the builder stage.
 COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/assets ./assets
 
 # Set correct ownership for the node user.
 RUN chown -R node:node .

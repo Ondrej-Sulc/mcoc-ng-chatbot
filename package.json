@@ -12,16 +12,24 @@
     "schema": "prisma/schema.prisma"
   },
   "pnpm": {
-    "allowed-scripts": {
-      "@prisma/client": true,
-      "@prisma/engines": true,
-      "core-js": true,
-      "esbuild": true,
-      "prisma": true,
-      "protobufjs": true,
-      "sharp": true,
-      "unrs-resolver": true
-    }
+    "allowed-build-scripts": [
+      "@prisma/client",
+      "esbuild",
+      "prisma",
+      "sharp",
+      "protobufjs",
+      "core-js"
+    ],
+    "ignoredBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "core-js",
+      "esbuild",
+      "prisma",
+      "protobufjs",
+      "sharp",
+      "unrs-resolver"
+    ]
   },
   "scripts": {
     "test": "vitest",
