@@ -163,40 +163,81 @@ export function WarVideoForm({
   };
 
   const uploadVideo = useCallback(
-    async (formData: FormData, fightId: string) => {
-      return new Promise<{ videoIds: string[] }>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
+    async (formData: FormData, fightId: string, title: string) => {
+      if ('BackgroundFetchManager' in self) {
+        const sw = await navigator.serviceWorker.ready;
+        const fetchId = `upload-${fightId}-${Date.now()}`;
 
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const percentCompleted = Math.round(
-              (event.loaded * 100) / event.total
-            );
-            setUploadProgress(percentCompleted);
+        const bgFetch = await sw.backgroundFetch.fetch(
+          fetchId,
+          ['/api/war-videos/upload'],
+          {
+            title: title,
+            icons: [
+              {
+                sizes: '192x192',
+                src: '/CereBro_logo_256.png',
+                type: 'image/png',
+              },
+            ],
+            downloadTotal:
+              uploadMode === 'single'
+                ? videoFile?.size ?? 0
+                : fights.find((f) => f.id === fightId)?.videoFile?.size ?? 0,
           }
-        };
+        );
 
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            const result = JSON.parse(xhr.responseText);
-            resolve(result);
-          } else {
-            const errorData = JSON.parse(xhr.responseText);
-            reject(
-              new Error(errorData.error || `Upload failed for fight ${fightId}`)
-            );
-          }
-        };
+        const response = await fetch('/api/war-videos/upload', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'X-Background-Fetch-Id': bgFetch.id,
+          },
+        });
 
-        xhr.onerror = () => {
-          reject(new Error(`Network error during upload for fight ${fightId}`));
-        };
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Upload failed for fight ${fightId}`);
+        }
+        
+        return response.json();
 
-        xhr.open("POST", "/api/war-videos/upload", true);
-        xhr.send(formData);
-      });
+      } else {
+        // Fallback to XMLHttpRequest
+        return new Promise<{ videoIds: string[] }>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const percentCompleted = Math.round(
+                (event.loaded * 100) / event.total
+              );
+              setUploadProgress(percentCompleted);
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              const result = JSON.parse(xhr.responseText);
+              resolve(result);
+            } else {
+              const errorData = JSON.parse(xhr.responseText);
+              reject(
+                new Error(errorData.error || `Upload failed for fight ${fightId}`)
+              );
+            }
+          };
+
+          xhr.onerror = () => {
+            reject(new Error(`Network error during upload for fight ${fightId}`));
+          };
+
+          xhr.open('POST', '/api/war-videos/upload', true);
+          xhr.send(formData);
+        });
+      }
     },
-    []
+    [fights, uploadMode, videoFile]
   );
 
   const handleSubmit = useCallback(
@@ -205,6 +246,8 @@ export function WarVideoForm({
       if (!validateForm() || isSubmitting) return;
       setIsSubmitting(true);
       setUploadProgress(0);
+
+      const useBackgroundFetch = 'BackgroundFetchManager' in self;
 
       const getTitle = (fight: FightData) => {
         const selectedAttacker = initialChampions.find(
@@ -229,6 +272,13 @@ export function WarVideoForm({
       };
 
       try {
+        if (useBackgroundFetch) {
+          toast({
+            title: "Upload Started",
+            description: "Your video(s) are now uploading in the background. You can leave this page.",
+          });
+        }
+
         if (uploadMode === "single") {
           setCurrentUpload("Uploading video...");
           const formData = new FormData();
@@ -241,20 +291,22 @@ export function WarVideoForm({
           formData.append("description", description);
           if (playerInVideoId) formData.append("playerId", playerInVideoId);
 
-          // For single video mode, we generate one title but send all fights
-          formData.append("title", getTitle(fights[0]));
+          const title = getTitle(fights[0]);
+          formData.append("title", title);
           formData.append("fights", JSON.stringify(fights));
           formData.append("mode", "single");
 
-          const result = await uploadVideo(formData, "single-video");
-          toast({
-            title: "Success!",
-            description: "All fights have been submitted.",
-          });
-          if (result.videoIds && result.videoIds.length > 0) {
-            router.push(`/war-videos/${result.videoIds[0]}`);
-          } else {
-            router.push("/war-videos");
+          const result = await uploadVideo(formData, "single-video", title);
+          if (!useBackgroundFetch) {
+            toast({
+              title: "Success!",
+              description: "All fights have been submitted.",
+            });
+            if (result.videoIds && result.videoIds.length > 0) {
+              router.push(`/war-videos/${result.videoIds[0]}`);
+            } else {
+              router.push("/war-videos");
+            }
           }
         } else {
           // Multiple videos mode
@@ -274,25 +326,32 @@ export function WarVideoForm({
             formData.append("description", description);
             if (playerInVideoId) formData.append("playerId", playerInVideoId);
 
-            formData.append("title", getTitle(fight));
-            // Send only one fight at a time
+            const title = getTitle(fight);
+            formData.append("title", title);
             formData.append("fights", JSON.stringify([fight]));
             formData.append("mode", "multiple");
 
-            const result = await uploadVideo(formData, fight.id);
+            const result = await uploadVideo(formData, fight.id, title);
             if (result.videoIds && result.videoIds.length > 0) {
               allUploadedVideoIds.push(result.videoIds[0]);
             }
           }
-          toast({
-            title: "Success!",
-            description: "All videos have been uploaded.",
-          });
-          if (allUploadedVideoIds.length > 0) {
-            router.push(`/war-videos/${allUploadedVideoIds[0]}`);
-          } else {
-            router.push("/war-videos");
+          if (!useBackgroundFetch) {
+            toast({
+              title: "Success!",
+              description: "All videos have been uploaded.",
+            });
+            if (allUploadedVideoIds.length > 0) {
+              router.push(`/war-videos/${allUploadedVideoIds[0]}`);
+            } else {
+              router.push("/war-videos");
+            }
           }
+        }
+        if (useBackgroundFetch) {
+          // For background fetch, we don't have the final video ID immediately.
+          // We can redirect to a general page or just stay here.
+          router.push("/war-videos");
         }
       } catch (error: any) {
         console.error("Submission error:", error);
