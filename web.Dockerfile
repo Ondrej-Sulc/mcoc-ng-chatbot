@@ -21,6 +21,8 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 # Generate Prisma Client (needed by shared code)
 RUN pnpm exec prisma generate
+# Add a diagnostic command to check the generated client path
+RUN ls -la /usr/src/app/node_modules/.prisma
 # Build the web app
 RUN pnpm --filter web run build
 
