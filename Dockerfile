@@ -44,6 +44,7 @@ WORKDIR /usr/src/app
 USER root
 RUN apt-get update && apt-get install -y fonts-dejavu-core fonts-noto-color-emoji && rm -rf /var/lib/apt/lists/*
 # Switch back to non-root user
+RUN chown -R node:node .
 USER node
 WORKDIR /usr/src/app
 
