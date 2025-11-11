@@ -7,8 +7,8 @@ const faqs = [
     answer: "Yes, CereBro is completely free. All features are available at no cost. If you find the bot useful, you can support its development and hosting costs via the links in the Support section, but it is never required."
   },
   {
-    question: "How does the Roster OCR work?",
-    answer: "You can upload a screenshot of your champion roster from the game. CereBro uses Google's Vision AI to read the image, identify your champions, and automatically update your personal roster associated with your Discord profile. This saves you from manually entering every champion."
+    question: "How does the Roster processing work?",
+    answer: "You can upload a screenshot of your champion roster from the game. CereBro uses advanced image processing algorithm to read the image, identify your champions, and automatically update your personal roster associated with your Discord profile. This saves you from manually entering every champion."
   },
   {
     question: "What data does the bot store?",
@@ -20,7 +20,7 @@ const faqs = [
   },
   {
     question: "Where does the champion and game data come from?",
-    answer: "Champion ability and stat data is meticulously collected and maintained by our team to ensure accuracy. It is typically updated within 24 hours of a new champion release or balance patch from Kabam."
+    answer: "Champion ability and stat data is meticulously collected and maintained. It is typically updated within 24 hours of a new champion release or balance patch from Kabam."
   }
 ];
 

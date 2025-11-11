@@ -44,8 +44,8 @@ export default function Home() {
             {/* Description and CTAs - full width on mobile */}
             <div className="col-span-3 lg:col-span-2 lg:col-start-1 lg:row-start-2">
               <p className="text-slate-300 text-sm md:text-base leading-relaxed mt-2 mb-6">
-                The ultimate MCOC assistant for your Discord server. CereBro
-                manages personal rosters with cutting-edge OCR, provides
+                The ultimate MCOC companion for your Discord server. CereBro
+                manages personal rosters with cutting-edge image processing, provides
                 in-depth champion data, puts the entire game's glossary at your
                 fingertips, automates AQ scheduling, and tracks prestige. Spend
                 less time managing and more time playing.
@@ -187,7 +187,7 @@ export default function Home() {
                 </div>
                 <p className="text-sm text-slate-300">
                   Keep your champion roster perfectly up-to-date with easy
-                  updates via screenshot OCR.
+                  updates via screenshot image processing.
                 </p>
               </div>
               <div className="glass rounded-xl p-5 border border-slate-800/40 hover:border-pink-500/40 transition card-tilt">
@@ -322,7 +322,7 @@ export default function Home() {
                 Command reference
               </p>
               <h2 className="text-xl sm:text-2xl font-semibold text-slate-50 mt-1">
-                Slash commands your officers will love
+                Slash commands you will love
               </h2>
               <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
                 Search, filter, and copy commands directly into Discord. CereBro
