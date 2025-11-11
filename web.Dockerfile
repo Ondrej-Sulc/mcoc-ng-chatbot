@@ -32,10 +32,13 @@ WORKDIR /tmp
 COPY --from=builder /usr/src/app/pnpm-lock.yaml ./
 COPY --from=builder /usr/src/app/pnpm-workspace.yaml ./
 COPY --from=builder /usr/src/app/package.json ./
+COPY --from=builder /usr/src/app/prisma ./prisma
 COPY --from=builder /usr/src/app/src ./src
 COPY --from=builder /usr/src/app/web ./web
 # Deploy the web app to a clean directory named 'app'
 RUN pnpm deploy --prod --filter web --legacy ./app
+# Generate the Prisma client in the final production node_modules inside the 'app' directory
+RUN cd ./app && pnpm exec prisma generate --schema=../prisma/schema.prisma
 # Explicitly copy the .next build output into the deployed app
 COPY --from=builder /usr/src/app/web/.next ./app/.next
 
