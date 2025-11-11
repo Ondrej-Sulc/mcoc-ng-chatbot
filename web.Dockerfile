@@ -65,4 +65,4 @@ USER node
 
 # Set the working directory to the web app and define the start command.
 WORKDIR /usr/src/app/web
-CMD ["next", "start"]
+CMD ["pnpm", "start"]
