@@ -58,6 +58,7 @@ COPY --from=builder /usr/src/app/web/public ./web/public
 
 # Copy the built Next.js application.
 COPY --from=builder /usr/src/app/web/.next ./web/.next
+COPY --from=builder /usr/src/app/web/next.config.ts ./web/
 
 # Set correct ownership for the node user.
 RUN chown -R node:node .
