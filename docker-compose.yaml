@@ -2,13 +2,37 @@ services:
   bot:
     build:
       context: .
+      dockerfile: Dockerfile
       target: builder
+    entrypoint: ""
     volumes:
       - ./src:/usr/src/app/src
+      - ./prisma:/usr/src/app/prisma
+      - /usr/src/app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
       - TS_MODE_ENABLED=true
-      - DATABASE_URL=${DATABASE_URL}
+      - CI=true
     env_file:
       - ./.env
-    command: npm run dev
+    command: ["/bin/sh", "-c", "pnpm install && pnpm run dev"]
+
+  web:
+    build:
+      context: .
+      dockerfile: web.Dockerfile
+      target: builder
+    entrypoint: ""
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web:/usr/src/app/web
+      - ./src:/usr/src/app/src
+      - ./prisma:/usr/src/app/prisma
+      - /usr/src/app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - CI=true
+    env_file:
+      - ./.env
+    command: ["/bin/sh", "-c", "pnpm install && cd web && pnpm run dev"]
