@@ -113,20 +113,30 @@ The bot should now be running and connected to Discord and the database.
 
 **NEVER** use `ephemeral: true` in Discord.js interaction replies or deferrals. This option is deprecated and can lead to `InteractionAlreadyReplied` errors and other unexpected behavior. Always use `flags: MessageFlags.Ephemeral` instead to ensure correct and consistent ephemeral messaging.
 
-## Web Application Deployment on Railway
+## Docker, PNPM Monorepo, and Deployment Strategy
 
-Deploying the Next.js web application (`/web`) to Railway requires a specific setup due to the `pnpm` monorepo structure. The following are key learnings and configuration requirements:
+This project uses a sophisticated Docker setup to manage the `pnpm` monorepo for both local development and production deployments on Railway. The following is a summary of the key configurations and learnings.
 
-*   **Monorepo Setup:** The project is a `pnpm` monorepo. The web app (`web`) depends on the bot's code (`src`), which is referenced as a workspace dependency.
-*   **`pnpm-workspace.yaml`:** This file is essential for `pnpm` to identify the workspaces and must be present at the project root.
-*   **`pnpm-lock.yaml`:** The lockfile is the single source of truth for dependencies. It **must** be kept up-to-date by running `pnpm install` locally and committing the changes after any modification to a `package.json` file. Failure to do so will cause the build to fail with an `ERR_PNPM_OUTDATED_LOCKFILE` error in CI/CD environments.
-*   **`web.Dockerfile`:** A dedicated, multi-stage `web.Dockerfile` in the project root is used to build and deploy the web service.
-*   **Node.js Version:** Next.js has specific Node.js version requirements (e.g., Node 20+). This must be set as the base image in the Dockerfile (e.g., `FROM node:20 AS base`).
-*   **Prisma Generation:** When running `prisma generate` from a workspace subdirectory, the `--schema` flag is required to point to the correct location of the schema file (e.g., `RUN pnpm --filter @cerebro/core exec prisma generate --schema=../prisma/schema.prisma`).
-*   **`pnpm` Command Syntax:** The correct syntax for running a script in a specific workspace is `pnpm --filter <workspace> <command>` (e.g., `pnpm --filter web run build`).
-*   **Runtime Dependencies in `next.config.ts`:** Any packages imported and used by `next.config.ts` (e.g., `typescript`, `tsconfig-paths-webpack-plugin`) must be listed as regular `dependencies`, not `devDependencies`. This is because Next.js processes this file at runtime, and production builds prune `devDependencies`.
-*   **`pnpm deploy` Nuances:** This is the idiomatic way to create a production-ready build for a `pnpm` workspace, but it has several requirements:
-    *   **`--legacy` flag:** This flag is required for workspaces that do not use the `inject-workspace-packages=true` setting.
-    *   **Empty Target Directory:** The command requires the target directory to be empty. The Dockerfile handles this by using an intermediate `deploy-stage` with an empty target directory.
-    *   **Build Artifacts (`.next`):** `pnpm deploy` does **not** copy build artifacts by default. The `.next` directory must be explicitly copied from the `builder` stage into the deployed application.
-    *   **File Structure:** `pnpm deploy` creates a flat file structure in the target directory, copying the *contents* of the workspace package. `COPY` paths and the final `WORKDIR` must be adjusted to match this flat structure.
+### Production Deployment on Railway
+
+The `bot` and `web` services use separate, multi-stage `Dockerfile`s optimized for production.
+
+**Web Service (`web.Dockerfile`):**
+The web app deployment uses `pnpm`'s idiomatic deployment command, `pnpm deploy`, with a crucial modification to handle build artifacts.
+- **`.npmignore` Strategy:** The build process first runs `next build` to generate the `.next` directory. It then creates a temporary `.npmignore` file in the `web` workspace that contains `!/.next`. This forces `pnpm deploy` (which prefers `.npmignore` over `.gitignore`) to include the `.next` folder in the final deployment package.
+- **Next.js 16 Type Error:** The `next.config.ts` file has `typescript: { ignoreBuildErrors: true }` enabled. This is a necessary workaround for a persistent build-time type error related to the new Next.js 16 release, which allows the deployment to succeed.
+
+**Bot Service (`Dockerfile`):**
+The bot's production build uses a manual packaging strategy, as `pnpm deploy` was found to ignore the compiled `dist` directory (due to `.gitignore` rules).
+- **Manual `cp`:** The `production-builder` stage runs `pnpm run build` and then manually copies the required artifacts (`./dist`, `src/package.json`, `./assets`, `./node_modules`) into a clean `deploy` directory, which is then used for the final image.
+
+### Local Development (`docker-compose.yaml`)
+
+The local development environment is designed for a smooth, hot-reloading workflow while accurately mirroring the containerized setup.
+- **`development` Target:** The `docker-compose.yaml` file builds and runs the `development` target of each service's Dockerfile.
+- **Anonymous Volumes:** To prevent host-mounted source code from overwriting necessary files generated within the container, several anonymous volumes are used:
+    - `/usr/src/app/node_modules` (for both services)
+    - `/usr/src/app/src/node_modules` (for the bot)
+    - `/usr/src/app/web/node_modules` (for the web app)
+    - `/usr/src/app/web/.next` (for the web app's build cache)
+- **Entrypoint for Permissions:** The `web` service uses a `docker-entrypoint.sh` script. This script runs as `root` on container startup to `chown` the volume-mounted directories (`.next`, `node_modules`) to the `node` user before stepping down and executing the main application. This solves runtime permission errors caused by mismatched host/container user IDs.

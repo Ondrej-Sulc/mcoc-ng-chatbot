@@ -58,14 +58,11 @@ The production instance of the bot and its PostgreSQL database are hosted on [Ra
 
 ### Web Application Deployment
 
-The Next.js web application, located in the `/web` directory, is deployed as a separate service on Railway. It is part of a `pnpm` monorepo and its deployment is handled by a dedicated, multi-stage `web.Dockerfile` located in the project root.
+The Next.js web application, located in the `/web` directory, is deployed as a separate service on Railway. Its deployment is handled by a dedicated, multi-stage `web.Dockerfile` that is optimized for a `pnpm` monorepo environment.
 
-The Docker build process is optimized for monorepo deployments and consists of three main stages:
-1.  **Builder Stage:** Installs all dependencies across all workspaces (`pnpm install`) and builds the Next.js application (`pnpm --filter web run build`).
-2.  **Deploy Stage:** Uses the `pnpm deploy` command to create a clean, production-only version of the `web` workspace in a temporary directory. This stage also explicitly copies the `.next` build output from the builder stage.
-3.  **Final Stage:** Creates the final, lean production image by copying the pruned application from the deploy stage. This image is then used to run the web service on Railway.
+The build process uses `pnpm deploy` to create a clean, production-only version of the application. A key step in this process is the creation of a temporary `.npmignore` file during the build, which ensures that critical build artifacts (like the `.next` directory) are correctly included in the final deployment package.
 
-This multi-stage approach ensures a small, secure, and efficient production image containing only the necessary files and dependencies to run the web application.
+Currently, the Next.js configuration has `typescript: { ignoreBuildErrors: true }` enabled. This is a temporary workaround for a persistent type-checking error related to the new Next.js 16 release, which allows the deployment to succeed while the underlying type issue is investigated.
 
 ## Commands
 
@@ -112,7 +109,13 @@ This project is a complete rewrite of a legacy Python-based MCOC bot. The migrat
 
 ## Getting Started (Local Development)
 
-The bot is designed to be run in a Dockerized environment. The `docker-compose.yaml` file is configured for a development environment with hot-reloading.
+The project is fully containerized for a consistent and easy-to-use local development experience. The `docker-compose.yaml` file is configured to run both the bot and the web services with hot-reloading enabled.
+
+To get started, simply run:
+```bash
+docker-compose up --build
+```
+This command will build the development images and start the containers. The Docker setup handles all dependencies and file permissions, including the use of a dedicated entrypoint script for the web service to manage volume ownership, ensuring a smooth developer workflow.
 
 ---
 
