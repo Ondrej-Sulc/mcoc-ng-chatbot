@@ -12,7 +12,24 @@ This is a TypeScript-based Discord bot for the mobile game Marvel Contest of Cha
 *   **Roster Management:** Users can manage their MCOC rosters.
 *   **Scheduling:** The bot can be used to schedule reminders and other events.
 *   **AQ Management:** The bot has features to help with Alliance Quest (AQ) management.
-*   **War Videos Database:** Users can upload Marvel Contest of Champions (MCOC) Alliance War videos via a web interface. These videos are stored and managed by the bot, providing a centralized database for war strategies and analysis.
+
+### War Videos Database & Planning
+
+The bot features a sophisticated system for tracking Alliance War performance by linking war plans to video uploads.
+
+*   **Normalized Data Model:** The system is built on a normalized, three-model schema in Prisma:
+    *   `War`: Represents a top-level war event, containing metadata like season, tier, and the enemy alliance.
+    *   `WarFight`: The core model, representing a single fight (attacker, defender, node) and linking it to a `War`, a `Player`, and optionally, a `WarVideo`.
+    *   `WarVideo`: A lean model that represents the video asset itself, containing the video URL and a link to one or more `WarFight` records.
+
+*   **Plan-to-Upload Workflow:**
+    1.  The `/aw plan` command reads war plan data from a Google Sheet.
+    2.  It then `upserts` `War` and `WarFight` records into the database, creating a persistent record of the war plan.
+    3.  A message is sent to each player's private thread containing their assignments and a button labeled "Upload Video(s)".
+    4.  When a player clicks the button, the bot generates a temporary, single-use `UploadSession` token that corresponds to that player's list of fights for that war.
+    5.  The bot replies with a private link to the web UI, containing the session token.
+    6.  The web UI uses the token to fetch the fight data and pre-fills the video upload form, creating a seamless user experience.
+    7.  The user can then upload a single video for all their fights or one video per fight. The backend API handles the creation of the `WarVideo` record(s) and links them to the correct `WarFight`(s).
 
 The bot is built with a modern tech stack, including:
 

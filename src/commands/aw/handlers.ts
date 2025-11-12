@@ -1,6 +1,38 @@
+import { prisma } from "../../services/prismaService";
 import { config } from "../../config";
 import { sheetsService } from "../../services/sheetsService";
-import { MergedAssignment } from "./types";
+import { MergedAssignment, WarData } from "./types";
+
+export async function getChampionData() {
+    return prisma.champion.findMany();
+}
+
+export async function getNodes() {
+    return prisma.warNode.findMany();
+}
+
+export async function getWarData(
+  sheetId: string,
+  sheetTabName: string
+): Promise<WarData> {
+  const warInfoRange = `'${sheetTabName}'!${config.allianceWar.warInfoRange}`;
+  const [warInfoData] = await sheetsService.readSheets(sheetId, [warInfoRange]);
+
+  const findValue = (label: string): string | undefined => {
+    const cellAddress = (config.allianceWar as any)[`${label}Cell`];
+    if (!cellAddress) return undefined;
+    const col = cellAddress.charCodeAt(0) - 'A'.charCodeAt(0);
+    const row = parseInt(cellAddress.substring(1), 10) - 1;
+    return warInfoData?.[row]?.[col];
+  };
+
+  return {
+    season: parseInt(findValue('season') || '0', 10),
+    warNumber: parseInt(findValue('warNumber') || '0', 10),
+    warTier: parseInt(findValue('warTier') || '0', 10),
+    enemyAlliance: findValue('enemyAlliance'),
+  };
+}
 
 export async function getMergedData(
   sheetId: string,

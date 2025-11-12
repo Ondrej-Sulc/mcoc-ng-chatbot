@@ -2,7 +2,7 @@ import { SlashCommandBuilder, CommandInteraction, PermissionFlagsBits } from 'di
 import { prisma } from '../../services/prismaService';
 import loggerService from '../../services/loggerService';
 import { youTubeService } from '../../services/youtubeService';
-import { WarVideo, Player } from '@prisma/client';
+import { WarVideo, Player, WarVideoStatus } from '@prisma/client';
 
 export const data = new SlashCommandBuilder()
   .setName('admin-war-video')
@@ -49,8 +49,13 @@ export async function execute(interaction: CommandInteraction) {
     }
 
     if (subcommand === 'approve') {
-      if (warVideo.status !== 'PENDING') {
+      if (warVideo.status !== WarVideoStatus.UPLOADED) {
         await interaction.editReply(`Video ${videoId} is not pending approval. Current status: ${warVideo.status}`);
+        return;
+      }
+
+      if (!warVideo.youtubeUrl) {
+        await interaction.editReply('Video has no YouTube URL.');
         return;
       }
 
@@ -71,7 +76,7 @@ export async function execute(interaction: CommandInteraction) {
       // 3. Update video status in DB
       await prisma.warVideo.update({
         where: { id: videoId },
-        data: { status: 'APPROVED' },
+        data: { status: WarVideoStatus.PUBLISHED },
       });
 
       await interaction.editReply(`Video ${videoId} has been approved. The uploader ${warVideo.submittedBy.ingameName} is now a trusted uploader.`);
@@ -79,12 +84,12 @@ export async function execute(interaction: CommandInteraction) {
 
     } else if (subcommand === 'reject') {
       // 1. Delete video from YouTube
-      const youtubeId = youTubeService.getVideoId(warVideo.youtubeUrl);
-      if (!youtubeId) {
-        await interaction.editReply('Could not parse YouTube video ID from URL.');
-        return;
+      if (warVideo.youtubeUrl) {
+        const youtubeId = youTubeService.getVideoId(warVideo.youtubeUrl);
+        if (youtubeId) {
+          await youTubeService.deleteVideo(youtubeId);
+        }
       }
-      await youTubeService.deleteVideo(youtubeId);
 
       // 2. Delete video from DB
       await prisma.warVideo.delete({

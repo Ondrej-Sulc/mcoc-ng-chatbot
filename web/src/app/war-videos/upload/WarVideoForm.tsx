@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,16 +16,18 @@ import { FightBlock, FightData } from "@/components/FightBlock";
 import { UploadCloud, Plus } from "lucide-react";
 import { Champion } from "@/types/champion";
 import { cn } from "@/lib/utils";
+import { War, WarFight, Player as PrismaPlayer, WarNode as PrismaWarNode } from '@prisma/client';
 
-interface WarNode {
-  id: number;
-  nodeNumber: number;
-  description?: string;
-}
+interface WarNode extends PrismaWarNode {}
+interface Player extends PrismaPlayer {}
 
-interface Player {
-  id: string;
-  ingameName: string;
+interface PreFilledFight extends WarFight {
+  war: War;
+  player: Player;
+  attacker: Champion;
+  defender: Champion;
+  node: WarNode;
+  prefightChampions: Champion[];
 }
 
 interface WarVideoFormProps {
@@ -34,6 +36,7 @@ interface WarVideoFormProps {
   initialNodes: WarNode[];
   initialPlayers: Player[];
   initialUserId: string;
+  preFilledFights: PreFilledFight[] | null;
 }
 
 export function WarVideoForm({
@@ -42,6 +45,7 @@ export function WarVideoForm({
   initialNodes,
   initialPlayers,
   initialUserId,
+  preFilledFights,
 }: WarVideoFormProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -49,28 +53,47 @@ export function WarVideoForm({
   // Form state
   const [uploadMode, setUploadMode] = useState<"single" | "multiple">("single");
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [fights, setFights] = useState<FightData[]>([
-    {
-      id: uuidv4(),
-      nodeId: "",
-      attackerId: "",
-      defenderId: "",
-      prefightChampionIds: [],
-      death: false,
-      videoFile: null,
-    },
-  ]);
-  const [season, setSeason] = useState<string>("");
-  const [warNumber, setWarNumber] = useState<string>("");
-  const [warTier, setWarTier] = useState<string>("");
-  const [playerInVideoId, setPlayerInVideoId] = useState<string>(initialUserId);
+  const [fights, setFights] = useState<FightData[]>(() => {
+    if (preFilledFights && preFilledFights.length > 0) {
+      return preFilledFights.map(pf => ({
+        id: pf.id, // Use the WarFight ID
+        nodeId: String(pf.nodeId),
+        attackerId: String(pf.attackerId),
+        defenderId: String(pf.defenderId),
+        prefightChampionIds: pf.prefightChampions.map(c => String(c.id)),
+        death: pf.death,
+        videoFile: null, // No video file initially
+      }));
+    }
+    return [
+      {
+        id: uuidv4(),
+        nodeId: "",
+        attackerId: "",
+        defenderId: "",
+        prefightChampionIds: [],
+        death: false,
+        videoFile: null,
+      },
+    ];
+  });
+
+  const [season, setSeason] = useState<string>(() => preFilledFights?.[0]?.war?.season?.toString() || "");
+  const [warNumber, setWarNumber] = useState<string>(() => preFilledFights?.[0]?.war?.warNumber?.toString() || "");
+  const [warTier, setWarTier] = useState<string>(() => preFilledFights?.[0]?.war?.warTier?.toString() || "");
+  const [playerInVideoId, setPlayerInVideoId] = useState<string>(() => preFilledFights?.[0]?.player?.id || initialUserId);
   const [visibility, setVisibility] = useState<"public" | "alliance">("public");
   const [description, setDescription] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [isOffseason, setIsOffseason] = useState<boolean>(false);
+  const [isOffseason, setIsOffseason] = useState<boolean>(() => preFilledFights?.[0]?.war?.warNumber === null || preFilledFights?.[0]?.war?.warNumber === 0);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [currentUpload, setCurrentUpload] = useState<string>("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Effect to update offseason state if warNumber changes
+  useEffect(() => {
+    setIsOffseason(warNumber === "0" || warNumber === "");
+  }, [warNumber]);
 
   // Memoized derived data
   const prefightChampions = useMemo(() => {
@@ -145,7 +168,7 @@ export function WarVideoForm({
       newErrors.warNumber = "War number is required.";
     if (!warTier) newErrors.warTier = "War tier is required.";
 
-    fights.forEach((fight, index) => {
+    fights.forEach((fight) => {
       if (uploadMode === "multiple" && !fight.videoFile) {
         newErrors[`videoFile-${fight.id}`] =
           "Video file is required for each fight.";
@@ -163,10 +186,10 @@ export function WarVideoForm({
   };
 
   const uploadVideo = useCallback(
-    async (formData: FormData, fightId: string, title: string) => {
+    async (formData: FormData, fightIds: string[], title: string) => {
       if ('BackgroundFetchManager' in self) {
         const sw = await navigator.serviceWorker.ready;
-        const fetchId = `upload-${fightId}-${Date.now()}`;
+        const fetchId = `upload-${fightIds.join('-')}-${Date.now()}`;
 
         const bgFetch = await sw.backgroundFetch.fetch(
           fetchId,
@@ -183,7 +206,7 @@ export function WarVideoForm({
             downloadTotal:
               uploadMode === 'single'
                 ? videoFile?.size ?? 0
-                : fights.find((f) => f.id === fightId)?.videoFile?.size ?? 0,
+                : fights.find((f) => fightIds.includes(f.id))?.videoFile?.size ?? 0,
           }
         );
 
@@ -197,7 +220,7 @@ export function WarVideoForm({
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || `Upload failed for fight ${fightId}`);
+          throw new Error(errorData.error || `Upload failed for fights ${fightIds.join(', ')}`);
         }
         
         return response.json();
@@ -223,13 +246,13 @@ export function WarVideoForm({
             } else {
               const errorData = JSON.parse(xhr.responseText);
               reject(
-                new Error(errorData.error || `Upload failed for fight ${fightId}`)
+                new Error(errorData.error || `Upload failed for fights ${fightIds.join(', ')}`)
               );
             }
           };
 
           xhr.onerror = () => {
-            reject(new Error(`Network error during upload for fight ${fightId}`));
+            reject(new Error(`Network error during upload for fights ${fightIds.join(', ')}`));
           };
 
           xhr.open('POST', '/api/war-videos/upload', true);
@@ -290,13 +313,13 @@ export function WarVideoForm({
           formData.append("visibility", visibility);
           formData.append("description", description);
           if (playerInVideoId) formData.append("playerId", playerInVideoId);
+          formData.append("fightIds", JSON.stringify(fights.map(f => f.id))); // Send all fight IDs
 
           const title = getTitle(fights[0]);
-          formData.append("title", title);
-          formData.append("fights", JSON.stringify(fights));
+          formData.append("title", title); // Title for the video
           formData.append("mode", "single");
 
-          const result = await uploadVideo(formData, "single-video", title);
+          const result = await uploadVideo(formData, fights.map(f => f.id), title);
           if (!useBackgroundFetch) {
             toast({
               title: "Success!",
@@ -325,13 +348,13 @@ export function WarVideoForm({
             formData.append("visibility", visibility);
             formData.append("description", description);
             if (playerInVideoId) formData.append("playerId", playerInVideoId);
+            formData.append("fightIds", JSON.stringify([fight.id])); // Send only this fight's ID
 
             const title = getTitle(fight);
-            formData.append("title", title);
-            formData.append("fights", JSON.stringify([fight]));
+            formData.append("title", title); // Title for the video
             formData.append("mode", "multiple");
 
-            const result = await uploadVideo(formData, fight.id, title);
+            const result = await uploadVideo(formData, [fight.id], title);
             if (result.videoIds && result.videoIds.length > 0) {
               allUploadedVideoIds.push(result.videoIds[0]);
             }
@@ -449,7 +472,7 @@ export function WarVideoForm({
         </div>
       )}
 
-      {fights.map((fight, index) => (
+      {fights.map((fight) => (
         <FightBlock
           key={fight.id}
           fight={fight}

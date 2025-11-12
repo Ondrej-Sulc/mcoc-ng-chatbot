@@ -8,3 +8,10 @@ export interface MergedAssignment {
   attackTactic: string;
   defenseTactic: string;
 }
+
+export interface WarData {
+  season: number;
+  warNumber: number;
+  warTier: number;
+  enemyAlliance?: string;
+}

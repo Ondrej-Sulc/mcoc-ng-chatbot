@@ -8,10 +8,13 @@ import {
   MediaGalleryBuilder,
   MediaGalleryItemBuilder,
   TextDisplayBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
 } from "discord.js";
 import { config } from "../../config";
 import { prisma } from "../../services/prismaService";
-import { getMergedData, getTeamData } from "./handlers";
+import { getMergedData, getTeamData, getChampionData, getNodes, getWarData } from "./handlers";
 import { capitalize, formatAssignment, getEmoji } from "./utils";
 import { getPlayer } from "../../utils/playerHelper";
 
@@ -57,6 +60,65 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
 
   const bgConfig = config.allianceWar.battlegroupChannelMappings[channelId];
 
+  // Fetch War Data from Sheet
+  const warData = await getWarData(sheetId, bgConfig.sheet);
+  if (!warData.season || !warData.warTier) {
+      await interaction.editReply("Could not find Season or War Tier info in the sheet. Please check the configured ranges.");
+      return;
+  }
+
+  // Upsert War Record
+  const warNumber = isNaN(warData.warNumber) ? null : warData.warNumber;
+
+  let war;
+  if (warNumber !== null) {
+    war = await prisma.war.upsert({
+      where: {
+        allianceId_season_warNumber: {
+          allianceId: alliance.id,
+          season: warData.season,
+          warNumber: warNumber,
+        },
+      },
+      update: { warTier: warData.warTier, enemyAlliance: warData.enemyAlliance },
+      create: {
+        season: warData.season,
+        warTier: warData.warTier,
+        warNumber: warNumber,
+        enemyAlliance: warData.enemyAlliance,
+        allianceId: alliance.id,
+      },
+    });
+  } else {
+    war = await prisma.war.findFirst({
+      where: {
+        allianceId: alliance.id,
+        season: warData.season,
+        warNumber: null,
+      },
+    });
+
+    if (war) {
+      war = await prisma.war.update({
+        where: { id: war.id },
+        data: {
+          warTier: warData.warTier,
+          enemyAlliance: warData.enemyAlliance,
+        },
+      });
+    } else {
+      war = await prisma.war.create({
+        data: {
+          season: warData.season,
+          warTier: warData.warTier,
+          warNumber: null,
+          enemyAlliance: warData.enemyAlliance,
+          allianceId: alliance.id,
+        },
+      });
+    }
+  }
+
   const channel = await interaction.client.channels.fetch(channelId);
   if (!channel || channel.type !== ChannelType.GuildText) {
     await interaction.editReply(
@@ -75,9 +137,14 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
 
   const mergedData = await getMergedData(sheetId, bgConfig.sheet);
   const teamData = await getTeamData(sheetId, bgConfig.sheet);
+  const championData = await getChampionData();
+  const nodeData = await getNodes();
+
+  const championMap = new Map(championData.map(c => [c.name.toLowerCase(), c]));
+  const nodeMap = new Map(nodeData.map(n => [n.nodeNumber.toString(), n]));
 
   const playerDataMap = new Map<string, {
-      assignments: { node: string; formatted: string }[];
+      assignments: { node: string; formatted: string, raw: any }[];
       prefights: {
         champion: string;
         targetPlayer: string;
@@ -92,10 +159,8 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
       prefightPlayer,
       prefightChampion,
       node,
-      defenderName,
     } = assignment;
 
-    // Ensure player entries exist
     if (!playerDataMap.has(playerName)) {
       playerDataMap.set(playerName, { assignments: [], prefights: [] });
     }
@@ -103,24 +168,21 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
       playerDataMap.set(prefightPlayer, { assignments: [], prefights: [] });
     }
 
-    // Add assignment to the player
     const formattedAssignment = await formatAssignment(assignment);
     playerDataMap.get(playerName)!.assignments.push({
       node: node,
       formatted: formattedAssignment,
+      raw: assignment,
     });
 
-    // Handle prefight logic
     if (prefightPlayer && prefightChampion) {
-      // Add prefight task to the performer
       playerDataMap.get(prefightPlayer)!.prefights.push({
         champion: prefightChampion,
         targetPlayer: playerName,
         targetNode: node,
-        targetDefender: defenderName,
+        targetDefender: assignment.defenderName,
       });
-
-      // Append note to the target\'s assignment
+      
       const targetAssignment = playerDataMap
         .get(playerName)!
         .assignments.find((a) => a.node === node);
@@ -152,6 +214,43 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
     if (!thread) {
       notFound.push(playerName);
       return;
+    }
+    
+    const dbPlayer = await prisma.player.findFirst({ where: { ingameName: { equals: playerName, mode: 'insensitive' } } });
+    if (!dbPlayer) {
+      notFound.push(`${playerName} (DB)`);
+      return;
+    }
+
+    for (const assignment of data?.assignments || []) {
+      const attacker = championMap.get(assignment.raw.attackerName.toLowerCase());
+      const defender = championMap.get(assignment.raw.defenderName.toLowerCase());
+      const node = nodeMap.get(assignment.raw.node);
+
+      if (attacker && defender && node) {
+        await prisma.warFight.upsert({
+          where: {
+            warId_playerId_nodeId: {
+              warId: war.id,
+              playerId: dbPlayer.id,
+              nodeId: node.id,
+            }
+          },
+          update: {
+            attackerId: attacker.id,
+            defenderId: defender.id,
+            death: assignment.raw.deaths === "1",
+          },
+          create: {
+            warId: war.id,
+            playerId: dbPlayer.id,
+            nodeId: node.id,
+            attackerId: attacker.id,
+            defenderId: defender.id,
+            death: assignment.raw.deaths === "1",
+          }
+        });
+      }
     }
 
     const container = new ContainerBuilder().setAccentColor(bgConfig.color);
@@ -213,9 +312,16 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
       );
     }
 
+    const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`generate_upload_link:${war.id}:${dbPlayer.id}`)
+        .setLabel("Upload Video(s)")
+        .setStyle(ButtonStyle.Primary)
+    );
+
     try {
       await thread.send({
-        components: [container],
+        components: [container, actionRow],
         flags: [MessageFlags.IsComponentsV2],
       });
       sentTo.push(playerName);
@@ -241,7 +347,7 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
   const summary =
     `**AW Plan for ${bgConfig.sheet}**\n` +
     `✅ Sent to: ${sentTo.map(capitalize).join(", ") || "None"}\n` +
-    `⚠️ No thread found for: ${notFound.map(capitalize).join(", ") || "None"}\n` +
+    `⚠️ No thread/DB entry found for: ${notFound.map(capitalize).join(", ") || "None"}\n` +
     `ℹ️ No data for: ${noData.map(capitalize).join(", ") || "None"}`;
 
   await interaction.editReply(summary);

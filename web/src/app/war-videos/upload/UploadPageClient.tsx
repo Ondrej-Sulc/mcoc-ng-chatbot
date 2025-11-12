@@ -6,24 +6,26 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { AlertTriangle } from 'lucide-react';
 import { WarVideoForm } from './WarVideoForm';
 import { Champion } from '@/types/champion';
+import { War, WarFight, Player as PrismaPlayer, WarNode as PrismaWarNode } from '@prisma/client';
 
 // Define types for fetched data
-interface WarNode {
-  id: number;
-  nodeNumber: number;
-  description?: string;
-}
+interface WarNode extends PrismaWarNode {}
+interface Player extends PrismaPlayer {}
 
-interface Player {
-  id: string;
-  ingameName: string;
-}
-
-interface FormData {
+interface InitialFormData {
   champions: Champion[];
   nodes: WarNode[];
   players: Player[];
   user: { id: string };
+}
+
+interface PreFilledFight extends WarFight {
+  war: War;
+  player: Player;
+  attacker: Champion;
+  defender: Champion;
+  node: WarNode;
+  prefightChampions: Champion[];
 }
 
 type PageStatus = 'loading' | 'ready' | 'error';
@@ -33,36 +35,51 @@ export default function UploadWarVideoPage() {
   const [pageStatus, setPageStatus] = useState<PageStatus>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [token, setToken] = useState<string | null>(null);
-  const [formData, setFormData] = useState<FormData | null>(null);
+  const [initialFormData, setInitialFormData] = useState<InitialFormData | null>(null);
+  const [preFilledFights, setPreFilledFights] = useState<PreFilledFight[] | null>(null);
 
   const urlToken = searchParams.get('token');
+  const sessionToken = searchParams.get('session_token');
 
   useEffect(() => {
-    if (!urlToken) {
-      setErrorMessage('No upload token found in URL.');
+    if (!urlToken && !sessionToken) {
+      setErrorMessage('No upload token or session token found in URL.');
       setPageStatus('error');
       return;
     }
-    setToken(urlToken);
 
     const fetchData = async () => {
       try {
-        const response = await fetch(`/api/form-data?token=${urlToken}`);
-        if (!response.ok) {
-          const errorData = await response.json();
+        // Fetch initial form data (champions, nodes, players, user)
+        const formDataResponse = await fetch(`/api/form-data?token=${urlToken}`);
+        if (!formDataResponse.ok) {
+          const errorData = await formDataResponse.json();
           throw new Error(errorData.error || 'Failed to fetch form data');
         }
-        const data: FormData = await response.json();
-        setFormData(data);
+        const formData: InitialFormData = await formDataResponse.json();
+        setInitialFormData(formData);
+        setToken(urlToken); // Set the token for form submission
+
+        // If a session token is present, fetch pre-filled fight data
+        if (sessionToken) {
+          const sessionDataResponse = await fetch(`/api/upload-session/${sessionToken}`);
+          if (!sessionDataResponse.ok) {
+            const errorData = await sessionDataResponse.json();
+            throw new Error(errorData.error || 'Failed to fetch session data');
+          }
+          const sessionFights: PreFilledFight[] = await sessionDataResponse.json();
+          setPreFilledFights(sessionFights);
+        }
+
         setPageStatus('ready');
       } catch (error: any) {
-        console.error('Failed to fetch form data:', error);
+        console.error('Failed to fetch data:', error);
         setErrorMessage(error.message || 'An unknown error occurred.');
         setPageStatus('error');
       }
     };
     fetchData();
-  }, [urlToken]);
+  }, [urlToken, sessionToken]);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -90,14 +107,15 @@ export default function UploadWarVideoPage() {
           </div>
         );
       case 'ready':
-        if (!formData || !token) return null;
+        if (!initialFormData || !token) return null;
         return (
           <WarVideoForm
             token={token}
-            initialChampions={formData.champions}
-            initialNodes={formData.nodes}
-            initialPlayers={formData.players}
-            initialUserId={formData.user.id}
+            initialChampions={initialFormData.champions}
+            initialNodes={initialFormData.nodes}
+            initialPlayers={initialFormData.players}
+            initialUserId={initialFormData.user.id}
+            preFilledFights={preFilledFights}
           />
         );
     }

@@ -45,6 +45,11 @@ export interface Config {
     TacticDefenseCol: number;
     nodesRange: string;
     teamRange: string;
+    warInfoRange: string;
+    seasonCell: string;
+    warNumberCell: string;
+    warTierCell: string;
+    enemyAllianceCell: string;
   };
 
   championSheet: {
@@ -165,6 +170,12 @@ const createConfig = (): Config => {
       TacticDefenseCol: 4,
       nodesRange: "AWNodes",
       teamRange: "BG4:BG43",
+      // Placeholders for war info - PLEASE UPDATE THESE RANGES
+      warInfoRange: "A1:B4", // A range that covers all info cells
+      seasonCell: "B1",
+      warNumberCell: "B2",
+      warTierCell: "B3",
+      enemyAllianceCell: "B4",
     },
     championSheet: {
       range: "DB!A1",

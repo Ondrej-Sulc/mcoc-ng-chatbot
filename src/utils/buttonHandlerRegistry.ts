@@ -1,4 +1,5 @@
 import { ButtonInteraction } from "discord.js";
+import { handleGenerateUploadLink } from "../commands/aw/buttonHandlers";
 
 export type ButtonHandler = (interaction: ButtonInteraction) => Promise<void>;
 
@@ -6,6 +7,8 @@ const buttonHandlers = new Map<string, ButtonHandler>();
 /**
  * A map that stores button handlers, using a prefix as the key.
  */
+
+registerButtonHandler("generate_upload_link:", handleGenerateUploadLink);
 
 export function registerButtonHandler(prefix: string, handler: ButtonHandler) {
   /**
