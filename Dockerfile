@@ -17,10 +17,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy dependency manifests first to leverage Docker cache
-COPY pnpm-workspace.yaml ./
-COPY package.json pnpm-lock.yaml ./
-COPY src/package.json ./src/
-COPY web/package.json ./web/
+COPY pnpm-workspace.yaml ./ 
+COPY package.json pnpm-lock.yaml ./ 
+COPY src/package.json ./src/ 
+COPY web/package.json ./web/ 
 
 # Grant ownership of all the copied files to the node user
 RUN chown -R node:node /usr/src/app
@@ -32,7 +32,7 @@ USER node
 RUN pnpm install --frozen-lockfile
 
 # Copy the rest of the source code
-COPY . .
+COPY . . 
 
 # Fetch display fonts (Bebas Neue)
 RUN mkdir -p assets/fonts && \
@@ -45,6 +45,7 @@ RUN pnpm exec prisma generate
 RUN pnpm run build
 
 # Create a pruned, production-ready deployment directory
+# pnpm deploy will copy the necessary files from the 'src' workspace
 RUN pnpm deploy --legacy --prod --filter @cerebro/core /usr/src/app/deploy
 
 # ---- Final Stage ----
@@ -64,8 +65,12 @@ USER node
 WORKDIR /usr/src/app
 
 # Copy the deployed application from the builder stage.
-# This includes production node_modules, compiled code, and assets.
+# This includes production node_modules, compiled code, and assets from the 'src' workspace
 COPY --chown=node:node --from=builder /usr/src/app/deploy .
 
-# Command to run the application
+# Set the working directory to the root of the deployed application
+# The content of the 'src' workspace is deployed here.
+WORKDIR /usr/src/app
+
+# Command to run the application, pointing to the correct path
 CMD ["node", "dist/index.js"]
