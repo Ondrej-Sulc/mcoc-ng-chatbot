@@ -3,26 +3,23 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: builder
-    entrypoint: ""
+      target: development
     volumes:
       - ./src:/usr/src/app/src
       - ./prisma:/usr/src/app/prisma
       - /usr/src/app/node_modules
+      - /usr/src/app/src/node_modules
+    env_file:
+      - ./.env
     environment:
       - CHOKIDAR_USEPOLLING=true
       - TS_MODE_ENABLED=true
-      - CI=true
-    env_file:
-      - ./.env
-    command: ["/bin/sh", "-c", "pnpm install && pnpm run dev"]
 
   web:
     build:
       context: .
       dockerfile: web.Dockerfile
-      target: builder
-    entrypoint: ""
+      target: development
     ports:
       - "3000:3000"
     volumes:
@@ -30,9 +27,9 @@ services:
       - ./src:/usr/src/app/src
       - ./prisma:/usr/src/app/prisma
       - /usr/src/app/node_modules
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-      - CI=true
+      - /usr/src/app/web/node_modules
+      - /usr/src/app/web/.next
     env_file:
       - ./.env
-    command: ["/bin/sh", "-c", "pnpm install && cd web && pnpm run dev"]
+    environment:
+      - CHOKIDAR_USEPOLLING=true

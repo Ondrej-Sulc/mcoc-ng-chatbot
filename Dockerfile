@@ -1,76 +1,55 @@
 # Dockerfile for the Bot Application
 
-# ---- Base Stage ----
-# Common setup for both builder and final stages
+# ---- Base ----
+# Sets up Node.js, pnpm, and the basic monorepo structure.
 FROM node:20 AS base
-# Install pnpm for efficient monorepo support
 RUN npm install -g pnpm
 WORKDIR /usr/src/app
 
-# ---- Builder Stage ----
-# This stage builds the bot, including shared dependencies
-FROM base AS builder
+# ---- Dependencies ----
+# Creates a layer with all monorepo dependencies installed.
+FROM base AS dependencies
+COPY pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
+COPY src/package.json ./src/
+COPY web/package.json ./web/
+RUN pnpm install --frozen-lockfile
 
-# First, as root, install OS packages needed for the build
+# ---- Builder ----
+# A stage that includes source code and can be used for development or production builds.
+FROM dependencies AS builder
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
-
-# Copy dependency manifests first to leverage Docker cache
-COPY pnpm-workspace.yaml ./ 
-COPY package.json pnpm-lock.yaml ./ 
-COPY src/package.json ./src/ 
-COPY web/package.json ./web/ 
-
-# Grant ownership of all the copied files to the node user
-RUN chown -R node:node /usr/src/app
-
-# Switch to non-root user for security
+# Create assets directory and set permissions before switching user
+RUN mkdir -p /usr/src/app/assets/fonts && \
+    chown -R node:node /usr/src/app
 USER node
-
-# Install all dependencies for all workspaces
-RUN pnpm install --frozen-lockfile
-
-# Copy the rest of the source code
-COPY . . 
-
-# Fetch display fonts (Bebas Neue)
-RUN mkdir -p assets/fonts && \
-    curl -L -o assets/fonts/BebasNeue-Regular.ttf https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bebasneue/BebasNeue-Regular.ttf && \
+# Now that the directory exists and has correct ownership, copy code and download fonts
+COPY . .
+RUN curl -L -o assets/fonts/BebasNeue-Regular.ttf https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bebasneue/BebasNeue-Regular.ttf && \
     curl -L -o assets/fonts/BebasNeue-Regular.woff2 https://fonts.gstatic.com/s/bebasneue/v10/JTUSjIg69CK48gW7PXoo9Wlhyw.woff2
-
-# Generate Prisma Client (needed by shared code)
 RUN pnpm exec prisma generate
-# Build the bot's typescript code
-RUN pnpm run build
 
-# Create a pruned, production-ready deployment directory
-# pnpm deploy will copy the necessary files from the 'src' workspace
+# ---- Development ----
+# This stage is for local development with hot-reloading.
+FROM builder AS development
+CMD ["/bin/sh", "-c", "pnpm run dev"]
+
+# ---- Production Builder ----
+# This stage builds the final, lean production image.
+FROM builder AS production-builder
+RUN pnpm run build
 RUN pnpm deploy --legacy --prod --filter @cerebro/core /usr/src/app/deploy
 
-# ---- Final Stage ----
-# This is the final, lean image for production deployment
-FROM base AS final
-
-# Install production OS dependencies as root
+# ---- Final Production Image ----
+FROM base AS production
 USER root
-RUN apt-get update && apt-get install -y --no-install-recommends fonts-dejavu-core fonts-noto-color-emoji && \
-    rm -rf /var/lib/apt/lists/*
-
-# Create app directory and grant ownership to node user
-RUN mkdir -p /usr/src/app && chown -R node:node /usr/src/app
-
-# Switch to non-root user
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fonts-dejavu-core \
+    fonts-noto-color-emoji \
+    && rm -rf /var/lib/apt/lists/*
 USER node
 WORKDIR /usr/src/app
-
-# Copy the deployed application from the builder stage.
-# This includes production node_modules, compiled code, and assets from the 'src' workspace
-COPY --chown=node:node --from=builder /usr/src/app/deploy .
-
-# Set the working directory to the root of the deployed application
-# The content of the 'src' workspace is deployed here.
-WORKDIR /usr/src/app
-
-# Command to run the application, pointing to the correct path
+COPY --chown=node:node --from=production-builder /usr/src/app/deploy .
 CMD ["node", "dist/index.js"]
