@@ -28,7 +28,7 @@ RUN mkdir -p /usr/src/app/assets/fonts && \
     chown -R node:node /usr/src/app
 USER node
 # Now that the directory exists and has correct ownership, copy code and download fonts
-COPY . .
+COPY --chown=node:node . .
 RUN curl -L -o assets/fonts/BebasNeue-Regular.ttf https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/bebasneue/BebasNeue-Regular.ttf && \
     curl -L -o assets/fonts/BebasNeue-Regular.woff2 https://fonts.gstatic.com/s/bebasneue/v10/JTUSjIg69CK48gW7PXoo9Wlhyw.woff2
 RUN pnpm exec prisma generate
