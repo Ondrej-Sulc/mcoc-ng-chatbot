@@ -4,9 +4,9 @@ import { add } from 'date-fns';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  context: { params: { token: string } }
 ) {
-  const { token } = params;
+  const { token } = context.params;
 
   if (!token) {
     return NextResponse.json({ error: 'Missing session token' }, { status: 400 });

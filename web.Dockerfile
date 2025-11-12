@@ -11,9 +11,11 @@ RUN npm install -g pnpm
 # This stage builds the web app, including shared dependencies
 FROM base AS builder
 
-# Grant ownership to node user before switching
+# As root, create and set ownership for the app directory
 USER root
-RUN chown -R node:node /usr/src/app
+RUN mkdir -p /usr/src/app && chown -R node:node /usr/src/app
+
+# Switch to the non-root user for security
 USER node
 
 # Copy all package files from the monorepo
@@ -37,7 +39,7 @@ RUN pnpm --filter web run build
 # This is the final, lean image that will be deployed.
 FROM base AS final
 
-# Install OS dependencies as root
+# As root, install required OS packages
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends openssl && \
     rm -rf /var/lib/apt/lists/*
@@ -45,7 +47,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl && \
 # Create and set ownership for the app directory
 RUN mkdir -p /usr/src/app && chown -R node:node /usr/src/app
 
-# Switch to non-root user
+# Switch to the non-root user
 USER node
 WORKDIR /usr/src/app
 
@@ -60,7 +62,12 @@ COPY --chown=node:node --from=builder /usr/src/app/web/package.json ./web/
 COPY --chown=node:node --from=builder /usr/src/app/prisma ./prisma
 
 # Install ONLY production dependencies.
+# This installs dependencies for 'web' and its workspace dependency '@cerebro/core'
 RUN pnpm install --prod --filter web...
+
+# Copy the pre-generated Prisma Client from the builder stage
+COPY --chown=node:node --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
+COPY --chown=node:node --from=builder /usr/src/app/node_modules/@prisma/client ./node_modules/@prisma/client
 
 # Copy the built Next.js application and other necessary files
 COPY --chown=node:node --from=builder /usr/src/app/web/.next ./web/.next

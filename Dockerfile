@@ -69,6 +69,10 @@ COPY --chown=node:node --from=builder /usr/src/app/src/package.json ./src/
 # Install ONLY production dependencies for the core package.
 RUN pnpm install --prod --filter @cerebro/core
 
+# Copy the already-generated Prisma client from the builder stage.
+COPY --chown=node:node --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
+COPY --chown=node:node --from=builder /usr/src/app/node_modules/@prisma/client ./node_modules/@prisma/client
+
 # Copy the compiled application code and assets from the builder stage.
 COPY --chown=node:node --from=builder /usr/src/app/dist ./dist
 COPY --chown=node:node --from=builder /usr/src/app/assets ./assets
