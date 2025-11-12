@@ -55,7 +55,7 @@ WORKDIR /usr/src/app
 RUN cp -r ./web/.next ./deploy/.next && \
     cp -r ./web/public ./deploy/public && \
     cp ./web/package.json ./deploy/package.json && \
-    cp -r ./node_modules ./deploy/node_modules
+    cp -a ./node_modules ./deploy/node_modules
 
 # ---- Final Production Image ----
 FROM base AS production
