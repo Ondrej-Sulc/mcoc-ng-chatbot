@@ -16,20 +16,23 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy dependency manifests and give ownership to node
-COPY --chown=node:node pnpm-workspace.yaml ./
-COPY --chown=node:node package.json pnpm-lock.yaml ./
-COPY --chown=node:node src/package.json ./src/
-COPY --chown=node:node web/package.json ./web/
+# Grant ownership of the app directory to the node user, so it can write files.
+RUN chown -R node:node /usr/src/app
 
 # Switch to non-root user for security
 USER node
+
+# Copy dependency manifests
+COPY pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
+COPY src/package.json ./src/
+COPY web/package.json ./web/
 
 # Install all dependencies for all workspaces
 RUN pnpm install --frozen-lockfile
 
 # Copy the rest of the source code
-COPY --chown=node:node . .
+COPY . .
 
 # Fetch display fonts (Bebas Neue)
 RUN mkdir -p assets/fonts && \
