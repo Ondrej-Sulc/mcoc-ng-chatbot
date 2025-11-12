@@ -59,7 +59,6 @@ export async function POST(req: NextRequest) {
           status: isTrusted ? 'PUBLISHED' : 'UPLOADED',
           visibility: visibility || 'public',
           submittedBy: { connect: { id: uploadToken.playerId } },
-          player: playerId ? { connect: { id: playerId } } : undefined,
         },
       });
 
@@ -82,7 +81,6 @@ export async function POST(req: NextRequest) {
           status: isTrusted ? 'PUBLISHED' : 'UPLOADED',
           visibility: visibility || 'public',
           submittedBy: { connect: { id: uploadToken.playerId } },
-          player: playerId ? { connect: { id: playerId } } : undefined,
         },
       });
 

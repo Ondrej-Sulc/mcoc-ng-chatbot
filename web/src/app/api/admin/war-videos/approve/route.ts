@@ -20,13 +20,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Video not found' }, { status: 404 });
     }
 
-    if (existingVideo.status === 'APPROVED') {
+    if (existingVideo.status === 'PUBLISHED') {
       return NextResponse.json({ message: 'Video already approved' }, { status: 200 });
     }
 
     const updatedVideo = await prisma.warVideo.update({
       where: { id: videoId },
-      data: { status: 'APPROVED' },
+      data: { status: 'PUBLISHED' },
     });
 
     if (existingVideo.submittedBy) {

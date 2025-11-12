@@ -18,12 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-
-interface WarNode {
-  id: number;
-  nodeNumber: number;
-  description?: string;
-}
+import { WarNode } from '@prisma/client';
 
 interface NodeComboboxProps {
   nodes: WarNode[];

@@ -21,32 +21,36 @@ export default async function WarVideoPage(props: any) {
   const warVideo = await prisma.warVideo.findUnique({
     where: { id: videoId },
     include: {
-      attacker: {
-        include: {
-          abilities: {
-            include: {
-              ability: true,
-            },
-          },
-        },
-      },
-      defender: {
-        include: {
-          abilities: {
-            include: {
-              ability: true,
-            },
-          },
-        },
-      },
-      node: true,
-      player: true,
       submittedBy: true,
-      prefightChampions: {
+      fights: {
         include: {
-          abilities: {
+          attacker: {
             include: {
-              ability: true,
+              abilities: {
+                include: {
+                  ability: true,
+                },
+              },
+            },
+          },
+          defender: {
+            include: {
+              abilities: {
+                include: {
+                  ability: true,
+                },
+              },
+            },
+          },
+          node: true,
+          player: true,
+          prefightChampions: {
+            include: {
+              abilities: {
+                include: {
+                  ability: true,
+                },
+              },
             },
           },
         },

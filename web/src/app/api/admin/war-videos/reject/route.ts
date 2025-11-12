@@ -20,20 +20,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Video not found' }, { status: 404 });
     }
 
-    // Delete from YouTube
-    const youtubeId = youTubeService.getVideoId(warVideo.youtubeUrl);
-    if (youtubeId) {
-      try {
-        await youTubeService.deleteVideo(youtubeId);
-      } catch (ytError) {
-        loggerService.error({ err: ytError, youtubeId }, 'Failed to delete YouTube video');
-        return NextResponse.json({ 
-          error: 'Failed to delete video from YouTube', 
-          details: 'Database record retained for manual cleanup' 
-        }, { status: 500 });
-      }
-    }
-
+        // Delete from YouTube
+        if (warVideo.youtubeUrl) {
+          const youtubeId = youTubeService.getVideoId(warVideo.youtubeUrl);
+          if (youtubeId) {
+            try {
+              await youTubeService.deleteVideo(youtubeId);
+            } catch (ytError) {
+              loggerService.error({ err: ytError, youtubeId }, 'Failed to delete YouTube video');
+              return NextResponse.json({
+                error: 'Failed to delete video from YouTube',
+                details: 'Database record retained for manual cleanup'
+              }, { status: 500 });
+            }
+          }
+        }
     // Delete from DB
     await prisma.warVideo.delete({
       where: { id: videoId },

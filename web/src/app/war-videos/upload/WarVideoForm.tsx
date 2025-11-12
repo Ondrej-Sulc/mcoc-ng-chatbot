@@ -18,23 +18,22 @@ import { Champion } from "@/types/champion";
 import { cn } from "@/lib/utils";
 import { War, WarFight, Player as PrismaPlayer, WarNode as PrismaWarNode } from '@prisma/client';
 
-interface WarNode extends PrismaWarNode {}
-interface Player extends PrismaPlayer {}
+
 
 interface PreFilledFight extends WarFight {
   war: War;
-  player: Player;
+  player: PrismaPlayer;
   attacker: Champion;
   defender: Champion;
-  node: WarNode;
+  node: PrismaWarNode;
   prefightChampions: Champion[];
 }
 
 interface WarVideoFormProps {
   token: string;
   initialChampions: Champion[];
-  initialNodes: WarNode[];
-  initialPlayers: Player[];
+  initialNodes: PrismaWarNode[];
+  initialPlayers: PrismaPlayer[];
   initialUserId: string;
   preFilledFights: PreFilledFight[] | null;
 }

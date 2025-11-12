@@ -10,16 +10,10 @@ import { Swords, Shield, Skull, Diamond, X, UploadCloud } from 'lucide-react';
 import { getChampionImageUrl } from '@/lib/championHelper';
 import { Button, buttonVariants } from './ui/button';
 import { cn } from '@/lib/utils';
-import { ChampionClass } from '@prisma/client';
+import { ChampionClass, WarNode } from '@prisma/client'; // Import WarNode from Prisma
 import { getChampionClassColors } from '@/lib/championClassHelper';
 import { Champion, ChampionImages } from '@/types/champion';
 import { Input } from './ui/input';
-
-interface WarNode {
-  id: number;
-  nodeNumber: number;
-  description?: string;
-}
 
 export interface FightData {
   id: string;
