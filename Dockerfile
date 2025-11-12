@@ -45,8 +45,8 @@ RUN pnpm run build
 RUN mkdir -p /usr/src/app/deploy
 # 3. Copy necessary assets, build output, and dependencies
 WORKDIR /usr/src/app
-RUN cp -r ./src/dist ./deploy/dist && \
-    cp -r ./src/package.json ./deploy/package.json && \
+RUN cp -r ./dist ./deploy/dist && \
+    cp ./src/package.json ./deploy/package.json && \
     cp -r ./assets ./deploy/assets && \
     cp -r ./node_modules ./deploy/node_modules
 
