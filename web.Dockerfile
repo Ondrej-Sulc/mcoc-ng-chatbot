@@ -66,4 +66,4 @@ USER node
 WORKDIR /usr/src/app
 COPY --chown=node:node --from=production-builder /usr/src/app/deploy .
 EXPOSE 3000
-CMD ["pnpm", "start"]
+CMD ["./node_modules/.bin/next", "start"]
