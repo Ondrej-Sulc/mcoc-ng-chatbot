@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { add } from 'date-fns';
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { token: string } }
 ) {
   const { token } = params;

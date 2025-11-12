@@ -16,17 +16,17 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Grant ownership of the app directory to the node user, so it can write files.
-RUN chown -R node:node /usr/src/app
-
-# Switch to non-root user for security
-USER node
-
-# Copy dependency manifests
+# Copy dependency manifests first to leverage Docker cache
 COPY pnpm-workspace.yaml ./
 COPY package.json pnpm-lock.yaml ./
 COPY src/package.json ./src/
 COPY web/package.json ./web/
+
+# Grant ownership of all the copied files to the node user
+RUN chown -R node:node /usr/src/app
+
+# Switch to non-root user for security
+USER node
 
 # Install all dependencies for all workspaces
 RUN pnpm install --frozen-lockfile
@@ -64,7 +64,7 @@ WORKDIR /usr/src/app
 COPY --chown=node:node --from=builder /usr/src/app/pnpm-workspace.yaml ./
 COPY --chown=node:node --from=builder /usr/src/app/pnpm-lock.yaml ./
 COPY --chown=node:node --from=builder /usr/src/app/package.json ./
-COPY --chown=node:node --from=builder /usr/src/app/src/package.json ./
+COPY --chown=node:node --from=builder /usr/src/app/src/package.json ./src/
 
 # Install ONLY production dependencies for the core package.
 RUN pnpm install --prod --filter @cerebro/core
