@@ -1,9 +1,23 @@
-# .dockerignore
-node_modules
-web/node_modules
-dist
+# Ignore all node_modules directories in any subdirectory
+**/node_modules
+
+# Ignore build output directories
+**/dist
+**/web/.next
+
+# Ignore local environment files
 .env
+*.env.local
+
+# Ignore Git and VSCode directories
 .git
+.vscode
+
+# Ignore other artifacts
 .gitignore
 docker-compose.yml
 README.md
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

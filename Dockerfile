@@ -44,6 +44,9 @@ RUN pnpm exec prisma generate
 # Build the bot's typescript code
 RUN pnpm run build
 
+# Create a pruned, production-ready deployment directory
+RUN pnpm deploy --legacy --prod --filter @cerebro/core /usr/src/app/deploy
+
 # ---- Final Stage ----
 # This is the final, lean image for production deployment
 FROM base AS final
@@ -60,22 +63,9 @@ RUN mkdir -p /usr/src/app && chown -R node:node /usr/src/app
 USER node
 WORKDIR /usr/src/app
 
-# Copy dependency manifests from builder
-COPY --chown=node:node --from=builder /usr/src/app/pnpm-workspace.yaml ./
-COPY --chown=node:node --from=builder /usr/src/app/pnpm-lock.yaml ./
-COPY --chown=node:node --from=builder /usr/src/app/package.json ./
-COPY --chown=node:node --from=builder /usr/src/app/src/package.json ./src/
-
-# Install ONLY production dependencies for the core package.
-RUN pnpm install --prod --filter @cerebro/core
-
-# Copy the already-generated Prisma client from the builder stage.
-COPY --chown=node:node --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
-COPY --chown=node:node --from=builder /usr/src/app/node_modules/@prisma/client ./node_modules/@prisma/client
-
-# Copy the compiled application code and assets from the builder stage.
-COPY --chown=node:node --from=builder /usr/src/app/dist ./dist
-COPY --chown=node:node --from=builder /usr/src/app/assets ./assets
+# Copy the deployed application from the builder stage.
+# This includes production node_modules, compiled code, and assets.
+COPY --chown=node:node --from=builder /usr/src/app/deploy .
 
 # Command to run the application
 CMD ["node", "dist/index.js"]

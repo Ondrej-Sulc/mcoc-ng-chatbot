@@ -5,7 +5,7 @@ import { add } from 'date-fns';
 export async function GET(
   request: NextRequest,
   context: { params: { token: string } }
-) {
+): Promise<NextResponse> {
   const { token } = context.params;
 
   if (!token) {
