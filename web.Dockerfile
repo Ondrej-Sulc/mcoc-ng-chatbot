@@ -56,6 +56,9 @@ RUN cp -r ./web/.next ./deploy/.next && \
     cp -r ./web/public ./deploy/public && \
     cp ./web/package.json ./deploy/package.json && \
     cp -a ./node_modules ./deploy/node_modules
+# 4. DEBUG: List the contents of the created .bin directory
+RUN echo "--- Listing files in /usr/src/app/deploy/node_modules/.bin ---" && \
+    ls -lA /usr/src/app/deploy/node_modules/.bin
 
 # ---- Final Production Image ----
 FROM base AS production
@@ -66,4 +69,4 @@ USER node
 WORKDIR /usr/src/app
 COPY --chown=node:node --from=production-builder /usr/src/app/deploy .
 EXPOSE 3000
-CMD ["./node_modules/.bin/next", "start"]
+CMD ["/bin/sh", "-c", "echo '--- Listing files in /usr/src/app/node_modules/.bin ---' && ls -lA /usr/src/app/node_modules/.bin && echo '--- End of file list ---' && ./node_modules/.bin/next start"]
