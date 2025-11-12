@@ -52,4 +52,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 USER node
 WORKDIR /usr/src/app
 COPY --chown=node:node --from=production-builder /usr/src/app/deploy .
-CMD ["node", "dist/index.js"]
+CMD ["/bin/sh", "-c", "echo '--- Listing files in /usr/src/app ---' && ls -lA && echo '--- End of file list ---' && node dist/index.js"]
