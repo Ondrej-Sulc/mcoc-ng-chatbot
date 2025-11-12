@@ -44,21 +44,17 @@ ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["pnpm", "run", "dev"]
 
 # ---- Production Builder ----
-# This stage builds the app and manually constructs a clean production directory.
+# This stage builds the app and uses pnpm deploy with a custom .npmignore
+# to ensure build artifacts are included.
 FROM builder AS production-builder
 # 1. Build the Next.js app
 RUN pnpm --filter web run build
-# 2. Manually create the deployment directory
-RUN mkdir -p /usr/src/app/deploy
-# 3. Copy necessary assets, build output, and dependencies
-WORKDIR /usr/src/app
-RUN cp -r ./web/.next ./deploy/.next && \
-    cp -r ./web/public ./deploy/public && \
-    cp ./web/package.json ./deploy/package.json && \
-    cp -a ./node_modules ./deploy/node_modules
-# 4. DEBUG: List the contents of the created .bin directory
-RUN echo "--- Listing files in /usr/src/app/deploy/node_modules/.bin ---" && \
-    ls -lA /usr/src/app/deploy/node_modules/.bin
+# 2. Create a temporary .npmignore in the web workspace to override .gitignore.
+#    This ensures that the .next directory is included by `pnpm deploy`.
+RUN echo '!/.next' > /usr/src/app/web/.npmignore
+# 3. Deploy the web workspace using pnpm deploy. It will correctly prune
+#    node_modules and handle workspace dependencies.
+RUN pnpm deploy --legacy --prod --filter web /usr/src/app/deploy
 
 # ---- Final Production Image ----
 FROM base AS production
@@ -67,6 +63,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl && \
     rm -rf /var/lib/apt/lists/*
 USER node
 WORKDIR /usr/src/app
+# Copy the cleanly deployed application from the production-builder stage
 COPY --chown=node:node --from=production-builder /usr/src/app/deploy .
 EXPOSE 3000
-CMD ["/bin/sh", "-c", "echo '--- Listing files in /usr/src/app/node_modules/.bin ---' && ls -lA /usr/src/app/node_modules/.bin && echo '--- End of file list ---' && ./node_modules/.bin/next start"]
+# pnpm deploy sets up the package.json and node_modules so this works
+CMD ["pnpm", "start"]
