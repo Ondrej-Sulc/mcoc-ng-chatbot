@@ -44,10 +44,18 @@ ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["pnpm", "run", "dev"]
 
 # ---- Production Builder ----
-# This stage builds the final, lean production image.
+# This stage builds the app and manually constructs a clean production directory.
 FROM builder AS production-builder
+# 1. Build the Next.js app
 RUN pnpm --filter web run build
-RUN pnpm deploy --legacy --prod --filter web /usr/src/app/deploy
+# 2. Manually create the deployment directory
+RUN mkdir -p /usr/src/app/deploy
+# 3. Copy necessary assets, build output, and dependencies
+WORKDIR /usr/src/app
+RUN cp -r ./web/.next ./deploy/.next && \
+    cp -r ./web/public ./deploy/public && \
+    cp ./web/package.json ./deploy/package.json && \
+    cp -r ./node_modules ./deploy/node_modules
 
 # ---- Final Production Image ----
 FROM base AS production
@@ -57,6 +65,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl && \
 USER node
 WORKDIR /usr/src/app
 COPY --chown=node:node --from=production-builder /usr/src/app/deploy .
-WORKDIR /usr/src/app/web
 EXPOSE 3000
 CMD ["pnpm", "start"]

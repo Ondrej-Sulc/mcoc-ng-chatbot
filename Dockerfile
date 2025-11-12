@@ -37,10 +37,18 @@ FROM builder AS development
 CMD ["/bin/sh", "-c", "pnpm run dev"]
 
 # ---- Production Builder ----
-# This stage builds the final, lean production image.
+# This stage builds the app and manually constructs a clean production directory.
 FROM builder AS production-builder
+# 1. Build the typescript code
 RUN pnpm run build
-RUN pnpm deploy --legacy --prod --filter @cerebro/core /usr/src/app/deploy
+# 2. Manually create the deployment directory
+RUN mkdir -p /usr/src/app/deploy
+# 3. Copy necessary assets, build output, and dependencies
+WORKDIR /usr/src/app
+RUN cp -r ./src/dist ./deploy/dist && \
+    cp -r ./src/package.json ./deploy/package.json && \
+    cp -r ./assets ./deploy/assets && \
+    cp -r ./node_modules ./deploy/node_modules
 
 # ---- Final Production Image ----
 FROM base AS production
@@ -52,4 +60,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 USER node
 WORKDIR /usr/src/app
 COPY --chown=node:node --from=production-builder /usr/src/app/deploy .
-CMD ["/bin/sh", "-c", "echo '--- Listing files in /usr/src/app ---' && ls -lA && echo '--- End of file list ---' && node dist/index.js"]
+CMD ["node", "dist/index.js"]
