@@ -15,6 +15,25 @@ COPY src/package.json ./src/
 COPY web/package.json ./web/
 RUN CI=true pnpm install --frozen-lockfile
 
+# ---- Development ----
+# Installs all dependencies and sets up for hot-reloading.
+FROM dependencies AS development
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends gosu && \
+    rm -rf /var/lib/apt/lists/*
+# Copy entrypoint script and grant execution rights
+COPY --chown=node:node ./docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Set the entrypoint to our script
+ENTRYPOINT ["docker-entrypoint.sh"]
+
+# Set the working directory for the web app
+WORKDIR /usr/src/app/web
+
+# The command to run the development server
+CMD ["pnpm", "dev"]
+
 # ---- Final Production Image ----
 # Build the application and prune dev dependencies.
 FROM dependencies AS production
