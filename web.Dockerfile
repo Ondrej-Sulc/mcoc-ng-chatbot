@@ -55,6 +55,13 @@ RUN echo '!/.next' > /usr/src/app/web/.npmignore
 # 3. Deploy the web workspace using pnpm deploy. It will correctly prune
 #    node_modules and handle workspace dependencies.
 RUN pnpm deploy --legacy --prod --filter web /usr/src/app/deploy
+# 4. Manually generate Prisma client in the final deploy directory
+WORKDIR /usr/src/app/deploy
+COPY --from=builder /usr/src/app/prisma ./prisma
+RUN pnpm add prisma --prod
+RUN pnpm exec prisma generate
+RUN pnpm remove prisma
+WORKDIR /usr/src/app
 
 # ---- Final Production Image ----
 FROM base AS production
