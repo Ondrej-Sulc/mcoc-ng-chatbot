@@ -3,6 +3,24 @@ import { config } from "../../config";
 import { sheetsService } from "../../services/sheetsService";
 import { MergedAssignment, WarData } from "./types";
 
+function parseA1(a1: string): { col: number; row: number } | null {
+  if (!a1) return null;
+  const colLettersMatch = a1.match(/[A-Z]+/);
+  const rowDigitsMatch = a1.match(/\d+/);
+
+  if (!colLettersMatch || !rowDigitsMatch) return null;
+
+  const colLetters = colLettersMatch[0];
+  const rowDigits = rowDigitsMatch[0];
+
+  let col = 0;
+  for (let i = 0; i < colLetters.length; i++) {
+    col = col * 26 + (colLetters.charCodeAt(i) - "A".charCodeAt(0) + 1);
+  }
+
+  return { col: col - 1, row: parseInt(rowDigits, 10) - 1 };
+}
+
 export async function getChampionData() {
     return prisma.champion.findMany();
 }
@@ -18,19 +36,31 @@ export async function getWarData(
   const warInfoRange = `'${sheetTabName}'!${config.allianceWar.warInfoRange}`;
   const [warInfoData] = await sheetsService.readSheets(sheetId, [warInfoRange]);
 
+  const rangeTopLeftA1 = config.allianceWar.warInfoRange.split(":")[0];
+  const rangeStart = parseA1(rangeTopLeftA1);
+
   const findValue = (label: string): string | undefined => {
+    if (!rangeStart) return undefined;
+
     const cellAddress = (config.allianceWar as any)[`${label}Cell`];
     if (!cellAddress) return undefined;
-    const col = cellAddress.charCodeAt(0) - 'A'.charCodeAt(0);
-    const row = parseInt(cellAddress.substring(1), 10) - 1;
-    return warInfoData?.[row]?.[col];
+
+    const cell = parseA1(cellAddress);
+    if (!cell) return undefined;
+
+    const relativeRow = cell.row - rangeStart.row;
+    const relativeCol = cell.col - rangeStart.col;
+
+    if (relativeRow < 0 || relativeCol < 0) return undefined;
+
+    return warInfoData?.[relativeRow]?.[relativeCol];
   };
 
   return {
-    season: parseInt(findValue('season') || '0', 10),
-    warNumber: parseInt(findValue('warNumber') || '0', 10),
-    warTier: parseInt(findValue('warTier') || '0', 10),
-    enemyAlliance: findValue('enemyAlliance'),
+    season: parseInt(findValue("season") || "0", 10),
+    warNumber: parseInt(findValue("warNumber") || "0", 10),
+    warTier: parseInt(findValue("warTier") || "0", 10),
+    enemyAlliance: findValue("enemyAlliance"),
   };
 }
 
