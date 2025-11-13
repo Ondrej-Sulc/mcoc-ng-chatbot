@@ -122,8 +122,12 @@ This project uses a sophisticated Docker setup to manage the `pnpm` monorepo for
 The `bot` and `web` services use separate, multi-stage `Dockerfile`s optimized for production.
 
 **Web Service (`web.Dockerfile`):**
-The web app deployment uses `pnpm`'s idiomatic deployment command, `pnpm deploy`, with a crucial modification to handle build artifacts.
-- **`.npmignore` Strategy:** The build process first runs `next build` to generate the `.next` directory. It then creates a temporary `.npmignore` file in the `web` workspace that contains `!/.next`. This forces `pnpm deploy` (which prefers `.npmignore` over `.gitignore`) to include the `.next` folder in the final deployment package.
+The web app deployment uses a simplified and robust multi-stage build process. The previous strategy involving `pnpm deploy` and `pnpm prune` proved to be unreliable and caused numerous build and runtime errors related to Prisma client generation and dependency management.
+
+The new, more standard approach is as follows:
+- **`dependencies` stage:** All dependencies (including `devDependencies`) are installed in a cached layer.
+- **`production` stage:** This final stage copies the source code and the full `node_modules` directory from the `dependencies` stage, then runs `prisma generate` and `pnpm --filter web run build`. A `chown` command is used to grant the `node` user proper permissions to the `node_modules` directory, which is required for the `prisma generate` step.
+- **No Pruning:** The `pnpm prune` step is intentionally omitted. While this results in a larger final image (as `devDependencies` are included), it guarantees a stable and working build by avoiding the bugs and complexities encountered with pruning in this monorepo setup.
 - **Next.js 16 Type Error:** The `next.config.ts` file has `typescript: { ignoreBuildErrors: true }` enabled. This is a necessary workaround for a persistent build-time type error related to the new Next.js 16 release, which allows the deployment to succeed.
 
 **Bot Service (`Dockerfile`):**

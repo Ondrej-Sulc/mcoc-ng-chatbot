@@ -58,9 +58,9 @@ The production instance of the bot and its PostgreSQL database are hosted on [Ra
 
 ### Web Application Deployment
 
-The Next.js web application, located in the `/web` directory, is deployed as a separate service on Railway. Its deployment is handled by a dedicated, multi-stage `web.Dockerfile` that is optimized for a `pnpm` monorepo environment.
+The Next.js web application, located in the `/web` directory, is deployed as a separate service on Railway. Its deployment is handled by a dedicated, multi-stage `web.Dockerfile`.
 
-The build process uses `pnpm deploy` to create a clean, production-only version of the application. A key step in this process is the creation of a temporary `.npmignore` file during the build, which ensures that critical build artifacts (like the `.next` directory) are correctly included in the final deployment package.
+The build process was updated to a more robust and standard pattern after issues were discovered with `pnpm deploy` and `pnpm prune` in a monorepo context. The new process ensures reliability by installing all dependencies, building the application, and generating all necessary code in a single stage. To ensure stability, `devDependencies` are not pruned, resulting in a slightly larger but more reliable production image.
 
 Currently, the Next.js configuration has `typescript: { ignoreBuildErrors: true }` enabled. This is a temporary workaround for a persistent type-checking error related to the new Next.js 16 release, which allows the deployment to succeed while the underlying type issue is investigated.
 
