@@ -56,18 +56,15 @@ RUN echo '!/.next' > /usr/src/app/web/.npmignore
 #    node_modules and handle workspace dependencies.
 RUN pnpm deploy --legacy --prod --filter web /usr/src/app/deploy
 
-# 4. [DIAGNOSTIC STEP] Inspect the output of pnpm deploy
-RUN ls -laR /usr/src/app/deploy && cat /usr/src/app/deploy/package.json
-
-# 5. Manually generate Prisma client in the final deploy directory
+# 4. Manually generate Prisma client in the final deploy directory
 WORKDIR /usr/src/app/deploy
 # The node_modules from `pnpm deploy` is problematic. Remove it.
 RUN rm -rf node_modules
 # Copy config files needed for a clean install
 COPY --from=builder /usr/src/app/pnpm-lock.yaml .
 COPY --from=builder /usr/src/app/.npmrc .
-# Install fresh production node_modules
-RUN pnpm install --prod
+# Install fresh production node_modules. CI=true is required in non-interactive envs.
+RUN CI=true pnpm install --prod
 
 # Now add prisma, generate the client, and remove it
 COPY --from=builder /usr/src/app/prisma ./prisma
