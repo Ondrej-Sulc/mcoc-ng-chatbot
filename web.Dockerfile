@@ -46,4 +46,5 @@ RUN CI=true pnpm prune --prod
 
 EXPOSE 3000
 WORKDIR /usr/src/app/web
-CMD ["pnpm", "start"]
+# CMD ["pnpm", "start"]
+CMD ["sh", "-c", "echo $PATH && ls -l /usr/src/app/node_modules/.bin"]
