@@ -57,6 +57,8 @@ RUN echo '!/.next' > /usr/src/app/web/.npmignore
 RUN pnpm deploy --legacy --prod --filter web /usr/src/app/deploy
 # 4. Manually generate Prisma client in the final deploy directory
 WORKDIR /usr/src/app/deploy
+# Copy .npmrc to ensure pnpm commands use the same hoist pattern
+COPY --from=builder /usr/src/app/.npmrc .
 COPY --from=builder /usr/src/app/prisma ./prisma
 RUN pnpm add prisma --prod
 RUN pnpm exec prisma generate
