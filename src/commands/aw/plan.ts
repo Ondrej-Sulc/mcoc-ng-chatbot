@@ -315,7 +315,7 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
     const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId(`generate_upload_link:${war.id}:${dbPlayer.id}`)
-        .setLabel("Upload Video(s)")
+        .setLabel("Add/Upload Video(s) - Coming Soon")
         .setStyle(ButtonStyle.Primary)
     );
 
