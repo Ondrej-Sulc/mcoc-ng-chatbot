@@ -42,9 +42,8 @@ RUN pnpm exec prisma generate
 RUN pnpm --filter web run build
 
 # 3. Prune dev dependencies to create a lean, production-only node_modules
-RUN CI=true pnpm prune --prod
+# RUN CI=true pnpm prune --prod # This command is broken and removes 'next'
 
 EXPOSE 3000
 WORKDIR /usr/src/app/web
-# CMD ["pnpm", "start"]
-CMD ["sh", "-c", "echo $PATH && ls -l /usr/src/app/node_modules/.bin"]
+CMD ["pnpm", "start"]
