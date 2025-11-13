@@ -42,7 +42,7 @@ RUN pnpm exec prisma generate
 RUN pnpm --filter web run build
 
 # 3. Prune dev dependencies to create a lean, production-only node_modules
-RUN pnpm prune --prod
+RUN CI=true pnpm prune --prod
 
 EXPOSE 3000
 WORKDIR /usr/src/app/web
