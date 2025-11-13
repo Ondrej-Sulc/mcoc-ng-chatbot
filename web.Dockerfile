@@ -18,14 +18,19 @@ RUN CI=true pnpm install --frozen-lockfile
 # ---- Final Production Image ----
 # Build the application and prune dev dependencies.
 FROM dependencies AS production
+# Copy all source code from the host machine first
+COPY --chown=node:node . .
+
 USER root
 # Install any runtime OS packages here if needed (e.g., openssl for Prisma)
 RUN apt-get update && apt-get install -y --no-install-recommends openssl && \
     rm -rf /var/lib/apt/lists/*
-USER node
+# The 'dependencies' stage ran as root, so node_modules is root-owned.
+# We need to change ownership to the node user so it can be modified.
+RUN chown -R node:node /usr/src/app
 
-# Copy all source code from the host machine
-COPY --chown=node:node . .
+# Switch to the non-root user
+USER node
 
 # The node_modules are already here from the 'dependencies' stage.
 # Now, we can build and generate code.
