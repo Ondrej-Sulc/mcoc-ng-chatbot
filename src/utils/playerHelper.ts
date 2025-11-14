@@ -1,9 +1,9 @@
 import { User, ChatInputCommandInteraction, ButtonInteraction } from "discord.js";
-import { prisma } from "../services/prismaService";
 import { Player } from "@prisma/client";
 import { safeReply } from "./errorHandler";
 
 export async function getActivePlayer(discordId: string): Promise<Player | null> {
+  const { prisma } = await import("../services/prismaService.js");
   const player = await prisma.player.findFirst({
     where: { 
       discordId,

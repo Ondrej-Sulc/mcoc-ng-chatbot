@@ -9,7 +9,6 @@ import {
   AttachmentBuilder,
 } from "discord.js";
 import { CommandResult } from "../../types/command";
-import { prisma } from "../../services/prismaService";
 import { Player } from "@prisma/client";
 import { extractPrestigeFromImage } from "./ocr";
 
@@ -20,6 +19,7 @@ export async function updatePrestige(params: {
   debug?: boolean;
   player: Player;
 }): Promise<CommandResult> {
+  const { prisma } = await import("../../services/prismaService.js");
   const { imageUrl, debug, player } = params;
 
   const res = await fetch(imageUrl);

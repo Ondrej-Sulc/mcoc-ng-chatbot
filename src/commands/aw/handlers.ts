@@ -1,6 +1,3 @@
-import { prisma } from "../../services/prismaService";
-import { config } from "../../config";
-import { sheetsService } from "../../services/sheetsService";
 import { MergedAssignment, WarData } from "./types";
 
 function parseA1(a1: string): { col: number; row: number } | null {
@@ -22,10 +19,12 @@ function parseA1(a1: string): { col: number; row: number } | null {
 }
 
 export async function getChampionData() {
+    const { prisma } = await import("../../services/prismaService.js");
     return prisma.champion.findMany();
 }
 
 export async function getNodes() {
+    const { prisma } = await import("../../services/prismaService.js");
     return prisma.warNode.findMany();
 }
 
@@ -33,6 +32,8 @@ export async function getWarData(
   sheetId: string,
   sheetTabName: string
 ): Promise<WarData> {
+  const { config } = await import("../../config.js");
+  const { sheetsService } = await import("../../services/sheetsService.js");
   const warInfoRange = `'${sheetTabName}'!${config.allianceWar.warInfoRange}`;
   const [warInfoData] = await sheetsService.readSheets(sheetId, [warInfoRange]);
 
@@ -68,6 +69,8 @@ export async function getMergedData(
   sheetId: string,
   sheetTabName: string
 ): Promise<MergedAssignment[]> {
+  const { config } = await import("../../config.js");
+  const { sheetsService } = await import("../../services/sheetsService.js");
   const assignmentsRange = `'${sheetTabName}'!${config.allianceWar.dataRange}`;
   const tacticsAndPrefightsRange = `'${sheetTabName}'!${config.allianceWar.PreFightTacticDataRange}`;
 
@@ -129,6 +132,8 @@ export async function getTeamData(
   sheetId: string,
   sheetTabName: string
 ): Promise<Map<string, string[]>> {
+  const { config } = await import("../../config.js");
+  const { sheetsService } = await import("../../services/sheetsService.js");
   const teamRange = `'${sheetTabName}'!${config.allianceWar.teamRange}`;
   const [teamData] = await sheetsService.readSheets(sheetId, [
     teamRange,
@@ -158,6 +163,8 @@ export async function getNodesData(
   sheetId: string,
   sheetTabName: string
 ): Promise<Record<string, string>> {
+  const { config } = await import("../../config.js");
+  const { sheetsService } = await import("../../services/sheetsService.js");
   const nodesRange = `'${sheetTabName}'!${config.allianceWar.nodesRange}`;
   const [nodesData] = await sheetsService.readSheets(sheetId, [
     nodesRange,
