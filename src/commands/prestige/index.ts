@@ -6,9 +6,9 @@ import {
 import { Command, CommandAccess } from "../../types/command";
 import { handleUpdate } from "./update";
 import { handleLeaderboard } from "./leaderboard";
-import { prisma } from "../../services/prismaService";
 
 export async function autocomplete(interaction: AutocompleteInteraction) {
+  const { prisma } = await import("../../services/prismaService.js");
   const focusedValue = interaction.options.getFocused();
   const guildId = interaction.guildId;
   if (!guildId) return;
@@ -35,7 +35,7 @@ export async function autocomplete(interaction: AutocompleteInteraction) {
   });
 
   await interaction.respond(
-    players.map((player) => ({
+    players.map((player: { ingameName: string; discordId: string }) => ({
       name: player.ingameName,
       value: player.discordId,
     }))

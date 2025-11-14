@@ -1,4 +1,3 @@
-import { prisma } from "../../../services/prismaService";
 import {
   ButtonInteraction,
   ModalBuilder,
@@ -14,8 +13,8 @@ import {
 } from "./draftUI";
 import logger from "../../../services/loggerService";
 import {
-  openRouterService,
   OpenRouterMessage,
+  OpenRouterService,
 } from "../../../services/openRouterService";
 import { abilityDraftPrompt } from "../../../prompts/abilityDraft";
 import { registerButtonHandler } from "../../../utils/buttonHandlerRegistry";
@@ -25,6 +24,7 @@ import { pendingDrafts } from "./draftState";
 export async function handleConfirmAbilityDraft(
   interaction: ButtonInteraction
 ) {
+  const { prisma } = await import("../../../services/prismaService.js");
   try {
     await interaction.deferUpdate();
     const championId = parseInt(interaction.customId.split("_")[1]);
@@ -154,6 +154,9 @@ export async function handleSuggestEdits(interaction: ButtonInteraction) {
 export async function handleSuggestEditsModal(
   interaction: ModalSubmitInteraction
 ) {
+  const { prisma } = await import("../../../services/prismaService.js");
+  const { config } = await import("../../../config.js");
+  const openRouterService = new OpenRouterService(config.OPEN_ROUTER_API_KEY!);
   await interaction.deferReply({ ephemeral: true });
 
   const championId = parseInt(interaction.customId.split("_")[1]);
@@ -218,7 +221,9 @@ export async function handleSuggestEditsModal(
     content: "Draft updated with your suggestions.",
   });
 }
-registerButtonHandler("confirm-ability-draft_", handleConfirmAbilityDraft);
-registerButtonHandler("cancel-ability-draft", handleCancelAbilityDraft);
-registerButtonHandler("suggest-ability-draft_", handleSuggestEdits);
-registerModalHandler("suggest-ability-modal_", handleSuggestEditsModal);
+export function registerAbilityDraftHandlers() {
+  registerButtonHandler("confirm-ability-draft_", handleConfirmAbilityDraft);
+  registerButtonHandler("cancel-ability-draft", handleCancelAbilityDraft);
+  registerButtonHandler("suggest-ability-draft_", handleSuggestEdits);
+  registerModalHandler("suggest-ability-modal_", handleSuggestEditsModal);
+}

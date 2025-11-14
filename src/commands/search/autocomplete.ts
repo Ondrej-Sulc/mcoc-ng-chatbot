@@ -1,5 +1,4 @@
 import { AutocompleteInteraction } from "discord.js";
-import { prisma } from "../../services/prismaService";
 import {
   getAutocompletePrefixAndCurrent,
   ATTACK_PROPERTIES,
@@ -10,6 +9,7 @@ import {
 import { ChampionClass } from "@prisma/client";
 
 export async function handleAutocomplete(interaction: AutocompleteInteraction) {
+    const { prisma } = await import("../../services/prismaService.js");
     const focusedOption = interaction.options.getFocused(true);
     const focusedValue = focusedOption.value;
 
@@ -32,7 +32,7 @@ export async function handleAutocomplete(interaction: AutocompleteInteraction) {
         orderBy: { name: "asc" },
       });
       await interaction.respond(
-        abilities.map((ability) => ({
+        abilities.map((ability: { name: string }) => ({
           name: `${prefix}${ability.name}`,
           value: `${prefix}${ability.name}`,
         }))
@@ -54,7 +54,7 @@ export async function handleAutocomplete(interaction: AutocompleteInteraction) {
         orderBy: { name: "asc" },
       });
       await interaction.respond(
-        immunities.map((immunity) => ({
+        immunities.map((immunity: { name: string }) => ({
           name: `${prefix}${immunity.name}`,
           value: `${prefix}${immunity.name}`,
         }))
@@ -86,7 +86,7 @@ export async function handleAutocomplete(interaction: AutocompleteInteraction) {
       }
 
       await interaction.respond(
-        tags.map((tag) => ({
+        tags.map((tag: { name: string }) => ({
           name: `${prefix}${tag.name}`,
           value: `${prefix}${tag.name}`,
         }))
@@ -110,7 +110,7 @@ export async function handleAutocomplete(interaction: AutocompleteInteraction) {
         orderBy: { name: "asc" },
       });
       await interaction.respond(
-        categories.map((category) => ({
+        categories.map((category: { name: string }) => ({
           name: `${prefix}${category.name}`,
           value: `${prefix}${category.name}`,
         }))

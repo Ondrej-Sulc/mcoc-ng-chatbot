@@ -1,7 +1,3 @@
-import { config } from "../config";
-
-const OPEN_ROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-
 export type OpenRouterMessageContent =
   | string
   | Array<
@@ -51,6 +47,7 @@ export class OpenRouterService {
   }
 
   async chat(request: OpenRouterRequest): Promise<OpenRouterResponse> {
+    const OPEN_ROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
     /**
      * Sends a chat request to the OpenRouter API.
      * @param request - The chat request parameters.
@@ -72,14 +69,15 @@ export class OpenRouterService {
   }
 }
 
-export const openRouterService = new OpenRouterService(
-  config.OPEN_ROUTER_API_KEY!
-);
-
 export async function getLLMSummary(
   messageHistory: { role: string; content: string }[],
   summaryPrompt: string
 ): Promise<string> {
+  const { config } = await import("../config.js");
+  const openRouterService = new OpenRouterService(
+    config.OPEN_ROUTER_API_KEY!
+  );
+
   try {
     const messages: OpenRouterMessage[] = [
       { role: "system", content: summaryPrompt },

@@ -12,7 +12,6 @@ import {
   ButtonBuilder,
   ButtonStyle,
 } from "discord.js";
-import { config } from "../../config";
 import { prisma } from "../../services/prismaService";
 import { getMergedData, getTeamData, getChampionData, getNodes, getWarData } from "./handlers";
 import { capitalize, formatAssignment, getEmoji } from "./utils";
@@ -25,6 +24,8 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
     await interaction.editReply("This command can only be used in a server.");
     return;
   }
+
+  const { config } = await import("../../config.js");
 
   const alliance = await prisma.alliance.findUnique({
     where: { guildId: interaction.guild.id },

@@ -1,6 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, AutocompleteInteraction, MessageFlags } from "discord.js";
 import { Command, CommandAccess } from "../../types/command";
-import { prisma } from "../../services/prismaService";
 import { handleProfileAdd } from "./add";
 import { handleProfileSwitch } from "./switch";
 import { handleProfileList } from "./list";
@@ -130,6 +129,7 @@ export const command: Command = {
   },
 
   async autocomplete(interaction: AutocompleteInteraction) {
+    const { prisma } = await import("../../services/prismaService.js");
     const focused = interaction.options.getFocused(true);
     const discordId = interaction.user.id;
 
@@ -140,11 +140,11 @@ export const command: Command = {
       });
       const query = focused.value.toLowerCase();
       const filteredProfiles = profiles
-        .filter(p => p.ingameName.toLowerCase().includes(query))
+        .filter((p: { ingameName: string }) => p.ingameName.toLowerCase().includes(query))
         .slice(0, 25);
 
       await interaction.respond(
-        filteredProfiles.map(p => ({ name: p.ingameName, value: p.ingameName }))
+        filteredProfiles.map((p: { ingameName: string }) => ({ name: p.ingameName, value: p.ingameName }))
       );
     } else if (focused.name === 'timezone') {
       const timezones = Intl.supportedValuesOf('timeZone');

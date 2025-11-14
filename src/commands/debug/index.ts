@@ -6,12 +6,9 @@ import {
   AutocompleteInteraction,
 } from "discord.js";
 import { Command, CommandAccess } from "../../types/command";
-import { config } from "../../config";
 import { autocomplete as prestigeAutocomplete } from "../prestige";
 import { handleRosterDebug } from "./roster";
 import { handlePrestigeDebug } from "./prestige";
-
-const authorizedUsers = config.DEV_USER_IDS || [];
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -81,6 +78,8 @@ export const command: Command = {
     color: "red",
   },
   async execute(interaction: ChatInputCommandInteraction) {
+    const { config } = await import("../../config.js");
+    const authorizedUsers = config.DEV_USER_IDS || [];
     if (
       authorizedUsers.length === 0 ||
       !authorizedUsers.includes(interaction.user.id)

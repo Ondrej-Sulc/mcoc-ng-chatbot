@@ -8,10 +8,9 @@ import sharp from "sharp";
 import { createDiscordEmoji, downloadImage } from "../../../utils/emojiHelper";
 import { gcpStorageService } from "../../../services/gcpStorageService";
 import {
-  openRouterService,
   OpenRouterMessage,
+  OpenRouterService,
 } from "../../../services/openRouterService";
-import { prisma } from "../../../services/prismaService";
 import { ChampionClass } from "@prisma/client";
 import logger from "../../../services/loggerService";
 
@@ -114,6 +113,8 @@ text: "Extract information from the image and fill in the following JSON structu
     };
 
     logger.info("Sending image to OpenRouter for tag extraction...");
+    const { config } = await import("../../../config.js");
+    const openRouterService = new OpenRouterService(config.OPEN_ROUTER_API_KEY!);
     const response = await openRouterService.chat({
       model: "google/gemini-2.5-flash",
       messages: [system_message, user_message],
@@ -167,6 +168,7 @@ export async function saveChampionToDb(
       fullAbilities: {},
     };
 
+    const { prisma } = await import("../../../services/prismaService.js");
     await prisma.$transaction(async (tx) => {
       const champion = await tx.champion.upsert({
         where: { name },

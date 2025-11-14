@@ -4,7 +4,6 @@ import {
   AutocompleteInteraction,
 } from "discord.js";
 import { Command, CommandAccess } from "../../types/command";
-import { prisma } from "../../services/prismaService";
 import { handleUpdate } from "./update";
 import { handleView } from "./view";
 import { handleDelete } from "./delete";
@@ -192,6 +191,7 @@ export const command: Command = {
     color: "pink",
   },
   async autocomplete(interaction: AutocompleteInteraction) {
+    const { prisma } = await import("../../services/prismaService.js");
     const focusedValue = interaction.options.getFocused();
     const player = await getActivePlayer(interaction.user.id);
 
@@ -215,7 +215,7 @@ export const command: Command = {
     });
 
     await interaction.respond(
-      roster.map((entry) => ({
+      roster.map((entry: { champion: { name: string }; stars: number; rank: number; championId: number }) => ({
         name: `${entry.champion.name} ${entry.stars}* R${entry.rank}`,
         value: entry.championId.toString(),
       }))

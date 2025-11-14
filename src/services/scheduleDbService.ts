@@ -1,4 +1,3 @@
-import { prisma } from "./prismaService";
 import { Schedule, ScheduleFrequency, Prisma } from "@prisma/client";
 
 export { Schedule, ScheduleFrequency };
@@ -24,6 +23,7 @@ export type NewSchedulePayload = {
  * @returns A promise that resolves to an array of Schedule objects.
  */
 export async function getSchedules(): Promise<Schedule[]> {
+  const { prisma } = await import("./prismaService.js");
   return prisma.schedule.findMany({
     where: { is_active: true },
   });
@@ -35,6 +35,7 @@ export async function getSchedules(): Promise<Schedule[]> {
  * @returns A promise that resolves to the created Schedule object.
  */
 export async function addSchedule(data: NewSchedulePayload): Promise<Schedule> {
+  const { prisma } = await import("./prismaService.js");
   return prisma.schedule.create({
     data,
   });
@@ -46,6 +47,7 @@ export async function addSchedule(data: NewSchedulePayload): Promise<Schedule> {
  * @returns A promise that resolves to the updated Schedule object.
  */
 export async function deleteSchedule(id: string): Promise<Schedule> {
+  const { prisma } = await import("./prismaService.js");
   return prisma.schedule.update({
     where: { id },
     data: { is_active: false },
@@ -62,6 +64,7 @@ export async function updateSchedule(
   id: string,
   data: Partial<Schedule>
 ): Promise<Schedule> {
+  const { prisma } = await import("./prismaService.js");
   return prisma.schedule.update({
     where: { id },
     data,

@@ -10,7 +10,6 @@ import { handleEffect } from "./effect";
 import { handleCategory } from "./category";
 import { handleList } from "./list";
 import { createEmojiResolver } from "../../utils/emojiResolver";
-import { registerGlossaryButtons } from "./buttons";
 
 export const glossaryColors = {
     buttons: {
@@ -25,8 +24,6 @@ export const glossaryColors = {
         effect: 0x323232, // dark gray
     }
 };
-
-registerGlossaryButtons();
 
 export const command: Command = {
   data: new SlashCommandBuilder()

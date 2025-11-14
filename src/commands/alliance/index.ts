@@ -9,7 +9,6 @@ import { handleAllianceView } from './view';
 import { handleAllianceManageRemove } from './manage/remove';
 import { handleAllianceManageList } from './manage/list';
 import { handleAllianceManageAdd } from './manage/add';
-import { prisma } from '../../services/prismaService';
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -105,6 +104,7 @@ export const command: Command = {
       const member = interaction.member;
       if (!member || typeof member.permissions === 'string' || !member.permissions.has(PermissionsBitField.Flags.Administrator)) {
         // Also check for officer role
+        const { prisma } = await import('../../services/prismaService.js');
         const player = await prisma.player.findFirst({ where: { discordId: interaction.user.id, alliance: { guildId: interaction.guildId! } } });
         if (!player || !player.isOfficer) {
             await interaction.reply({ content: 'You must be an administrator or an officer to use this command.', flags: [MessageFlags.Ephemeral] });

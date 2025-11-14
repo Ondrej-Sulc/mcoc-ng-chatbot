@@ -1,6 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
 import { Command, CommandAccess } from "../../types/command";
-import { prisma } from "../../services/prismaService";
 import { safeReply } from "../../utils/errorHandler";
 
 export const command: Command = {
@@ -21,6 +20,7 @@ export const command: Command = {
   },
 
   async execute(interaction: ChatInputCommandInteraction) {
+    const { prisma } = await import("../../services/prismaService.js");
     await interaction.deferReply({ ephemeral: true });
     const ingameName = interaction.options.getString("name", true);
     const discordId = interaction.user.id;

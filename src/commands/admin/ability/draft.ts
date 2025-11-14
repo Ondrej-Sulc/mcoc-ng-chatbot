@@ -1,7 +1,7 @@
 import { CommandInteraction } from "discord.js";
 import logger from "../../../services/loggerService";
 import { prisma } from "../../../services/prismaService";
-import { openRouterService } from "../../../services/openRouterService";
+import { OpenRouterService } from "../../../services/openRouterService";
 import {
   buildDraftContainerV2,
   buildDraftErrorContainerV2,
@@ -50,6 +50,8 @@ export async function handleAbilityDraft(interaction: CommandInteraction) {
     const model =
       interaction.options.getString("model") ?? "google/gemini-2.5-pro";
     logger.info("Sending ability draft request to LLM...");
+    const { config } = await import("../../../config.js");
+    const openRouterService = new OpenRouterService(config.OPEN_ROUTER_API_KEY!);
     const response = await openRouterService.chat({
       model: model,
       messages: [

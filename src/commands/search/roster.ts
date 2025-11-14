@@ -2,7 +2,6 @@ import {
   ChatInputCommandInteraction,
   ButtonInteraction,
 } from "discord.js";
-import { prisma } from "../../services/prismaService";
 import crypto from "crypto";
 import {
   RosterEntryWithChampionRelations,
@@ -18,6 +17,7 @@ import { getPlayer } from "../../utils/playerHelper";
 
 
 async function handleRosterSearch(interaction: ChatInputCommandInteraction) {
+  const { prisma } = await import("../../services/prismaService.js");
   const searchId = crypto.randomUUID();
   const searchCriteria = {
     abilities: interaction.options.getString("abilities"),
@@ -90,7 +90,7 @@ async function handleRosterSearch(interaction: ChatInputCommandInteraction) {
     ),
   };
 
-  const pages = paginate(rosterEntries, (entry) => getRosterEntryDisplayLength(entry, parsedSearchCriteria));
+  const pages = paginate<RosterEntryWithChampionRelations>(rosterEntries, (entry) => getRosterEntryDisplayLength(entry, parsedSearchCriteria));
   rosterSearchCache.set(searchId, { criteria: searchCriteria, pages });
   setTimeout(() => rosterSearchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
 

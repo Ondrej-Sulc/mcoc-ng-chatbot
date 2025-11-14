@@ -9,13 +9,14 @@ import {
   MessageFlags,
 } from 'discord.js';
 import { Command, CommandAccess } from '../../types/command';
-import { prisma } from '../../services/prismaService';
-import { config } from '../../config';
 import loggerService from '../../services/loggerService';
 import crypto from 'crypto';
 
 async function handleUploadSubcommand(interaction: CommandInteraction) {
   if (!interaction.isChatInputCommand()) return;
+
+  const { prisma } = await import('../../services/prismaService.js');
+  const { config } = await import('../../config.js');
 
   await interaction.deferReply({ ephemeral: true });
 

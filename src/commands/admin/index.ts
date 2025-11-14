@@ -9,7 +9,6 @@ import { handleAdminAutocomplete } from "./autocomplete";
 import { handleChampionAdd, handleChampionUpdateImages, handleChampionUpdateTags, handleChampionSyncSheet } from "./champion/handlers";
 import "./champion/init";
 import "./attack/init";
-import { config } from "../../config";
 import { handleAbilityAdd, handleAbilityRemove, handleAbilityDraft } from "./ability/handlers";
 import { showAttackModal } from "./attack/add";
 import { championsByName } from "../../services/championService";
@@ -17,8 +16,6 @@ import { AbilityLinkType } from "@prisma/client";
 import { handleGlossaryLink, handleGlossaryUnlink, handleGlossaryUpdateAbility, handleGlossaryUpdateCategory, handleSetEmoji, handleRemoveEmoji } from "./glossary/handlers";
 import { handleDuelUpload } from "./duel/upload";
 import { handleBotAdminAdd, handleBotAdminRemove } from "./bot-admin/handlers";
-
-const authorizedUsers = config.DEV_USER_IDS || [];
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -377,6 +374,9 @@ export const command: Command = {
   },
   async execute(interaction) {
     if (!interaction.isChatInputCommand()) return;
+
+    const { config } = await import("../../config.js");
+    const authorizedUsers = config.DEV_USER_IDS || [];
 
     if (
       authorizedUsers.length === 0 ||

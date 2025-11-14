@@ -2,7 +2,6 @@ import {
   ChatInputCommandInteraction,
   ButtonInteraction,
 } from "discord.js";
-import { prisma } from "../../services/prismaService";
 import crypto from "crypto";
 import {
   SearchCoreParams,
@@ -17,6 +16,7 @@ import { getChampionDisplayLength } from "./views/common";
 
 
 async function handleGlobalSearch(interaction: ChatInputCommandInteraction) {
+  const { prisma } = await import("../../services/prismaService.js");
   const searchId = crypto.randomUUID();
   const searchCriteria = {
     abilities: interaction.options.getString("abilities"),
@@ -74,7 +74,7 @@ async function handleGlobalSearch(interaction: ChatInputCommandInteraction) {
     ),
   };
 
-  const pages = paginate(allChampions, (champion) => getChampionDisplayLength(champion, parsedSearchCriteria));
+  const pages = paginate<ChampionWithRelations>(allChampions, (champion) => getChampionDisplayLength(champion, parsedSearchCriteria));
   searchCache.set(searchId, { criteria: searchCriteria, pages });
   setTimeout(() => searchCache.delete(searchId), 15 * 60 * 1000); // 15 min expiry
 

@@ -18,6 +18,8 @@ import { loadApplicationEmojis } from "./services/applicationEmojiService";
 import { loadChampions } from "./services/championService";
 import { initializeAqReminders } from "./services/aqReminderService.js";
 import { getModalHandler } from "./utils/modalHandlerRegistry";
+import { registerGlossaryButtons } from "./commands/glossary/buttons";
+import { registerAbilityDraftHandlers } from "./commands/admin/ability/draftHandler";
 import posthogClient from "./services/posthogService";
 import { prisma } from "./services/prismaService";
 import logger from "./services/loggerService";
@@ -84,6 +86,9 @@ client.once(Events.ClientReady, async (readyClient) => {
   await startScheduler(client);
   startAQScheduler(client);
   initializeAqReminders(client);
+  registerGlossaryButtons();
+  registerAbilityDraftHandlers();
+  logger.info("✅ Registered all button handlers.");
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
