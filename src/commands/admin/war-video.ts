@@ -54,15 +54,16 @@ export async function execute(interaction: CommandInteraction) {
         return;
       }
 
-      if (!warVideo.youtubeUrl) {
-        await interaction.editReply('Video has no YouTube URL.');
+      if (!warVideo.url) {
+        await interaction.editReply('Video has no URL.');
         return;
       }
 
       // 1. Update video on YouTube to 'unlisted'
-      const youtubeId = youTubeService.getVideoId(warVideo.youtubeUrl);
+      // Assuming the URL is a YouTube URL for now, as the service is YouTube specific.
+      const youtubeId = youTubeService.getVideoId(warVideo.url);
       if (!youtubeId) {
-        await interaction.editReply('Could not parse YouTube video ID from URL.');
+        await interaction.editReply('Could not parse YouTube video ID from URL. Ensure it is a valid YouTube URL.');
         return;
       }
       await youTubeService.updateVideoPrivacy(youtubeId, 'unlisted');
@@ -84,8 +85,9 @@ export async function execute(interaction: CommandInteraction) {
 
     } else if (subcommand === 'reject') {
       // 1. Delete video from YouTube
-      if (warVideo.youtubeUrl) {
-        const youtubeId = youTubeService.getVideoId(warVideo.youtubeUrl);
+      // Assuming the URL is a YouTube URL for now, as the service is YouTube specific.
+      if (warVideo.url) {
+        const youtubeId = youTubeService.getVideoId(warVideo.url);
         if (youtubeId) {
           await youTubeService.deleteVideo(youtubeId);
         }
