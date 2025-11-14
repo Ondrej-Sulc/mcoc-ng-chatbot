@@ -12,13 +12,13 @@ import {
 } from "discord.js";
 import { config } from "../config";
 import { commands } from "../utils/commandHandler";
-import posthogClient from "./posthogService";
-import { prisma } from "./prismaService";
+import { getPosthogClient } from "./posthogService";
 import loggerService from "./loggerService";
 
 const jobs: Record<string, ScheduledTask[]> = {};
 
 async function syncAllAllianceRoles(client: Client) {
+  const { prisma } = await import("./prismaService.js");
   loggerService.info('Starting hourly alliance role sync...');
   const alliances = await prisma.alliance.findMany({
     where: {
@@ -322,6 +322,7 @@ export async function startScheduler(client: Client) {
           );
 
           try {
+            const posthogClient = await getPosthogClient();
             if (posthogClient) {
               posthogClient.capture({
                 distinctId: `schedule_${schedule.id}`,

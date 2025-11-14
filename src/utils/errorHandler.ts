@@ -5,7 +5,7 @@ import {
 } from "discord.js";
 import { randomBytes } from "crypto";
 import logger from "../services/loggerService";
-import posthogClient from "../services/posthogService";
+import { getPosthogClient } from "../services/posthogService";
 
 // Removed custom RepliableInteraction type definition
 
@@ -59,24 +59,27 @@ export function handleError(error: unknown, context: ErrorContext = {}) {
   logger.error(logContext, `[Error:${errorId}]`);
 
   // --- PostHog Event Capture ---
-  try {
-    if (posthogClient && context.userId) {
-      posthogClient.capture({
-        distinctId: context.userId,
-        event: "error_occurred",
-        properties: {
-          error_id: errorId,
-          error_name: errorObj.name,
-          error_message: errorObj.message,
-          error_stack: errorObj.stack,
-          location: context.location,
-          ...context.extra,
-        },
-      });
+  (async () => {
+    try {
+      const posthogClient = await getPosthogClient();
+      if (posthogClient && context.userId) {
+        posthogClient.capture({
+          distinctId: context.userId,
+          event: "error_occurred",
+          properties: {
+            error_id: errorId,
+            error_name: errorObj.name,
+            error_message: errorObj.message,
+            error_stack: errorObj.stack,
+            location: context.location,
+            ...context.extra,
+          },
+        });
+      }
+    } catch (e) {
+      logger.error({ err: e }, "Failed to capture PostHog error event");
     }
-  } catch (e) {
-    logger.error({ err: e }, "Failed to capture PostHog error event");
-  }
+  })();
   // -----------------------------
 
   // More professional user-facing message

@@ -22,7 +22,7 @@ import { registerGlossaryButtons } from "./commands/glossary/buttons";
 import { registerAbilityDraftHandlers } from "./commands/admin/ability/draftHandler";
 import { registerChampionAdminHandlers } from "./commands/admin/champion/init";
 import { registerAttackAdminHandlers } from "./commands/admin/attack/init";
-import posthogClient from "./services/posthogService";
+import { getPosthogClient } from "./services/posthogService";
 import { prisma } from "./services/prismaService";
 import logger from "./services/loggerService";
 
@@ -102,6 +102,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
     try {
+      const posthogClient = await getPosthogClient();
       if (posthogClient) {
         posthogClient.capture({
           distinctId: interaction.user.id,
@@ -141,6 +142,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
     try {
+      const posthogClient = await getPosthogClient();
       if (posthogClient) {
         const fields = interaction.fields.fields.map((field) => ({
           customId: field.customId,
@@ -280,6 +282,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 
   try {
+    const posthogClient = await getPosthogClient();
     if (posthogClient) {
       const subcommand = interaction.options.getSubcommand(false);
       const subcommandGroup = interaction.options.getSubcommandGroup(false);
@@ -333,6 +336,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 
 client.on('destroy', async () => {
+    const posthogClient = await getPosthogClient();
     if (posthogClient) {
         await posthogClient.shutdown();
     }
