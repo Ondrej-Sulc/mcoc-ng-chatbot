@@ -221,7 +221,9 @@ model Player {
   summonerPrestige Int?
   championPrestige Int?
   relicPrestige    Int?
-  isBotAdmin       Boolean @default(false)
+  isBotAdmin       Boolean   @default(false)
+  isOfficer        Boolean   @default(false)
+  battlegroup      Int?
 
   roster          Roster[]
   prestigeHistory PrestigeLog[]
@@ -260,6 +262,10 @@ model Alliance {
   name             String
   enabledFeatureCommands  String[] @default([])
   createAqThread   Boolean  @default(false)
+  officerRole      String?
+  battlegroup1Role String?
+  battlegroup2Role String?
+  battlegroup3Role String?
 
   members Player[]
   config  AllianceConfig?

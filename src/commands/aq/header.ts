@@ -6,7 +6,7 @@ import path from "path";
 export interface AQHeaderOptions {
   day: number;
   channelName: string;
-  roleName: string;
+  battlegroupName: string;
   width?: number;
   height?: number;
 }
@@ -125,18 +125,18 @@ function createPill(
 function createTextSvg(opts: {
   day: number;
   channelName: string;
-  roleName: string;
+  battlegroupName: string;
   width: number;
   height: number;
   padding: number;
   font: opentype.Font | null;
 }): Buffer {
-  const { day, channelName, roleName, width, height, padding, font } = opts;
+  const { day, channelName, battlegroupName, width, height, padding, font } = opts;
 
   const mainTitle = "Alliance Quest";
   const dayText = `Day ${day}`;
   const channelText = `#${channelName}`;
-  const roleText = `@${roleName}`;
+  const battlegroupText = battlegroupName;
 
   const titleSize = 54;
   const subTextSize = 24;
@@ -146,7 +146,7 @@ function createTextSvg(opts: {
   let mainTitlePath = "";
   let dayTextPath = "";
   let channelPill = "";
-  let rolePill = "";
+  let battlegroupPill = "";
 
   if (font) {
     const mainTitlePathData = font
@@ -175,13 +175,13 @@ function createTextSvg(opts: {
       subTextSize
     );
 
-    const roleTextWidth = font.getAdvanceWidth(roleText, subTextSize);
-    const rolePillWidth = roleTextWidth + pillPadding * 2;
-    rolePill = createPill(
-      roleText,
-      width - padding - rolePillWidth,
+    const battlegroupTextWidth = font.getAdvanceWidth(battlegroupText, subTextSize);
+    const battlegroupPillWidth = battlegroupTextWidth + pillPadding * 2;
+    battlegroupPill = createPill(
+      battlegroupText,
+      width - padding - battlegroupPillWidth,
       height - padding - pillHeight,
-      rolePillWidth,
+      battlegroupPillWidth,
       pillHeight,
       font,
       subTextSize
@@ -207,7 +207,7 @@ function createTextSvg(opts: {
       ${mainTitlePath}
       ${dayTextPath}
       ${channelPill}
-      ${rolePill}
+      ${battlegroupPill}
     </svg>
   `;
   return Buffer.from(svg);
@@ -221,7 +221,7 @@ export async function generateAQHeader(
   const {
     day,
     channelName,
-    roleName,
+    battlegroupName,
     width = DEFAULTS.width,
     height = DEFAULTS.height,
   } = options;
@@ -234,7 +234,7 @@ export async function generateAQHeader(
   const textSvg = createTextSvg({
     day,
     channelName,
-    roleName,
+    battlegroupName,
     width,
     height,
     padding: DEFAULTS.padding,

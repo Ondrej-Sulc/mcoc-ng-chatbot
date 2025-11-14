@@ -30,12 +30,22 @@ export const command: Command = {
             .setMinValue(1)
             .setMaxValue(4)
         )
-        .addStringOption((o) =>
+        .addIntegerOption((o) =>
           o
-            .setName("role")
-            .setDescription("Select the battlegroup role")
+            .setName("battlegroup")
+            .setDescription("Select the battlegroup for the player list")
             .setRequired(true)
-            .setAutocomplete(true)
+            .addChoices(
+              { name: 'Battlegroup 1', value: 1 },
+              { name: 'Battlegroup 2', value: 2 },
+              { name: 'Battlegroup 3', value: 3 }
+            )
+        )
+        .addRoleOption((o) =>
+          o
+            .setName("ping-role")
+            .setDescription("Optional: A specific role to ping for notifications.")
+            .setRequired(false)
         )
         .addChannelOption((o) =>
           o
@@ -82,6 +92,7 @@ export const command: Command = {
     },
   },
   async autocomplete(interaction: AutocompleteInteraction) {
+    // This is no longer used by /aq start, but may be used by other commands in the future.
     const focused = interaction.options.getFocused(true);
 
     if (focused.name !== "role") return;
@@ -139,7 +150,8 @@ export const command: Command = {
       await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
       const day = interaction.options.getInteger("day", true);
-      const roleId = interaction.options.getString("role", true);
+      const battlegroup = interaction.options.getInteger("battlegroup", true);
+      const pingRole = interaction.options.getRole("ping-role");
       const targetChannel = (interaction.options.getChannel("channel") ||
         interaction.channel) as GuildBasedChannel | null;
       if (!targetChannel) {
@@ -155,19 +167,14 @@ export const command: Command = {
         return;
       }
 
-      const role = await guild.roles.fetch(roleId);
-      if (!role) {
-        await interaction.editReply("Role not found.");
-        return;
-      }
-
       const result = await handleStart({
         day,
-        roleId,
+        battlegroup,
+        pingRoleId: pingRole?.id || null,
         channel: targetChannel,
         guild,
         channelName: targetChannel.name,
-        roleName: role.name,
+        battlegroupName: `Battlegroup ${battlegroup}`,
       });
       await interaction.editReply(result);
     } else if (sub === "end") {

@@ -2,15 +2,19 @@ import { SlashCommandBuilder, ChatInputCommandInteraction, PermissionsBitField, 
 import { Command, CommandAccess } from '../../types/command';
 import { handleAllianceToggleFeature } from './toggle-feature';
 import { handleAllianceJoin } from './join';
-
 import { handleAllianceName } from './name';
+import { handleAllianceConfigRoles } from './config-roles';
+import { handleAllianceSyncRoles } from './sync-roles';
+import { handleAllianceView } from './view';
+import { handleAllianceManageRemove } from './manage/remove';
+import { handleAllianceManageList } from './manage/list';
+import { handleAllianceManageAdd } from './manage/add';
+import { prisma } from '../../services/prismaService';
 
 export const command: Command = {
   data: new SlashCommandBuilder()
     .setName('alliance')
     .setDescription('Manage your alliance settings.')
-
-
     .addSubcommand((subcommand) =>
       subcommand
         .setName('toggle-feature')
@@ -43,8 +47,50 @@ export const command: Command = {
             .setDescription('The new name for the alliance.')
             .setRequired(true)
         )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('config-roles')
+        .setDescription('Configure officer and battlegroup roles for your alliance.')
+        .addRoleOption(option => option.setName('officer').setDescription('The role for alliance officers.'))
+        .addRoleOption(option => option.setName('battlegroup1').setDescription('The role for Battlegroup 1.'))
+        .addRoleOption(option => option.setName('battlegroup2').setDescription('The role for Battlegroup 2.'))
+        .addRoleOption(option => option.setName('battlegroup3').setDescription('The role for Battlegroup 3.'))
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('sync-roles')
+        .setDescription('Sync officer and battlegroup roles from Discord to the bot.')
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName('view')
+        .setDescription('Display an overview of the alliance.')
+    )
+    .addSubcommandGroup(group =>
+      group
+        .setName('manage')
+        .setDescription('Manage alliance members.')
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('remove')
+            .setDescription('Remove a player from the alliance roster.')
+            .addUserOption(option => option.setName('user').setDescription('The user to remove.').setRequired(true))
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('list')
+            .setDescription('List all players in the alliance roster.')
+        )
+        .addSubcommand(subcommand =>
+          subcommand
+            .setName('add')
+            .setDescription('Add a player to the alliance roster.')
+            .addUserOption(option => option.setName('user').setDescription('The user to add.').setRequired(true))
+            .addStringOption(option => option.setName('ingame-name').setDescription('The in-game name of the user.').setRequired(true))
+        )
     ),
-  access: CommandAccess.USER, // Set base access to USER
+  access: CommandAccess.USER,
 
   help: {
     group: "Alliance Tools",
@@ -55,16 +101,34 @@ export const command: Command = {
     const subcommand = interaction.options.getSubcommand(true);
     const subcommandGroup = interaction.options.getSubcommandGroup();
 
-    if (subcommand === 'toggle-feature' || subcommand === 'name') {
+    if (subcommand === 'toggle-feature' || subcommand === 'name' || subcommand === 'config-roles' || subcommand === 'sync-roles' || subcommandGroup === 'manage') {
       const member = interaction.member;
       if (!member || typeof member.permissions === 'string' || !member.permissions.has(PermissionsBitField.Flags.Administrator)) {
-        await interaction.reply({ content: 'You must be an administrator to use this command.', flags: [MessageFlags.Ephemeral] });
-        return;
+        // Also check for officer role
+        const player = await prisma.player.findFirst({ where: { discordId: interaction.user.id, alliance: { guildId: interaction.guildId! } } });
+        if (!player || !player.isOfficer) {
+            await interaction.reply({ content: 'You must be an administrator or an officer to use this command.', flags: [MessageFlags.Ephemeral] });
+            return;
+        }
       }
     }
 
     await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
-    switch (subcommand) {
+
+    if (subcommandGroup === 'manage') {
+      switch (subcommand) {
+        case 'remove':
+          await handleAllianceManageRemove(interaction);
+          break;
+        case 'list':
+          await handleAllianceManageList(interaction);
+          break;
+        case 'add':
+          await handleAllianceManageAdd(interaction);
+          break;
+      }
+    } else {
+      switch (subcommand) {
         case 'toggle-feature':
           await handleAllianceToggleFeature(interaction);
           break;
@@ -74,8 +138,17 @@ export const command: Command = {
         case 'name':
           await handleAllianceName(interaction);
           break;
+        case 'config-roles':
+          await handleAllianceConfigRoles(interaction);
+          break;
+        case 'sync-roles':
+          await handleAllianceSyncRoles(interaction);
+          break;
+        case 'view':
+          await handleAllianceView(interaction);
+          break;
+      }
     }
-
   },
 
   async autocomplete(interaction: AutocompleteInteraction) {

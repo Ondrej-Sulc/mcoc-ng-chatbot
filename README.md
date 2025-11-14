@@ -22,10 +22,17 @@ A modular Discord bot built with TypeScript, designed for Marvel Contest of Cham
     - **AI Ability Drafting:** Leverages AI to draft abilities and immunities for champions based on their full abilities JSON.
     - **Application Emoji Creation:** Automatically creates a new application emoji for the champion.
     - **Database Integration:** Upserts the champion data into the PostgreSQL database, ensuring no duplicates are created.
-- **Alliance Management:** A suite of commands to manage alliance settings and activities.
-    - `/alliance join`: Allows new members to join the alliance on Discord and register with the bot in one step.
-    - `/alliance name`: Alliance Admins can update the alliance's name.
-    - `/alliance toggle-feature`: Enables or disables features like `/aw` for the alliance.
+- **Alliance Management:** A comprehensive suite of commands to manage all aspects of the alliance within the bot.
+    - **Role-Based Permissions:** Introduces a new "Officer" role, configurable per alliance. Officers and Discord Administrators gain access to management commands.
+    - **Battlegroup & Officer Sync:** The bot can automatically sync Battlegroup and Officer roles from Discord to the database, keeping the alliance structure up-to-date. This can be triggered manually with `/alliance sync-roles` or run automatically in the background.
+    - **Role Configuration:** `/alliance config-roles` allows admins to map their server's Discord roles to the bot's Officer and Battlegroup (1, 2, 3) functions.
+    - **Member Management:** A new `/alliance manage` command group for officers to:
+        - `add`: Manually add a player to the alliance roster.
+        - `remove`: Remove a player from the alliance roster.
+        - `list`: View a simple, admin-focused list of all members.
+    - **Alliance Overview:** The `/alliance view` command provides a rich, detailed overview of the alliance roster, neatly organized by Battlegroup and clearly indicating who the officers are.
+    - **Joining:** `/alliance join` allows new members to join the alliance on Discord and register with the bot in one step.
+    - **Settings:** `/alliance name` and `/alliance toggle-feature` allow admins to manage basic alliance settings.
 - **Profile Management:** The `/profile` command allows users to manage their in-game profiles. It supports multiple accounts, allowing you to switch between them easily. The main `/profile view` command provides an interactive dashboard for managing all aspects of your profile, including prestige, roster summary, and alliance info. From this view, you can switch between profiles, rename or delete the active profile, and set your timezone.
 - **Roster Management:** A comprehensive `/roster` command that allows users to manage their personal champion rosters. It includes subcommands to `update` (via OCR from screenshots), `view`, `delete`, `summary`, and `export` champions, providing a full suite of tools for roster maintenance.
 - **Advanced Search:** A powerful `/search` command with two main subcommands:
@@ -69,7 +76,7 @@ Currently, the Next.js configuration has `typescript: { ignoreBuildErrors: true 
 | Command | Description | Access |
 | --- | --- | --- |
 | `/admin` | Administrative commands for managing champions, abilities, attacks, and the glossary. These commands are typically restricted to bot administrators and are used for data management and bot configuration. | Bot Admin |
-| `/alliance` | Manage your alliance, its features, and AQ schedule. | User |
+| `/alliance` | A comprehensive suite of commands to view and manage your alliance, its members, roles, and features. | User |
 | `/aq` | Alliance Quest (AQ) utilities. These commands help alliances coordinate and track their progress in Alliance Quests. | User |
 | `/aw` | Commands for Alliance War planning and details. | Feature |
 | `/champion` | Get detailed information about any champion in the game. This acts as a comprehensive in-game encyclopedia for all champions. | Public |

@@ -37,7 +37,7 @@ export function buildProgressLines(state: AQState): string {
 export function buildAQContainer(
   state: AQState,
   channelName: string,
-  roleName: string
+  battlegroupName: string
 ): ContainerBuilder {
   const container = new ContainerBuilder();
 
@@ -111,8 +111,8 @@ export async function updateAqMessage(
   try {
     const channel = await interaction.client.channels.fetch(channelId);
     const message = await (channel as any).messages.fetch(state.messageId);
-    const role = await (channel as any).guild.roles.fetch(state.roleId);
-    const container = buildAQContainer(state, channel.name, role.name);
+    // state.roleId now contains the battlegroup name, not an ID
+    const container = buildAQContainer(state, channel.name, ''); // battlegroupName is unused here
     await message.edit({
       components: [container],
       flags: [MessageFlags.IsComponentsV2],

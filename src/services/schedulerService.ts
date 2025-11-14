@@ -13,8 +13,64 @@ import {
 import { config } from "../config";
 import { commands } from "../utils/commandHandler";
 import posthogClient from "./posthogService";
+import { prisma } from "./prismaService";
+import loggerService from "./loggerService";
 
 const jobs: Record<string, ScheduledTask[]> = {};
+
+async function syncAllAllianceRoles(client: Client) {
+  loggerService.info('Starting hourly alliance role sync...');
+  const alliances = await prisma.alliance.findMany({
+    where: {
+      OR: [
+        { officerRole: { not: null } },
+        { battlegroup1Role: { not: null } },
+        { battlegroup2Role: { not: null } },
+        { battlegroup3Role: { not: null } },
+      ],
+    },
+  });
+
+  for (const alliance of alliances) {
+    try {
+      const guild = await client.guilds.fetch(alliance.guildId);
+      const members = await guild.members.fetch();
+      let updatedPlayers = 0;
+
+      for (const member of members.values()) {
+        const player = await prisma.player.findFirst({
+          where: { discordId: member.id, allianceId: alliance.id },
+        });
+
+        if (player) {
+          let battlegroup: number | null = null;
+          if (alliance.battlegroup1Role && member.roles.cache.has(alliance.battlegroup1Role)) {
+            battlegroup = 1;
+          } else if (alliance.battlegroup2Role && member.roles.cache.has(alliance.battlegroup2Role)) {
+            battlegroup = 2;
+          } else if (alliance.battlegroup3Role && member.roles.cache.has(alliance.battlegroup3Role)) {
+            battlegroup = 3;
+          }
+
+          const isOfficer = !!(alliance.officerRole && member.roles.cache.has(alliance.officerRole));
+
+          if (player.battlegroup !== battlegroup || player.isOfficer !== isOfficer) {
+            await prisma.player.update({
+              where: { id: player.id },
+              data: { battlegroup, isOfficer },
+            });
+            updatedPlayers++;
+          }
+        }
+      }
+      loggerService.info(`Synced roles for alliance ${alliance.name} (${alliance.guildId}). ${updatedPlayers} players updated.`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      loggerService.error({ error: errorMessage, allianceId: alliance.id, guildId: alliance.guildId }, `Error syncing roles for alliance ${alliance.name}`);
+    }
+  }
+  loggerService.info('Finished hourly alliance role sync.');
+}
 
 function getCronExpressions(schedule: Schedule): string[] {
   const times = (schedule.time || "")
@@ -315,4 +371,9 @@ export async function startScheduler(client: Client) {
       );
     }
   }
+
+  cron.schedule('0 * * * *', () => syncAllAllianceRoles(client), {
+    timezone: config.TIMEZONE,
+  });
+  console.log('[Scheduler] Scheduled hourly alliance role sync.');
 }

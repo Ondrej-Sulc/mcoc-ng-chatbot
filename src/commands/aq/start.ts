@@ -13,17 +13,18 @@ import logger from "../../services/loggerService";
 
 interface AQCoreStartParams {
   day: number;
-  roleId: string;
+  battlegroup: number;
+  pingRoleId: string | null;
   channel: GuildBasedChannel;
   guild: Guild;
   channelName: string;
-  roleName: string;
+  battlegroupName: string;
 }
 
 export async function handleStart(
   params: AQCoreStartParams
 ): Promise<CommandResult> {
-  const { day, roleId, channel, guild, channelName, roleName } = params;
+  const { day, battlegroup, pingRoleId, channel, guild, channelName, battlegroupName } = params;
 
   if (!("send" in channel)) {
     return {
@@ -50,30 +51,33 @@ export async function handleStart(
     };
   }
 
-  const role = guild.roles.cache.get(roleId);
-  if (!role) {
+  const players = await prisma.player.findMany({
+    where: {
+      allianceId: alliance.id,
+      battlegroup: battlegroup,
+    },
+  });
+
+  if (players.length === 0) {
     return {
-      content: "Selected role not found.",
+      content: `There are no players registered in the database for ${battlegroupName}. Please sync your roles with \`/alliance sync-roles\`.`,
       flags: MessageFlags.Ephemeral,
     };
   }
 
-  // To get all members of a role, we need to make sure the guild member cache is populated.
-  // guild.members.fetch() is the way to do that, but it can time out on very large guilds,
-  // causing a `GuildMembersTimeout` error and crashing the process.
-  // As a workaround, we'll wrap it in a try/catch. If it times out, we'll log a
-  // warning and continue with a potentially incomplete list of members from the cache.
-  // This prevents the crash, but the AQ tracker might not include all players.
-  try {
-    await guild.members.fetch();
-  } catch (error: any) {
-    if (error.code === "GuildMembersTimeout") {
-      logger.warn(
-        { guildId: guild.id, roleId },
-        "guild.members.fetch() timed out. The player list may be incomplete."
-      );
-    } else {
-      throw error;
+  // Determine the role to use for pings
+  let roleIdForPings: string | null = pingRoleId;
+  if (!roleIdForPings) {
+    switch (battlegroup) {
+      case 1:
+        roleIdForPings = alliance.battlegroup1Role;
+        break;
+      case 2:
+        roleIdForPings = alliance.battlegroup2Role;
+        break;
+      case 3:
+        roleIdForPings = alliance.battlegroup3Role;
+        break;
     }
   }
 
@@ -83,7 +87,7 @@ export async function handleStart(
   const state: AQState = {
     channelId,
     messageId: "",
-    roleId,
+    roleId: roleIdForPings,
     day,
     status: "active",
     mapStatus: "Section 1 in Progress",
@@ -96,19 +100,19 @@ export async function handleStart(
     allianceId: alliance.id,
   };
 
-  for (const member of role.members.values()) {
-    state.players.s1[member.id] = { done: false };
-    state.players.s2[member.id] = { done: false };
-    state.players.s3[member.id] = { done: false };
+  for (const player of players) {
+    state.players.s1[player.discordId] = { done: false };
+    state.players.s2[player.discordId] = { done: false };
+    state.players.s3[player.discordId] = { done: false };
   }
 
   const headerImage = await generateAQHeader({
     day,
     channelName,
-    roleName,
+    battlegroupName,
   });
 
-  const container = buildAQContainer(state, channelName, roleName);
+  const container = buildAQContainer(state, channelName, battlegroupName);
   const file = new AttachmentBuilder(headerImage).setName("aq_header.png");
   const sent = await (channel as any).send({
     components: [container],
@@ -120,7 +124,7 @@ export async function handleStart(
   if (alliance.createAqThread) {
     try {
       const thread = await sent.startThread({
-        name: `AQ Day ${day} Updates`,
+        name: `AQ Day ${day} - ${battlegroupName} Updates`,
         autoArchiveDuration: 1440, // 24 hours
       });
       state.threadId = thread.id;

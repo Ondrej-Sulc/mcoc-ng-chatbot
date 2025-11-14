@@ -11,7 +11,7 @@ export interface AQState {
   channelId: string;
   messageId: string;
   threadId?: string;
-  roleId: string;
+  roleId: string | null;
   day: number;
   status: "active" | "ended" | "completed" | "ended_manual";
   mapStatus: string;

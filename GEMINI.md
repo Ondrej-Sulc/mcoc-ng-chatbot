@@ -31,6 +31,22 @@ The bot features a sophisticated system for tracking Alliance War performance by
     6.  The web UI uses the token to fetch the fight data and pre-fills the video upload form, creating a seamless user experience.
     7.  The user can then upload a single video for all their fights or one video per fight. The backend API handles the creation of the `WarVideo` record(s) and links them to the correct `WarFight`(s).
 
+### Alliance Structure & Role Management
+
+The bot includes a robust system for managing alliance structure, including officer roles and battlegroup assignments, directly linked to Discord roles.
+
+*   **Database Model:**
+    *   The `Player` model contains an `isOfficer` boolean flag and a nullable `battlegroup` integer field.
+    *   The `Alliance` model contains nullable string fields for `officerRole`, `battlegroup1Role`, `battlegroup2Role`, and `battlegroup3Role` to store the corresponding Discord Role IDs.
+*   **Configuration:** The `/alliance config-roles` command allows server administrators to map their Discord roles to the bot's internal officer and battlegroup designations.
+*   **Synchronization:**
+    *   The `/alliance sync-roles` command allows officers to manually trigger a sync between Discord roles and the bot's database.
+    *   An automatic, hourly background job also performs this sync, ensuring the bot's data remains up-to-date with changes in Discord roles.
+*   **Management & Permissions:**
+    *   A new `/alliance manage` command group provides officer-only tools to `add`, `remove`, and `list` members from the alliance roster.
+    *   Commands requiring elevated permissions are restricted to users with either Discord Administrator permissions or the `isOfficer` flag set to `true` in the database.
+*   **Overview:** The `/alliance view` command provides a public, read-only overview of the entire alliance, showing members organized by battlegroup and highlighting officers.
+
 The bot is built with a modern tech stack, including:
 
 *   **Language:** TypeScript

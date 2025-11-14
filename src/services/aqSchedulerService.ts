@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { prisma } from "./prismaService";
 import { Client, TextChannel } from "discord.js";
 import { handleStart } from "../commands/aq/start";
+import logger from "../services/loggerService";
 
 let isRunning = false;
 
@@ -17,7 +18,7 @@ export function startAQScheduler(client: Client) {
     const dayOfWeek = now.getUTCDay();
     const time = `${now.getUTCHours().toString().padStart(2, '0')}:${now.getUTCMinutes().toString().padStart(2, '0')}`;
 
-    const schedules = await prisma.aQSchedule.findMany({
+    const schedulesToRun = await prisma.aQSchedule.findMany({
       where: {
         dayOfWeek,
         time,
@@ -31,65 +32,37 @@ export function startAQScheduler(client: Client) {
       },
     });
 
-    const guildSchedules = new Map<string, { guild: any, schedules: { schedule: any, channel: any }[] }>();
+    for (const schedule of schedulesToRun) {
+      const { alliance, aqDay, battlegroup, roleId, channelId } = schedule;
 
-    for (const schedule of schedules) {
-      try {
-        const channel = await client.channels.fetch(schedule.channelId);
-        if (channel && channel instanceof TextChannel) {
-          const guild = channel.guild;
-          if (!guildSchedules.has(guild.id)) {
-            guildSchedules.set(guild.id, { guild, schedules: [] });
-          }
-          guildSchedules.get(guild.id)!.schedules.push({ schedule, channel });
-        }
-      } catch (error) {
-        console.error(`[AQScheduler] Error fetching channel for schedule ${schedule.id}:`, error);
-      }
-    }
-
-    for (const [guildId, { guild, schedules: guildSchedulesList }] of guildSchedules.entries()) {
-      try {
-        await guild.members.fetch();
-      } catch (error: any) {
-        if (error.code === 'GuildMembersTimeout') {
-          console.error(`[AQScheduler] guild.members.fetch() timed out for guild ${guild.name}. Skipping all AQ starts for this guild.`);
-          continue; // Skip this guild
-        } else {
-          console.error(`[AQScheduler] Error fetching members for guild ${guild.name}:`, error);
-          continue; // Skip this guild
-        }
+      if (alliance.aqSkip && alliance.aqSkip.skipUntil > now) {
+        logger.info(`[AQScheduler] Skipping AQ for alliance ${alliance.name} (raid week).`);
+        continue;
       }
 
-      for (const { schedule, channel } of guildSchedulesList) {
-        const { alliance, aqDay, roleId } = schedule;
-
-        if (alliance.aqSkip && alliance.aqSkip.skipUntil > now) {
-          console.log(`[AQScheduler] Skipping AQ for alliance ${alliance.name} (raid week).`);
+      try {
+        const channel = await client.channels.fetch(channelId);
+        if (!channel || !(channel instanceof TextChannel)) {
+          logger.error(`[AQScheduler] Channel ${channelId} not found or not a text channel for schedule ${schedule.id}.`);
           continue;
         }
+        
+        const guild = channel.guild;
 
-        try {
-          const role = await guild.roles.fetch(roleId);
+        logger.info(`[AQScheduler] Running AQ start for ${alliance.name}, BG ${battlegroup}`);
+        
+        await handleStart({
+          day: aqDay,
+          battlegroup: battlegroup,
+          pingRoleId: roleId, // The roleId from the schedule is the optional ping role
+          channel: channel,
+          guild: guild,
+          channelName: channel.name,
+          battlegroupName: `Battlegroup ${battlegroup}`,
+        });
 
-          if (!role) {
-            console.error(`[AQScheduler] Role with ID ${roleId} not found in guild ${guild.name}.`);
-            continue;
-          }
-
-          console.log(`[AQScheduler] Running AQ start for ${alliance.name}, BG associated with role ${role.name}`);
-          
-          await handleStart({
-            day: aqDay,
-            roleId: roleId,
-            channel: channel,
-            guild: guild,
-            channelName: channel.name,
-            roleName: role.name,
-          });
-        } catch (error) {
-          console.error(`[AQScheduler] Error running AQ start for alliance ${alliance.name}:`, error);
-        }
+      } catch (error) {
+        logger.error({error, scheduleId: schedule.id, allianceId: alliance.id}, `[AQScheduler] Error processing AQ start for alliance ${alliance.name}`);
       }
     }
   });

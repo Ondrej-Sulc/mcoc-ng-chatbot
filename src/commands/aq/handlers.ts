@@ -61,19 +61,19 @@ async function handleSectionClear(
     return;
   }
 
-  const roleMention = `<@&${state.roleId}>`;
+  const roleMention = state.roleId ? `<@&${state.roleId}>` : '';
   if (section < 3) {
     await (targetChannel as any).send({
       content: `${roleMention} ${
         interaction.user
       } defeated the Section ${section} ${which}! Section ${
         section + 1
-      } is now open.`,
+      } is now open.`.trim(),
     });
     state.mapStatus = `Section ${section + 1} in Progress`;
   } else {
     await (targetChannel as any).send({
-      content: `${roleMention} ${interaction.user} defeated the ${which}!`,
+      content: `${roleMention} ${interaction.user} defeated the ${which}!`.trim(),
     });
   }
   await setState(channelId, state);
@@ -105,9 +105,9 @@ async function handleMapClear(interaction: ButtonInteraction) {
   state.status = "completed";
   state.mapStatus = "✅ MAP COMPLETE";
   await setState(channelId, state);
-  const roleMention = `<@&${state.roleId}>`;
+  const roleMention = state.roleId ? `<@&${state.roleId}>` : '';
   await (targetChannel as any).send({
-    content: `🎉 ${roleMention} The map is 100% complete! Great work, everyone!`,
+    content: `🎉 ${roleMention} The map is 100% complete! Great work, everyone!`.trim(),
   });
   await updateAqMessage(interaction, channelId);
 
