@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader } from 'lucide-react';
 import { WarVideoForm } from './WarVideoForm';
 import { Champion } from '@/types/champion';
 import { War, WarFight, Player as PrismaPlayer, WarNode as PrismaWarNode } from '@prisma/client';
@@ -50,27 +50,35 @@ export default function UploadWarVideoPage() {
 
     const fetchData = async () => {
       try {
-        // Fetch initial form data (champions, nodes, players, user)
-        const formDataResponse = await fetch(`/api/form-data?token=${urlToken}`);
-        if (!formDataResponse.ok) {
-          const errorData = await formDataResponse.json();
-          throw new Error(errorData.error || 'Failed to fetch form data');
-        }
-        const formData: InitialFormData = await formDataResponse.json();
-        setInitialFormData(formData);
-        setToken(urlToken); // Set the token for form submission
-
-        // If a session token is present, fetch pre-filled fight data
         if (sessionToken) {
-          const sessionDataResponse = await fetch(`/api/upload-session/${sessionToken}`);
-          if (!sessionDataResponse.ok) {
-            const errorData = await sessionDataResponse.json();
+          // New flow: session_token provides everything in one go.
+          const response = await fetch(`/api/upload-session/${sessionToken}`);
+          if (!response.ok) {
+            const errorData = await response.json();
             throw new Error(errorData.error || 'Failed to fetch session data');
           }
-          const sessionFights: PreFilledFight[] = await sessionDataResponse.json();
-          setPreFilledFights(sessionFights);
-        }
+          const data = await response.json();
 
+          setInitialFormData({
+            champions: data.champions,
+            nodes: data.nodes,
+            players: data.players,
+            user: data.user,
+          });
+          setPreFilledFights(data.fights);
+          setToken(data.token);
+        } else if (urlToken) {
+          // Old flow: token provides form data, no pre-filled fights.
+          const response = await fetch(`/api/form-data?token=${urlToken}`);
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to fetch form data');
+          }
+          const formData: InitialFormData = await response.json();
+          setInitialFormData(formData);
+          setToken(urlToken);
+          setPreFilledFights(null); // No pre-filled fights in this flow
+        }
         setPageStatus('ready');
       } catch (error: any) {
         console.error('Failed to fetch data:', error);
@@ -78,6 +86,7 @@ export default function UploadWarVideoPage() {
         setPageStatus('error');
       }
     };
+
     fetchData();
   }, [urlToken, sessionToken]);
 
@@ -93,33 +102,29 @@ export default function UploadWarVideoPage() {
     }
   }, []);
 
-  const renderContent = () => {
-    switch (pageStatus) {
-      case 'loading':
-        return <p className="text-center text-muted-foreground">Loading form data...</p>;
-      case 'error':
-        return (
-          <div className="text-center text-destructive">
-            <AlertTriangle className="mx-auto h-12 w-12 mb-4" />
-            <h2 className="text-xl font-bold mb-2">Link Invalid or Expired</h2>
-            <p className="mb-4">{errorMessage}</p>
-            <p>Please request a new upload link from the CereBro bot in Discord.</p>
-          </div>
-        );
-      case 'ready':
-        if (!initialFormData || !token) return null;
-        return (
-          <WarVideoForm
-            token={token}
-            initialChampions={initialFormData.champions}
-            initialNodes={initialFormData.nodes}
-            initialPlayers={initialFormData.players}
-            initialUserId={initialFormData.user.id}
-            preFilledFights={preFilledFights}
-          />
-        );
-    }
-  };
+  if (pageStatus === 'loading') {
+    return (
+      <div className="flex flex-grow items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading fight data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (pageStatus === 'error') {
+    return (
+      <div className="container mx-auto p-4 max-w-4xl flex flex-grow items-center justify-center">
+        <div className="text-center text-destructive">
+          <AlertTriangle className="mx-auto h-12 w-12 mb-4" />
+          <h2 className="text-xl font-bold mb-2">Link Invalid or Expired</h2>
+          <p className="mb-4">{errorMessage}</p>
+          <p>Please request a new upload link from the CereBro bot in Discord.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
@@ -129,7 +134,16 @@ export default function UploadWarVideoPage() {
           <CardDescription>Submit your MCOC Alliance War video and details.</CardDescription>
         </CardHeader>
         <CardContent>
-          {renderContent()}
+          {initialFormData && token && (
+            <WarVideoForm
+              token={token}
+              initialChampions={initialFormData.champions}
+              initialNodes={initialFormData.nodes}
+              initialPlayers={initialFormData.players}
+              initialUserId={initialFormData.user.id}
+              preFilledFights={preFilledFights}
+            />
+          )}
         </CardContent>
       </Card>
     </div>

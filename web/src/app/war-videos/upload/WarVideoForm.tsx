@@ -51,7 +51,9 @@ export function WarVideoForm({
 
   // Form state
   const [uploadMode, setUploadMode] = useState<"single" | "multiple">("single");
+  const [sourceMode, setSourceMode] = useState<"upload" | "link">("upload");
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string>("");
   const [fights, setFights] = useState<FightData[]>(() => {
     if (preFilledFights && preFilledFights.length > 0) {
       return preFilledFights.map(pf => ({
@@ -159,8 +161,12 @@ export function WarVideoForm({
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (uploadMode === "single" && !videoFile) {
-      newErrors.videoFile = "Video file is required.";
+    if (uploadMode === "single") {
+      if (sourceMode === 'upload' && !videoFile) {
+        newErrors.videoFile = "Video file is required.";
+      } else if (sourceMode === 'link' && !videoUrl) {
+        newErrors.videoUrl = "Video URL is required.";
+      }
     }
     if (!season) newErrors.season = "Season is required.";
     if (!isOffseason && !warNumber)
@@ -168,9 +174,12 @@ export function WarVideoForm({
     if (!warTier) newErrors.warTier = "War tier is required.";
 
     fights.forEach((fight) => {
-      if (uploadMode === "multiple" && !fight.videoFile) {
-        newErrors[`videoFile-${fight.id}`] =
-          "Video file is required for each fight.";
+      if (uploadMode === "multiple") {
+        if (sourceMode === 'upload' && !fight.videoFile) {
+          newErrors[`videoFile-${fight.id}`] = "Video file is required for each fight.";
+        } else if (sourceMode === 'link' && !fight.videoUrl) {
+          newErrors[`videoUrl-${fight.id}`] = "Video URL is required for each fight.";
+        }
       }
       if (!fight.attackerId)
         newErrors[`attackerId-${fight.id}`] = "Attacker is required.";
@@ -262,6 +271,26 @@ export function WarVideoForm({
     [fights, uploadMode, videoFile]
   );
 
+  const linkVideo = useCallback(
+    async (body: object) => {
+      const response = await fetch('/api/war-videos/link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to link video');
+      }
+
+      return response.json();
+    },
+    []
+  );
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -269,111 +298,129 @@ export function WarVideoForm({
       setIsSubmitting(true);
       setUploadProgress(0);
 
-      const useBackgroundFetch = 'BackgroundFetchManager' in self;
-
-      const getTitle = (fight: FightData) => {
-        const selectedAttacker = initialChampions.find(
-          (c) => String(c.id) === fight.attackerId
-        );
-        const selectedDefender = initialChampions.find(
-          (c) => String(c.id) === fight.defenderId
-        );
-        const selectedNode = initialNodes.find(
-          (n) => String(n.id) === fight.nodeId
-        );
-        const selectedPlayer = initialPlayers.find(
-          (p) => p.id === playerInVideoId
-        );
-        const attackerName = selectedAttacker?.name || "Unknown";
-        const defenderName = selectedDefender?.name || "Unknown";
-        const nodeNumber = selectedNode?.nodeNumber || "??";
-        const playerName = selectedPlayer?.ingameName || "Unknown";
-        return `MCOC AW: S${season} W${
-          isOffseason ? "Offseason" : warNumber
-        } T${warTier} - ${attackerName} vs ${defenderName} on Node ${nodeNumber} by ${playerName}`;
-      };
-
       try {
-        if (useBackgroundFetch) {
-          toast({
-            title: "Upload Started",
-            description: "Your video(s) are now uploading in the background. You can leave this page.",
-          });
-        }
+        if (sourceMode === 'link') {
+          // --- Handle URL Submission ---
+          setCurrentUpload("Linking video...");
+          const commonPayload = {
+            token,
+            visibility,
+            description,
+            playerId: playerInVideoId,
+          };
 
-        if (uploadMode === "single") {
-          setCurrentUpload("Uploading video...");
-          const formData = new FormData();
-          formData.append("token", token);
-          formData.append("videoFile", videoFile!);
-          formData.append("season", season);
-          if (!isOffseason) formData.append("warNumber", warNumber);
-          formData.append("warTier", warTier);
-          formData.append("visibility", visibility);
-          formData.append("description", description);
-          if (playerInVideoId) formData.append("playerId", playerInVideoId);
-          formData.append("fightIds", JSON.stringify(fights.map(f => f.id))); // Send all fight IDs
-
-          const title = getTitle(fights[0]);
-          formData.append("title", title); // Title for the video
-          formData.append("mode", "single");
-
-          const result = await uploadVideo(formData, fights.map(f => f.id), title);
-          if (!useBackgroundFetch) {
-            toast({
-              title: "Success!",
-              description: "All fights have been submitted.",
+          if (uploadMode === 'single') {
+            const result = await linkVideo({
+              ...commonPayload,
+              videoUrl,
+              fightIds: fights.map(f => f.id),
             });
+            toast({ title: "Success!", description: "Video has been linked to all fights." });
             if (result.videoIds && result.videoIds.length > 0) {
               router.push(`/war-videos/${result.videoIds[0]}`);
             } else {
               router.push("/war-videos");
             }
+          } else { // 'multiple' mode
+            const allLinkedVideoIds = [];
+            for (let i = 0; i < fights.length; i++) {
+              const fight = fights[i];
+              setCurrentUpload(`Linking fight ${i + 1} of ${fights.length}...`);
+              const result = await linkVideo({
+                ...commonPayload,
+                videoUrl: fight.videoUrl,
+                fightIds: [fight.id],
+              });
+              if (result.videoIds && result.videoIds.length > 0) {
+                allLinkedVideoIds.push(result.videoIds[0]);
+              }
+            }
+            toast({ title: "Success!", description: "All videos have been linked." });
+            if (allLinkedVideoIds.length > 0) {
+              router.push(`/war-videos/${allLinkedVideoIds[0]}`);
+            } else {
+              router.push("/war-videos");
+            }
           }
         } else {
-          // Multiple videos mode
-          const allUploadedVideoIds = [];
-          for (let i = 0; i < fights.length; i++) {
-            const fight = fights[i];
-            setCurrentUpload(`Uploading fight ${i + 1} of ${fights.length}...`);
-            setUploadProgress(0);
+          // --- Handle File Upload ---
+          const useBackgroundFetch = 'BackgroundFetchManager' in self;
+          const getTitle = (fight: FightData) => {
+            const selectedAttacker = initialChampions.find((c) => String(c.id) === fight.attackerId);
+            const selectedDefender = initialChampions.find((c) => String(c.id) === fight.defenderId);
+            const selectedNode = initialNodes.find((n) => String(n.id) === fight.nodeId);
+            const selectedPlayer = initialPlayers.find((p) => p.id === playerInVideoId);
+            const attackerName = selectedAttacker?.name || "Unknown";
+            const defenderName = selectedDefender?.name || "Unknown";
+            const nodeNumber = selectedNode?.nodeNumber || "??";
+            const playerName = selectedPlayer?.ingameName || "Unknown";
+            return `MCOC AW: S${season} W${isOffseason ? "Offseason" : warNumber} T${warTier} - ${attackerName} vs ${defenderName} on Node ${nodeNumber} by ${playerName}`;
+          };
 
+          if (useBackgroundFetch) {
+            toast({ title: "Upload Started", description: "Your video(s) are now uploading in the background. You can leave this page." });
+          }
+
+          if (uploadMode === "single") {
+            setCurrentUpload("Uploading video...");
             const formData = new FormData();
             formData.append("token", token);
-            formData.append("videoFile", fight.videoFile!);
+            formData.append("videoFile", videoFile!);
             formData.append("season", season);
             if (!isOffseason) formData.append("warNumber", warNumber);
             formData.append("warTier", warTier);
             formData.append("visibility", visibility);
             formData.append("description", description);
             if (playerInVideoId) formData.append("playerId", playerInVideoId);
-            formData.append("fightIds", JSON.stringify([fight.id])); // Send only this fight's ID
+            formData.append("fightIds", JSON.stringify(fights.map(f => f.id)));
+            formData.append("title", getTitle(fights[0]));
+            formData.append("mode", "single");
 
-            const title = getTitle(fight);
-            formData.append("title", title); // Title for the video
-            formData.append("mode", "multiple");
+            const result = await uploadVideo(formData, fights.map(f => f.id), getTitle(fights[0]));
+            if (!useBackgroundFetch) {
+              toast({ title: "Success!", description: "All fights have been submitted." });
+              if (result.videoIds && result.videoIds.length > 0) {
+                router.push(`/war-videos/${result.videoIds[0]}`);
+              } else {
+                router.push("/war-videos");
+              }
+            }
+          } else { // 'multiple' mode
+            const allUploadedVideoIds = [];
+            for (let i = 0; i < fights.length; i++) {
+              const fight = fights[i];
+              setCurrentUpload(`Uploading fight ${i + 1} of ${fights.length}...`);
+              setUploadProgress(0);
+              const formData = new FormData();
+              formData.append("token", token);
+              formData.append("videoFile", fight.videoFile!);
+              formData.append("season", season);
+              if (!isOffseason) formData.append("warNumber", warNumber);
+              formData.append("warTier", warTier);
+              formData.append("visibility", visibility);
+              formData.append("description", description);
+              if (playerInVideoId) formData.append("playerId", playerInVideoId);
+              formData.append("fightIds", JSON.stringify([fight.id]));
+              formData.append("title", getTitle(fight));
+              formData.append("mode", "multiple");
 
-            const result = await uploadVideo(formData, [fight.id], title);
-            if (result.videoIds && result.videoIds.length > 0) {
-              allUploadedVideoIds.push(result.videoIds[0]);
+              const result = await uploadVideo(formData, [fight.id], getTitle(fight));
+              if (result.videoIds && result.videoIds.length > 0) {
+                allUploadedVideoIds.push(result.videoIds[0]);
+              }
+            }
+            if (!useBackgroundFetch) {
+              toast({ title: "Success!", description: "All videos have been uploaded." });
+              if (allUploadedVideoIds.length > 0) {
+                router.push(`/war-videos/${allUploadedVideoIds[0]}`);
+              } else {
+                router.push("/war-videos");
+              }
             }
           }
-          if (!useBackgroundFetch) {
-            toast({
-              title: "Success!",
-              description: "All videos have been uploaded.",
-            });
-            if (allUploadedVideoIds.length > 0) {
-              router.push(`/war-videos/${allUploadedVideoIds[0]}`);
-            } else {
-              router.push("/war-videos");
-            }
+          if (useBackgroundFetch) {
+            router.push("/war-videos");
           }
-        }
-        if (useBackgroundFetch) {
-          // For background fetch, we don't have the final video ID immediately.
-          // We can redirect to a general page or just stay here.
-          router.push("/war-videos");
         }
       } catch (error: any) {
         console.error("Submission error:", error);
@@ -390,6 +437,7 @@ export function WarVideoForm({
     [
       token,
       videoFile,
+      videoUrl,
       fights,
       season,
       warNumber,
@@ -405,85 +453,145 @@ export function WarVideoForm({
       initialNodes,
       initialPlayers,
       uploadMode,
+      sourceMode,
       uploadVideo,
+      linkVideo,
     ]
   );
 
   const isSubmitDisabled = () => {
     if (isSubmitting || !token) return true;
-    if (uploadMode === "single") return !videoFile;
-    if (uploadMode === "multiple") return fights.some((f) => !f.videoFile);
+    if (uploadMode === "single") {
+      if (sourceMode === 'upload') return !videoFile;
+      if (sourceMode === 'link') return !videoUrl;
+    }
+    if (uploadMode === "multiple") {
+      if (sourceMode === 'upload') return fights.some((f) => !f.videoFile);
+      if (sourceMode === 'link') return fights.some((f) => !f.videoUrl);
+    }
     return true;
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 relative">
-      <div>
-        <Label>Upload Mode</Label>
-        <RadioGroup
-          value={uploadMode}
-          onValueChange={(value: "single" | "multiple") => setUploadMode(value)}
-          className="flex space-x-4 mt-2"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="single" id="single" />
-            <Label htmlFor="single">Single Video (for all fights)</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="multiple" id="multiple" />
-            <Label htmlFor="multiple">Separate Video (for each fight)</Label>
-          </div>
-        </RadioGroup>
+      <div className="grid grid-cols-2 gap-6">
+        <div>
+          <Label>Video Source</Label>
+          <RadioGroup
+            value={sourceMode}
+            onValueChange={(value: "upload" | "link") => setSourceMode(value)}
+            className="flex space-x-4 mt-2"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="upload" id="upload" />
+              <Label htmlFor="upload">Upload File</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="link" id="link" />
+              <Label htmlFor="link">Use Link</Label>
+            </div>
+          </RadioGroup>
+        </div>
+        <div>
+          <Label>Upload Mode</Label>
+          <RadioGroup
+            value={uploadMode}
+            onValueChange={(value: "single" | "multiple") => setUploadMode(value)}
+            className="flex space-x-4 mt-2"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="single" id="single" />
+              <Label htmlFor="single">Single Video (for all fights)</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="multiple" id="multiple" />
+              <Label htmlFor="multiple">Separate Video (for each fight)</Label>
+            </div>
+          </RadioGroup>
+        </div>
       </div>
 
       {uploadMode === "single" && (
         <div>
-          <Label>Video File</Label>
-          <div className="flex items-center gap-4 mt-2">
-            <Label htmlFor="videoFile" className="cursor-pointer">
-              <div
-                className={cn(
-                  buttonVariants({ variant: "outline" }),
-                  "flex items-center gap-2"
+          {sourceMode === 'upload' ? (
+            <>
+              <Label>Video File</Label>
+              <div className="flex items-center gap-4 mt-2">
+                <Label htmlFor="videoFile" className="cursor-pointer">
+                  <div
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      "flex items-center gap-2"
+                    )}
+                  >
+                    <UploadCloud className="h-5 w-5" />
+                    <span>Choose Video</span>
+                  </div>
+                </Label>
+                <Input
+                  id="videoFile"
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) =>
+                    setVideoFile(e.target.files ? e.target.files[0] : null)
+                  }
+                  required
+                  className="hidden"
+                />
+                {videoFile && (
+                  <p className="text-sm text-muted-foreground">{videoFile.name}</p>
                 )}
-              >
-                <UploadCloud className="h-5 w-5" />
-                <span>Choose Video</span>
               </div>
-            </Label>
-            <Input
-              id="videoFile"
-              type="file"
-              accept="video/*"
-              onChange={(e) =>
-                setVideoFile(e.target.files ? e.target.files[0] : null)
-              }
-              required
-              className="hidden"
-            />
-            {videoFile && (
-              <p className="text-sm text-muted-foreground">{videoFile.name}</p>
-            )}
-          </div>
-          {errors.videoFile && (
-            <p className="text-sm text-red-500 mt-1">{errors.videoFile}</p>
+              {errors.videoFile && (
+                <p className="text-sm text-red-500 mt-1">{errors.videoFile}</p>
+              )}
+            </>
+          ) : (
+            <>
+              <Label htmlFor="videoUrl">Video URL</Label>
+              <Input
+                id="videoUrl"
+                type="url"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=..."
+                required
+              />
+              {errors.videoUrl && (
+                <p className="text-sm text-red-500 mt-1">{errors.videoUrl}</p>
+              )}
+            </>
           )}
         </div>
       )}
 
-      {fights.map((fight) => (
-        <FightBlock
-          key={fight.id}
-          fight={fight}
-          onFightChange={handleFightChange}
-          onRemove={handleRemoveFight}
-          canRemove={fights.length > 1}
-          initialChampions={initialChampions}
-          initialNodes={initialNodes}
-          prefightChampions={prefightChampions}
-          uploadMode={uploadMode}
-        />
-      ))}
+            {fights.map((fight) => (
+
+              <FightBlock
+
+                key={fight.id}
+
+                fight={fight}
+
+                onFightChange={handleFightChange}
+
+                onRemove={handleRemoveFight}
+
+                canRemove={fights.length > 1}
+
+                initialChampions={initialChampions}
+
+                initialNodes={initialNodes}
+
+                prefightChampions={prefightChampions}
+
+                uploadMode={uploadMode}
+
+                sourceMode={sourceMode}
+
+              />
+
+            ))}
 
       <Button type="button" variant="outline" onClick={handleAddFight}>
         <Plus className="mr-2 h-4 w-4" />

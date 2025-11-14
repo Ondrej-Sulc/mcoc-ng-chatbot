@@ -8,7 +8,7 @@ export default function WarVideosLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative w-full">
+    <div className="w-full h-full">
       <FormPageBackground />
       <div className="relative z-10">{children}</div>
     </div>

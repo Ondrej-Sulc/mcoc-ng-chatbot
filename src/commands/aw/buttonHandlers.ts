@@ -1,5 +1,13 @@
 import { randomBytes } from "crypto";
-import { ButtonInteraction } from "discord.js";
+import {
+  ButtonInteraction,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  MessageFlags,
+} from "discord.js";
 import { prisma } from "../../services/prismaService";
 import { add } from "date-fns";
 
@@ -9,7 +17,15 @@ export async function handleGenerateUploadLink(interaction: ButtonInteraction) {
   const [_, warId, playerId] = interaction.customId.split(":");
 
   if (!warId || !playerId) {
-    await interaction.editReply("Invalid button ID.");
+    const errorContainer = new ContainerBuilder()
+      .setAccentColor(0xff0000)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('Invalid button ID.')
+      );
+    await interaction.editReply({
+      components: [errorContainer],
+      flags: [MessageFlags.IsComponentsV2],
+    });
     return;
   }
 
@@ -25,7 +41,15 @@ export async function handleGenerateUploadLink(interaction: ButtonInteraction) {
   });
 
   if (fights.length === 0) {
-    await interaction.editReply("No fights found for this plan that need a video.");
+    const infoContainer = new ContainerBuilder()
+      .setAccentColor(0x87CEEB) // Using 'sky' to match the /aw command color
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('There are no fights in this plan that still need a video uploaded.')
+      );
+    await interaction.editReply({
+      components: [infoContainer],
+      flags: [MessageFlags.IsComponentsV2],
+    });
     return;
   }
 
@@ -40,7 +64,25 @@ export async function handleGenerateUploadLink(interaction: ButtonInteraction) {
     },
   });
 
-  const uploadUrl = `${process.env.WEB_URL}/war-videos/upload?session_token=${session.token}`;
+  const uploadUrl = `${process.env.BOT_BASE_URL}/war-videos/upload?session_token=${session.token}`;
 
-  await interaction.editReply(`Here is your unique upload link. It will expire in 24 hours.\n\n${uploadUrl}`);
+  const container = new ContainerBuilder()
+    .setAccentColor(0x87CEEB) // Match /aw command color
+    .addTextDisplayComponents(
+      new TextDisplayBuilder().setContent(
+        'Click the button below to open your unique upload link. It will expire in 24 hours.'
+      )
+    );
+
+  const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+    new ButtonBuilder()
+      .setURL(uploadUrl)
+      .setLabel("Upload Video(s)")
+      .setStyle(ButtonStyle.Link)
+  );
+
+  await interaction.editReply({
+    components: [container, actionRow],
+    flags: [MessageFlags.IsComponentsV2],
+  });
 }

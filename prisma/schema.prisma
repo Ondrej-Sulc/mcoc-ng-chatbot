@@ -398,7 +398,7 @@ model WarFight {
 model WarVideo {
   id          String         @id @default(cuid())
   gcsUrl      String?        @unique
-  youtubeUrl  String?        @unique
+  url         String?        @unique
   description String?
   visibility  String         @default("public")
   status      WarVideoStatus @default(PLANNING)

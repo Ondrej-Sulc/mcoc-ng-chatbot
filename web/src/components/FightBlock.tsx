@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ChampionCombobox } from '@/components/ChampionCombobox';
 import { MultiChampionCombobox } from '@/components/MultiChampionCombobox';
 import { NodeCombobox } from '@/components/NodeCombobox';
-import { Swords, Shield, Skull, Diamond, X, UploadCloud } from 'lucide-react';
+import { Swords, Shield, Skull, Diamond, X, UploadCloud, Link } from 'lucide-react';
 import { getChampionImageUrl } from '@/lib/championHelper';
 import { Button, buttonVariants } from './ui/button';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,7 @@ export interface FightData {
   prefightChampionIds: string[];
   death: boolean;
   videoFile?: File | null;
+  videoUrl?: string;
 }
 
 interface FightBlockProps {
@@ -34,6 +35,7 @@ interface FightBlockProps {
   initialNodes: WarNode[];
   prefightChampions: Champion[];
   uploadMode: 'single' | 'multiple';
+  sourceMode: 'upload' | 'link';
 }
 
 export function FightBlock({
@@ -45,6 +47,7 @@ export function FightBlock({
   initialNodes,
   prefightChampions,
   uploadMode,
+  sourceMode,
 }: FightBlockProps) {
   const [nodeId, setNodeId] = useState(fight.nodeId);
   const [attackerId, setAttackerId] = useState(fight.attackerId);
@@ -52,6 +55,7 @@ export function FightBlock({
   const [prefightChampionIds, setPrefightChampionIds] = useState(fight.prefightChampionIds);
   const [death, setDeath] = useState(fight.death);
   const [videoFile, setVideoFile] = useState<File | null>(fight.videoFile || null);
+  const [videoUrl, setVideoUrl] = useState<string>(fight.videoUrl || '');
 
   useEffect(() => {
     onFightChange({
@@ -62,8 +66,9 @@ export function FightBlock({
       prefightChampionIds,
       death,
       videoFile,
+      videoUrl,
     });
-  }, [nodeId, attackerId, defenderId, prefightChampionIds, death, videoFile, fight.id, onFightChange]);
+  }, [nodeId, attackerId, defenderId, prefightChampionIds, death, videoFile, videoUrl, fight.id, onFightChange]);
 
   const selectedAttacker = useMemo(() => initialChampions.find(c => String(c.id) === attackerId), [initialChampions, attackerId]);
   const selectedDefender = useMemo(() => initialChampions.find(c => String(c.id) === defenderId), [initialChampions, defenderId]);
@@ -97,11 +102,27 @@ export function FightBlock({
         </div>
         {uploadMode === 'multiple' && (
           <div className="flex items-center gap-2">
-            <Label htmlFor={`videoFile-${fight.id}`} className="cursor-pointer flex items-center gap-2 text-sm font-medium">
-              <UploadCloud className="h-5 w-5" />
-              <span>{videoFile ? videoFile.name : 'Choose Video'}</span>
-            </Label>
-            <Input id={`videoFile-${fight.id}`} type="file" accept="video/*" onChange={(e) => setVideoFile(e.target.files ? e.target.files[0] : null)} required className="hidden" />
+            {sourceMode === 'upload' ? (
+              <>
+                <Label htmlFor={`videoFile-${fight.id}`} className="cursor-pointer flex items-center gap-2 text-sm font-medium">
+                  <UploadCloud className="h-5 w-5" />
+                  <span>{videoFile ? videoFile.name : 'Choose Video'}</span>
+                </Label>
+                <Input id={`videoFile-${fight.id}`} type="file" accept="video/*" onChange={(e) => setVideoFile(e.target.files ? e.target.files[0] : null)} required className="hidden" />
+              </>
+            ) : (
+              <div className="flex items-center gap-2 w-full">
+                <Link className="h-5 w-5" />
+                <Input
+                  id={`videoUrl-${fight.id}`}
+                  type="url"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  placeholder="https://youtube.com/..."
+                  className="max-w-xs"
+                />
+              </div>
+            )}
           </div>
         )}
         <div className="flex items-center space-x-2 justify-end">

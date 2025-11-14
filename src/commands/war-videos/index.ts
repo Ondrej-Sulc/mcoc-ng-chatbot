@@ -1,4 +1,13 @@
-import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
+import {
+  SlashCommandBuilder,
+  CommandInteraction,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  MessageFlags,
+} from 'discord.js';
 import { Command, CommandAccess } from '../../types/command';
 import { prisma } from '../../services/prismaService';
 import { config } from '../../config';
@@ -18,8 +27,14 @@ async function handleUploadSubcommand(interaction: CommandInteraction) {
     });
 
     if (!player) {
+      const errorContainer = new ContainerBuilder()
+        .setAccentColor(0xff0000)
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent('You need to register your in-game name first using the `/register` command.')
+        );
       await interaction.editReply({
-        content: 'You need to register your in-game name first using the `/register` command.',
+        components: [errorContainer],
+        flags: [MessageFlags.IsComponentsV2],
       });
       return;
     }
@@ -37,8 +52,24 @@ async function handleUploadSubcommand(interaction: CommandInteraction) {
 
     const uploadUrl = `${config.botBaseUrl}/war-videos/upload?token=${token}`;
 
+    const container = new ContainerBuilder()
+      .setAccentColor(0xFFD700)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          'Click the button below to upload your Alliance War video. This link is valid for 15 minutes.'
+        )
+      );
+
+    const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setURL(uploadUrl)
+        .setLabel('Upload Video')
+        .setStyle(ButtonStyle.Link)
+    );
+
     await interaction.editReply({
-      content: `Click the link below to upload your Alliance War video. This link is valid for 15 minutes:\n${uploadUrl}`,
+      components: [container, actionRow],
+      flags: [MessageFlags.IsComponentsV2],
     });
 
     loggerService.info({ discordId, token, expiresAt }, 'Generated upload token for player.');
@@ -46,8 +77,15 @@ async function handleUploadSubcommand(interaction: CommandInteraction) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     const errorStack = error instanceof Error ? error.stack : undefined;
     loggerService.error({ discordId, error: errorMessage, stack: errorStack }, 'Failed to generate upload link for player.');
+    
+    const errorContainer = new ContainerBuilder()
+      .setAccentColor(0xff0000)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('An error occurred while generating your upload link. Please try again later.')
+      );
     await interaction.editReply({
-      content: 'An error occurred while generating your upload link. Please try again later.',
+      components: [errorContainer],
+      flags: [MessageFlags.IsComponentsV2],
     });
   }
 }
