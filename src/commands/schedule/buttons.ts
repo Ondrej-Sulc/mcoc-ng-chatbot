@@ -17,4 +17,6 @@ export async function handleRemoveScheduleButton(
   });
 }
 
-registerButtonHandler("remove-schedule-", handleRemoveScheduleButton);
+export function registerScheduleHandlers() {
+  registerButtonHandler("remove-schedule-", handleRemoveScheduleButton);
+}

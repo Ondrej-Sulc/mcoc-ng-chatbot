@@ -9,7 +9,6 @@ import {
 } from "discord.js";
 import { getSchedules, Schedule } from "../../services/scheduleDbService";
 import { safeReply } from "../../utils/errorHandler";
-import "./buttons"; // To register button handlers
 
 export async function handleScheduleList(interaction: ChatInputCommandInteraction) {
     const schedules = await getSchedules();

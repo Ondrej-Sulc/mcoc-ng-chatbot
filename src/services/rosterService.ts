@@ -1,7 +1,4 @@
-import { prisma } from "./prismaService";
 import { Roster, Prisma, Champion } from "@prisma/client";
-import { config } from "../config";
-import { sheetsService } from "./sheetsService";
 
 export type RosterWithChampion = Roster & { champion: Champion };
 
@@ -11,6 +8,7 @@ export async function getRoster(
   rank: number | null,
   isAscended: boolean | null
 ): Promise<RosterWithChampion[] | string> {
+  const { prisma } = await import("./prismaService.js");
   const where: any = { playerId };
   if (stars) {
     where.stars = stars;
@@ -36,6 +34,9 @@ export async function getRoster(
 }
 
 export async function importRosterFromSheet(playerId: string) {
+  const { prisma } = await import("./prismaService.js");
+  const { config } = await import("../config.js");
+  const { sheetsService } = await import("./sheetsService.js");
   const player = await prisma.player.findUnique({ where: { id: playerId } });
   if (!player) {
     console.error(`Player with ID ${playerId} not found.`);
@@ -132,6 +133,7 @@ export async function importRosterFromSheet(playerId: string) {
 export async function deleteRoster(
   where: Prisma.RosterWhereInput
 ): Promise<string> {
+  const { prisma } = await import("./prismaService.js");
   const { count } = await prisma.roster.deleteMany({
     where,
   });

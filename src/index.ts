@@ -22,6 +22,7 @@ import { registerGlossaryButtons } from "./commands/glossary/buttons";
 import { registerAbilityDraftHandlers } from "./commands/admin/ability/draftHandler";
 import { registerChampionAdminHandlers } from "./commands/admin/champion/init";
 import { registerAttackAdminHandlers } from "./commands/admin/attack/init";
+import { registerScheduleHandlers } from "./commands/schedule/buttons";
 import { getPosthogClient } from "./services/posthogService";
 import { prisma } from "./services/prismaService";
 import logger from "./services/loggerService";
@@ -92,6 +93,7 @@ client.once(Events.ClientReady, async (readyClient) => {
   registerAbilityDraftHandlers();
   registerChampionAdminHandlers();
   registerAttackAdminHandlers();
+  registerScheduleHandlers();
   logger.info("✅ Registered all button handlers.");
 });
 
