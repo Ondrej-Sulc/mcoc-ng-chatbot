@@ -48,7 +48,9 @@ WORKDIR /usr/src/app
 RUN cp -r ./dist ./deploy/dist && \
     cp ./src/package.json ./deploy/package.json && \
     cp -r ./assets ./deploy/assets && \
-    cp -r ./node_modules ./deploy/node_modules
+    cp -r ./node_modules ./deploy/node_modules && \
+    mkdir -p ./deploy/src/data && \
+    cp ./src/data/commands.json ./deploy/src/data/commands.json
 
 # ---- Final Production Image ----
 FROM base AS production
