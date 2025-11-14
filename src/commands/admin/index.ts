@@ -7,8 +7,6 @@ import {
 import { Command, CommandAccess } from "../../types/command";
 import { handleAdminAutocomplete } from "./autocomplete";
 import { handleChampionAdd, handleChampionUpdateImages, handleChampionUpdateTags, handleChampionSyncSheet } from "./champion/handlers";
-import "./champion/init";
-import "./attack/init";
 import { handleAbilityAdd, handleAbilityRemove, handleAbilityDraft } from "./ability/handlers";
 import { showAttackModal } from "./attack/add";
 import { championsByName } from "../../services/championService";

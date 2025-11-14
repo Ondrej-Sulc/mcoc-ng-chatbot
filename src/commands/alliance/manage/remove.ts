@@ -1,8 +1,8 @@
 import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
-import { prisma } from '../../../services/prismaService';
 import loggerService from '../../../services/loggerService';
 
 export async function handleAllianceManageRemove(interaction: ChatInputCommandInteraction) {
+  const { prisma } = await import('../../../services/prismaService.js');
   const userToRemove = interaction.options.getUser('user', true);
 
   if (!interaction.guildId) {

@@ -4,12 +4,12 @@ import {
   ContainerBuilder,
   TextDisplayBuilder,
 } from "discord.js";
-import { config } from "../../config";
 import { getMergedData, getNodesData } from "./handlers";
 import { capitalize, formatAssignment, getEmoji } from "./utils";
-import { prisma } from "../../services/prismaService";
 
 export async function handleDetails(interaction: ChatInputCommandInteraction) {
+  const { config } = await import("../../config.js");
+  const { prisma } = await import("../../services/prismaService.js");
   await interaction.deferReply();
 
   if (!interaction.guild) {

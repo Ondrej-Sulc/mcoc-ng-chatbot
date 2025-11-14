@@ -1,10 +1,10 @@
 import { ChatInputCommandInteraction, PermissionsBitField } from 'discord.js';
-import { prisma } from '../../services/prismaService';
 import { safeReply } from '../../utils/errorHandler';
 
 export async function handleAllianceName(
   interaction: ChatInputCommandInteraction
 ): Promise<void> {
+  const { prisma } = await import('../../services/prismaService.js');
   if (!interaction.guild) {
     await safeReply(interaction, "This command can only be used in a server.");
     return;

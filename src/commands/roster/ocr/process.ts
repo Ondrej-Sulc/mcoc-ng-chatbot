@@ -1,4 +1,3 @@
-import { prisma } from "../../../services/prismaService";
 import {
   RosterUpdateResult,
   RosterDebugResult,
@@ -9,9 +8,6 @@ import { downloadImage, drawDebugBoundsOnImage } from "./imageUtils";
 import { processOcrDetections } from "./ocrProcessing";
 import { estimateGrid } from "./gridEstimator";
 import { solveShortNames, isChampionAwakened } from "./championIdentifier";
-import { googleVisionService } from "../../../services/googleVisionService";
-import { config } from "../../../config";
-import { sheetsService } from "../../../services/sheetsService";
 import Fuse from "fuse.js";
 
 export async function processRosterScreenshot(
@@ -22,6 +18,8 @@ export async function processRosterScreenshot(
   debugMode: boolean = false,
   playerId?: string
 ): Promise<RosterUpdateResult | RosterDebugResult> {
+  const { googleVisionService } = await import("../../../services/googleVisionService.js");
+  const { prisma } = await import("../../../services/prismaService.js");
   if (debugMode)
     console.log(`[DEBUG] Starting roster processing for URL: ${imageUrl}`);
 
@@ -170,6 +168,7 @@ async function saveRoster(
   rank: number,
   isAscended: boolean
 ): Promise<RosterWithChampion[][]> {
+  const { prisma } = await import("../../../services/prismaService.js");
   const savedChampions: RosterWithChampion[][] = [];
   const allChampions = await prisma.champion.findMany();
   const championMap = new Map(allChampions.map((c) => [c.name, c]));
@@ -245,6 +244,8 @@ async function updateRosterInSheet(
   updatedChampions: RosterWithChampion[][],
   sheetId: string
 ) {
+  const { prisma } = await import("../../../services/prismaService.js");
+  const { sheetsService } = await import("../../../services/sheetsService.js");
   if (stars !== 6 && stars !== 7) {
     console.log(`Skipping sheet update for ${stars}* champions.`);
     return;
@@ -330,6 +331,7 @@ async function updateRosterInSheet(
 }
 
 async function gridToString(grid: ChampionGridCell[][]): Promise<string> {
+  const { prisma } = await import("../../../services/prismaService.js");
   let listString = "";
   const championNames = grid
     .flat()

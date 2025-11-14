@@ -1,8 +1,8 @@
 import { ChatInputCommandInteraction, EmbedBuilder } from 'discord.js';
-import { prisma } from '../../../services/prismaService';
 import loggerService from '../../../services/loggerService';
 
 export async function handleAllianceManageAdd(interaction: ChatInputCommandInteraction) {
+  const { prisma } = await import('../../../services/prismaService.js');
   const userToAdd = interaction.options.getUser('user', true);
   const ingameName = interaction.options.getString('ingame-name', true);
 

@@ -20,6 +20,8 @@ import { initializeAqReminders } from "./services/aqReminderService.js";
 import { getModalHandler } from "./utils/modalHandlerRegistry";
 import { registerGlossaryButtons } from "./commands/glossary/buttons";
 import { registerAbilityDraftHandlers } from "./commands/admin/ability/draftHandler";
+import { registerChampionAdminHandlers } from "./commands/admin/champion/init";
+import { registerAttackAdminHandlers } from "./commands/admin/attack/init";
 import posthogClient from "./services/posthogService";
 import { prisma } from "./services/prismaService";
 import logger from "./services/loggerService";
@@ -88,6 +90,8 @@ client.once(Events.ClientReady, async (readyClient) => {
   initializeAqReminders(client);
   registerGlossaryButtons();
   registerAbilityDraftHandlers();
+  registerChampionAdminHandlers();
+  registerAttackAdminHandlers();
   logger.info("✅ Registered all button handlers.");
 });
 

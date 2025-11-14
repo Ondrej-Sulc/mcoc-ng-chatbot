@@ -1,9 +1,9 @@
 import { ChatInputCommandInteraction } from "discord.js";
-import { prisma } from "../../services/prismaService";
 import { safeReply } from "../../utils/errorHandler";
 import { getPlayer } from "../../utils/playerHelper";
 
 export async function handleAllianceJoin(interaction: ChatInputCommandInteraction) {
+  const { prisma } = await import("../../services/prismaService.js");
   const player = await getPlayer(interaction);
 
   if (!player) {

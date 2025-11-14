@@ -1,8 +1,8 @@
 import { ChatInputCommandInteraction } from 'discord.js';
-import { prisma } from '../../../services/prismaService';
 import loggerService from '../../../services/loggerService';
 
 export async function handleAllianceManageList(interaction: ChatInputCommandInteraction) {
+  const { prisma } = await import('../../../services/prismaService.js');
   if (!interaction.guildId) {
     await interaction.editReply('This command can only be used in a server.');
     return;
