@@ -37,6 +37,17 @@ export async function handleAllianceView(interaction: ChatInputCommandInteractio
       return;
     }
 
+    // Check if roles are configured
+    if (!alliance.officerRole && !alliance.battlegroup1Role && !alliance.battlegroup2Role && !alliance.battlegroup3Role) {
+      const setupEmbed = new EmbedBuilder()
+        .setColor(0xFFCC00) // Yellow
+        .setTitle('Alliance Roles Not Configured')
+        .setDescription('To see the full alliance overview with battlegroups, an administrator needs to configure the officer and battlegroup roles first.')
+        .addFields({ name: 'Command to run:', value: '`/alliance config-roles`' });
+      await interaction.editReply({ embeds: [setupEmbed] });
+      return;
+    }
+
     const bg1Players = alliance.members.filter(p => p.battlegroup === 1);
     const bg2Players = alliance.members.filter(p => p.battlegroup === 2);
     const bg3Players = alliance.members.filter(p => p.battlegroup === 3);

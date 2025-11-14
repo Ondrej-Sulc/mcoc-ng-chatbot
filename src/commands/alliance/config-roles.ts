@@ -1,6 +1,7 @@
 import { ChatInputCommandInteraction } from 'discord.js';
 import { prisma } from '../../services/prismaService';
 import loggerService from '../../services/loggerService';
+import { syncRolesForGuild } from './sync-roles';
 
 export async function handleAllianceConfigRoles(interaction: ChatInputCommandInteraction) {
   const officerRole = interaction.options.getRole('officer');
@@ -8,7 +9,7 @@ export async function handleAllianceConfigRoles(interaction: ChatInputCommandInt
   const bg2Role = interaction.options.getRole('battlegroup2');
   const bg3Role = interaction.options.getRole('battlegroup3');
 
-  if (!interaction.guildId) {
+  if (!interaction.guildId || !interaction.guild) {
     await interaction.editReply('This command can only be used in a server.');
     return;
   }
@@ -52,7 +53,7 @@ export async function handleAllianceConfigRoles(interaction: ChatInputCommandInt
       data: updateData,
     });
 
-    let replyMessage = 'Alliance roles have been updated:\n';
+    let replyMessage = '✅ Alliance roles have been updated. Now running automatic sync...\n';
     if (alliance.officerRole) replyMessage += `- Officer Role: <@&${alliance.officerRole}>\n`;
     if (alliance.battlegroup1Role) replyMessage += `- Battlegroup 1 Role: <@&${alliance.battlegroup1Role}>\n`;
     if (alliance.battlegroup2Role) replyMessage += `- Battlegroup 2 Role: <@&${alliance.battlegroup2Role}>\n`;
@@ -60,6 +61,9 @@ export async function handleAllianceConfigRoles(interaction: ChatInputCommandInt
 
     await interaction.editReply(replyMessage);
     loggerService.info(`Alliance roles configured for guild ${interaction.guildId} by ${interaction.user.tag}`);
+
+    const updatedCount = await syncRolesForGuild(interaction.guild);
+    await interaction.followUp(`Automatic sync complete. ${updatedCount} player(s) were updated.`);
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';

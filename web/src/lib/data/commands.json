@@ -450,6 +450,94 @@
             "required": true
           }
         ]
+      },
+      {
+        "type": 1,
+        "name": "config-roles",
+        "description": "Configure officer and battlegroup roles for your alliance.",
+        "options": [
+          {
+            "name": "officer",
+            "description": "The role for alliance officers.",
+            "required": false,
+            "type": 8
+          },
+          {
+            "name": "battlegroup1",
+            "description": "The role for Battlegroup 1.",
+            "required": false,
+            "type": 8
+          },
+          {
+            "name": "battlegroup2",
+            "description": "The role for Battlegroup 2.",
+            "required": false,
+            "type": 8
+          },
+          {
+            "name": "battlegroup3",
+            "description": "The role for Battlegroup 3.",
+            "required": false,
+            "type": 8
+          }
+        ]
+      },
+      {
+        "type": 1,
+        "name": "sync-roles",
+        "description": "Sync officer and battlegroup roles from Discord to the bot.",
+        "options": []
+      },
+      {
+        "type": 1,
+        "name": "view",
+        "description": "Display an overview of the alliance.",
+        "options": []
+      },
+      {
+        "type": 2,
+        "name": "manage",
+        "description": "Manage alliance members.",
+        "options": [
+          {
+            "type": 1,
+            "name": "remove",
+            "description": "Remove a player from the alliance roster.",
+            "options": [
+              {
+                "name": "user",
+                "description": "The user to remove.",
+                "required": true,
+                "type": 6
+              }
+            ]
+          },
+          {
+            "type": 1,
+            "name": "list",
+            "description": "List all players in the alliance roster.",
+            "options": []
+          },
+          {
+            "type": 1,
+            "name": "add",
+            "description": "Add a player to the alliance roster.",
+            "options": [
+              {
+                "name": "user",
+                "description": "The user to add.",
+                "required": true,
+                "type": 6
+              },
+              {
+                "type": 3,
+                "name": "ingame-name",
+                "description": "The in-game name of the user.",
+                "required": true
+              }
+            ]
+          }
+        ]
       }
     ],
     "subcommands": {}
@@ -475,11 +563,30 @@
             "required": true
           },
           {
-            "autocomplete": true,
-            "type": 3,
-            "name": "role",
-            "description": "Select the battlegroup role",
+            "type": 4,
+            "choices": [
+              {
+                "name": "Battlegroup 1",
+                "value": 1
+              },
+              {
+                "name": "Battlegroup 2",
+                "value": 2
+              },
+              {
+                "name": "Battlegroup 3",
+                "value": 3
+              }
+            ],
+            "name": "battlegroup",
+            "description": "Select the battlegroup for the player list",
             "required": true
+          },
+          {
+            "name": "ping-role",
+            "description": "Optional: A specific role to ping for notifications.",
+            "required": false,
+            "type": 8
           },
           {
             "channel_types": [
