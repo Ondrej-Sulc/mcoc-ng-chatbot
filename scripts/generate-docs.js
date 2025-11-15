@@ -72,7 +72,7 @@ async function generateDocs() {
         );
       }
     } catch (error) {
-      console.error(`   ❌ Error processing file ${filePath}:`, error);
+      console.error(`   ❌ Error processing file ${filePath}:`, error.stack);
     }
   }
 

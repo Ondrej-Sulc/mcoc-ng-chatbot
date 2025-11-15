@@ -11,7 +11,6 @@ import {
   SeparatorSpacingSize,
   TextDisplayBuilder,
 } from "discord.js";
-import { prisma } from "../../services/prismaService";
 import { registerButtonHandler } from "../../utils/buttonHandlerRegistry";
 
 type PrestigeType = "summoner" | "champion" | "relic";
@@ -89,6 +88,7 @@ function buildLeaderboardContainer(
 export async function handleLeaderboard(
   interaction: ChatInputCommandInteraction
 ) {
+  const { prisma } = await import("../../services/prismaService.js");
   await interaction.deferReply();
   const guildId = interaction.guildId;
   if (!guildId) {
@@ -122,6 +122,7 @@ export async function handleLeaderboard(
 }
 
 async function handleLeaderboardButton(interaction: ButtonInteraction) {
+  const { prisma } = await import("../../services/prismaService.js");
   await interaction.deferUpdate();
   const guildId = interaction.guildId;
   if (!guildId) {
@@ -154,7 +155,9 @@ async function handleLeaderboardButton(interaction: ButtonInteraction) {
   await interaction.editReply(leaderboardResponse);
 }
 
-registerButtonHandler(
-  "prestige:leaderboard",
-  handleLeaderboardButton
-);
+export function registerPrestigeHandlers() {
+  registerButtonHandler(
+    "prestige:leaderboard",
+    handleLeaderboardButton
+  );
+}
