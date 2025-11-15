@@ -1,7 +1,6 @@
 import { SlashCommandBuilder, CommandInteraction, PermissionFlagsBits } from 'discord.js';
-import { prisma } from '../../services/prismaService';
 import loggerService from '../../services/loggerService';
-import { youTubeService } from '../../services/youtubeService';
+import { getYouTubeService } from '../../services/youtubeService';
 import { WarVideo, Player, WarVideoStatus } from '@prisma/client';
 
 export const data = new SlashCommandBuilder()
@@ -32,6 +31,8 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: CommandInteraction) {
   if (!interaction.isChatInputCommand()) return;
 
+  const { prisma } = await import('../../services/prismaService.js');
+  const youTubeService = getYouTubeService();
   const subcommand = interaction.options.getSubcommand();
   const videoId = interaction.options.getString('video_id', true);
 

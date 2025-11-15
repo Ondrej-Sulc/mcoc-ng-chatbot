@@ -207,4 +207,11 @@ class YouTubeService {
   }
 }
 
-export const youTubeService = new YouTubeService();
+let youTubeServiceInstance: YouTubeService | null = null;
+
+export function getYouTubeService(): YouTubeService {
+    if (!youTubeServiceInstance) {
+        youTubeServiceInstance = new YouTubeService();
+    }
+    return youTubeServiceInstance;
+}
