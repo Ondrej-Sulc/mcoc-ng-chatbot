@@ -9,6 +9,7 @@ import { processOcrDetections } from "./ocrProcessing";
 import { estimateGrid } from "./gridEstimator";
 import { solveShortNames, isChampionAwakened } from "./championIdentifier";
 import Fuse from "fuse.js";
+import { getGoogleVisionService } from "../../../services/googleVisionService.js";
 
 export async function processRosterScreenshot(
   imageUrl: string,
@@ -18,7 +19,7 @@ export async function processRosterScreenshot(
   debugMode: boolean = false,
   playerId?: string
 ): Promise<RosterUpdateResult | RosterDebugResult> {
-  const { googleVisionService } = await import("../../../services/googleVisionService.js");
+  const googleVisionService = await getGoogleVisionService();
   const { prisma } = await import("../../../services/prismaService.js");
   if (debugMode)
     console.log(`[DEBUG] Starting roster processing for URL: ${imageUrl}`);

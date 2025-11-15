@@ -1,11 +1,11 @@
 import { CommandInteraction } from "discord.js";
 import logger from "../../../services/loggerService";
-import { prisma } from "../../../services/prismaService";
-import { sheetsService } from "../../../services/sheetsService";
-import { config } from "../../../config";
 import { getChampionImageUrl } from "../../../utils/championHelper";
 
 export async function handleChampionSyncSheet(interaction: CommandInteraction) {
+    const { prisma } = await import("../../../services/prismaService.js");
+    const { sheetsService } = await import("../../../services/sheetsService.js");
+    const { config } = await import("../../../config.js");
     if (!interaction.isChatInputCommand()) return;
     logger.info(`Starting sheet sync process for ${interaction.user.tag}`);
 

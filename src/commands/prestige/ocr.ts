@@ -1,7 +1,7 @@
 import sharp from 'sharp';
 import { google } from '@google-cloud/vision/build/protos/protos';
 import { PrestigeResult, OCRResult } from './types';
-import { googleVisionService } from '../../services/googleVisionService';
+import { getGoogleVisionService } from '../../services/googleVisionService';
 import logger from '../../services/loggerService';
 
 type IEntityAnnotation = google.cloud.vision.v1.IEntityAnnotation;
@@ -137,6 +137,7 @@ async function processOcrAttempt(
   debugInfo: NonNullable<PrestigeResult['debugInfo']>,
   isCropped: boolean
 ): Promise<PrestigeResult> {
+  const googleVisionService = await getGoogleVisionService();
   const attemptKey = isCropped ? 'cropAttempt' : 'fullAttempt';
   try {
     const detections = await googleVisionService.detectText(imageBuffer);

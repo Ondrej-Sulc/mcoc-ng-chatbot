@@ -1,12 +1,11 @@
 import { v1 } from "@google-cloud/vision";
-import { config } from "../config";
 
 class GoogleVisionService {
   private client: v1.ImageAnnotatorClient;
 
-  constructor() {
+  constructor(credentials: any) {
     this.client = new v1.ImageAnnotatorClient({
-      credentials: config.GOOGLE_CREDENTIALS,
+      credentials,
     });
   }
 
@@ -16,4 +15,13 @@ class GoogleVisionService {
   }
 }
 
-export const googleVisionService = new GoogleVisionService();
+let googleVisionServiceInstance: GoogleVisionService | null = null;
+
+export async function getGoogleVisionService(): Promise<GoogleVisionService> {
+    if (!googleVisionServiceInstance) {
+        const { config } = await import('../config.js');
+        googleVisionServiceInstance = new GoogleVisionService(config.GOOGLE_CREDENTIALS);
+    }
+    return googleVisionServiceInstance;
+}
+
