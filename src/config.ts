@@ -184,4 +184,18 @@ const createConfig = (): Config => {
   };
 };
 
-export const config: Config = createConfig();
+let configInstance: Config | null = null;
+
+const getConfig = (): Config => {
+  if (!configInstance) {
+    configInstance = createConfig();
+  }
+  return configInstance;
+};
+
+export const config: Config = new Proxy({} as Config, {
+  get: (target, prop) => {
+    const conf = getConfig();
+    return Reflect.get(conf, prop, conf);
+  },
+});
