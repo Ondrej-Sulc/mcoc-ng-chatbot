@@ -35,6 +35,7 @@ A modular Discord bot built with TypeScript, designed for Marvel Contest of Cham
     - **Settings:** `/alliance name` and `/alliance toggle-feature` allow admins to manage basic alliance settings.
 - **Profile Management:** The `/profile` command allows users to manage their in-game profiles. It supports multiple accounts, allowing you to switch between them easily. The main `/profile view` command provides an interactive dashboard for managing all aspects of your profile, including prestige, roster summary, and alliance info. From this view, you can switch between profiles, rename or delete the active profile, and set your timezone.
 - **Roster Management:** A comprehensive `/roster` command that allows users to manage their personal champion rosters. It includes subcommands to `update` (via OCR from screenshots), `view`, `delete`, `summary`, and `export` champions, providing a full suite of tools for roster maintenance.
+- **Interactive Champion Command:** The `/champion` command has been enhanced with a fully interactive UI. Each subcommand provides a main view with buttons to dynamically switch between a champion's overview, abilities, attacks, tags, and more. The detailed `info` view is now fully paginated with "Previous" and "Next" buttons, allowing for easy navigation of long ability descriptions.
 - **Advanced Search:** A powerful `/search` command with two main subcommands:
     - `/search all`: Performs a global search across all champions in the database based on a wide range of criteria, including abilities, immunities, tags, classes, ability categories, and attack types.
     - `/search roster`: Allows users to search within their own personal roster, making it easy to find specific champions they own.
@@ -79,7 +80,7 @@ Currently, the Next.js configuration has `typescript: { ignoreBuildErrors: true 
 | `/alliance` | A comprehensive suite of commands to view and manage your alliance, its members, roles, and features. | User |
 | `/aq` | Alliance Quest (AQ) utilities. These commands help alliances coordinate and track their progress in Alliance Quests. | User |
 | `/aw` | Commands for Alliance War planning and details. | Feature |
-| `/champion` | Get detailed information about any champion in the game. This acts as a comprehensive in-game encyclopedia for all champions. | Public |
+| `/champion` | Get detailed, interactive information about any champion. Features buttons to switch between views (abilities, attacks, etc.) and pagination for long descriptions. | Public |
 | `/debug` | Debugging commands, restricted to bot administrators. These commands are used for testing and troubleshooting bot features. | Bot Admin |
 | `/glossary` | Look up MCOC effects, buffs, and debuffs. This acts as an in-game dictionary for various terms. | Public |
 | `/prestige` | Extract prestige values from an MCOC screenshot or view the leaderboard. | User |

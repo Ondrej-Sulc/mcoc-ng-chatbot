@@ -1,5 +1,7 @@
 import { ButtonInteraction } from "discord.js";
 import { handleGenerateUploadLink } from "../commands/aw/buttonHandlers";
+import { handleChampionViewSwitch } from "../commands/champion/buttonHandler";
+import { handleChampionPageSwitch } from "../commands/champion/pageHandler";
 
 export type ButtonHandler = (interaction: ButtonInteraction) => Promise<void>;
 
@@ -9,6 +11,8 @@ const buttonHandlers = new Map<string, ButtonHandler>();
  */
 
 registerButtonHandler("generate_upload_link:", handleGenerateUploadLink);
+registerButtonHandler("champion:", handleChampionViewSwitch);
+registerButtonHandler("champion_page:", handleChampionPageSwitch);
 
 export function registerButtonHandler(prefix: string, handler: ButtonHandler) {
   /**

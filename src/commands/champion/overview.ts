@@ -3,26 +3,15 @@ import {
   ChampionAbilityLinkWithRelations,
 } from "../../services/championService";
 import {
-  ContainerBuilder,
-  SeparatorBuilder,
-  TextDisplayBuilder,
-} from "discord.js";
-import { CommandResult } from "../../types/command";
-import {
-  CLASS_COLOR,
   formatLinkedAbilitySection,
   formatAttacks,
   formatTags,
 } from "./view";
 
-export function handleOverview(
+export function getOverviewContent(
   champion: ChampionWithAllRelations,
   resolveEmoji: (text: string) => string
-): CommandResult {
-  const container = new ContainerBuilder().setAccentColor(
-    CLASS_COLOR[champion.class]
-  );
-
+): string {
   const abilities = champion.abilities.filter(
     (a: ChampionAbilityLinkWithRelations) => a.type === "ABILITY"
   );
@@ -60,29 +49,9 @@ export function handleOverview(
     });
   }
 
-  sections.forEach((section, index) => {
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(`## ${section.title}`)
-    );
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(section.content)
-    );
-
-    if (index < sections.length - 1) {
-      container.addSeparatorComponents(new SeparatorBuilder());
-    }
-  });
-
   if (sections.length === 0) {
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(
-        "This champion has no listed abilities, immunities, tags, or attacks."
-      )
-    );
+    return "This champion has no listed abilities, immunities, tags, or attacks.";
   }
 
-  return {
-    components: [container],
-    isComponentsV2: true,
-  };
+  return sections.map(section => `## ${section.title}\n${section.content}`).join("\n\n---\n\n");
 }

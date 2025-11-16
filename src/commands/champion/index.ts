@@ -5,19 +5,27 @@ import {
   AttachmentBuilder,
   MediaGalleryBuilder,
   MediaGalleryItemBuilder,
+  ContainerBuilder,
+  TextDisplayBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  SeparatorBuilder,
 } from "discord.js";
 import { getChampionData, championList } from "../../services/championService";
-import { Command, CommandAccess, CommandResult } from "../../types/command";
+import { Command, CommandAccess } from "../../types/command";
 import { createEmojiResolver } from "../../utils/emojiResolver";
 import { generateChampionThumbnail } from "./thumbnail";
 import { getChampionImageUrl } from "../../utils/championHelper";
-import { handleInfo } from "./info";
-import { handleAttacks } from "./attacks";
-import { handleAbilities } from "./abilities";
-import { handleImmunities } from "./immunities";
-import { handleTags } from "./tags";
-import { handleOverview } from "./overview";
-import { handleDuel } from "./duel";
+import { getInfoContent } from "./info";
+import { getAttacksContent } from "./attacks";
+import { getAbilitiesContent } from "./abilities";
+import { getImmunitiesContent } from "./immunities";
+import { getTagsContent } from "./tags";
+import { getOverviewContent } from "./overview";
+import { getDuelContent } from "./duel";
+import { createChampionActionRow, createPaginationActionRow } from "./actionRow";
+import { CLASS_COLOR } from "./view";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -196,74 +204,88 @@ export const command: Command = {
       description: `Thumbnail for ${champion.name}`,
     });
 
-    const thumbnailmediaGallery = new MediaGalleryBuilder().addItems(
+    const container = new ContainerBuilder();
+    container.setAccentColor(CLASS_COLOR[champion.class]);
+
+    const thumbnailGallery = new MediaGalleryBuilder().addItems(
       new MediaGalleryItemBuilder()
         .setDescription(`**${champion.name}**`)
         .setURL(`attachment://${thumbnailFileName}`)
     );
+    container.addMediaGalleryComponents(thumbnailGallery);
 
     const resolveEmoji = createEmojiResolver(interaction.client);
-    let result: CommandResult;
+    let content = "";
+    let paginationRow: ActionRowBuilder<ButtonBuilder> | null = null;
 
     switch (subcommand) {
-      case "info":
-        result = handleInfo(champion);
-        break;
-      case "attacks":
-        result = handleAttacks(champion);
+      case "overview":
+        content = getOverviewContent(champion, resolveEmoji);
         break;
       case "abilities":
-        result = handleAbilities(champion, resolveEmoji);
+        content = getAbilitiesContent(champion, resolveEmoji);
         break;
       case "immunities":
-        result = handleImmunities(champion, resolveEmoji);
+        content = getImmunitiesContent(champion, resolveEmoji);
+        break;
+      case "attacks":
+        content = getAttacksContent(champion);
         break;
       case "tags":
-        result = handleTags(champion);
+        content = getTagsContent(champion);
         break;
-      case "overview":
-        result = handleOverview(champion, resolveEmoji);
+      case "info":
+        const info = getInfoContent(champion, 1);
+        content = info.content;
+        if (info.totalPages > 1) {
+          paginationRow = createPaginationActionRow(
+            champion.id.toString(),
+            subcommand,
+            info.currentPage,
+            info.totalPages
+          );
+        }
         break;
       case "duel":
-        result = handleDuel(champion);
+        content = getDuelContent(champion);
         break;
       default:
-        await interaction.editReply({ content: "Invalid subcommand." });
-        return;
+        content = getOverviewContent(champion, resolveEmoji);
+        break;
     }
 
-    if (result.components && result.components.length > 0) {
-      result.components[0].components.unshift(thumbnailmediaGallery);
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(content));
+
+    if (paginationRow) {
+      container.addSeparatorComponents(new SeparatorBuilder());
+      container.addActionRowComponents(paginationRow);
     }
 
-    result.files = [attachment];
-
-    if (result.components && Array.isArray(result.components)) {
-      const firstContainer = result.components.shift();
-      if (firstContainer) {
-        await interaction.editReply({
-          content: result.content || "",
-          components: [firstContainer],
-          flags: [MessageFlags.IsComponentsV2],
-          files: result.files || [],
-        });
-      }
-
-      for (const container of result.components) {
-        await interaction.followUp({
-          components: [container],
-          ephemeral: false,
-          flags: [MessageFlags.IsComponentsV2],
-        });
-      }
-    } else if (result.embeds) {
-      await interaction.editReply({
-        content: result.content || "",
-        embeds: result.embeds,
-      });
-    } else if (result.content) {
-      await interaction.editReply({ content: result.content });
+    // Add duel button here if applicable
+    if (subcommand === 'duel' && content.includes("No duel targets found")) {
+        const duelButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+                .setLabel("Find Duels on GuiaMTC")
+                .setStyle(ButtonStyle.Link)
+                .setURL("https://www.guiamtc.com/duels")
+        );
+        container.addSeparatorComponents(new SeparatorBuilder()); // Separator before duel button
+        container.addActionRowComponents(duelButton);
     }
+
+    container.addSeparatorComponents(new SeparatorBuilder());
+    const viewActionRows = createChampionActionRow(
+      champion.id.toString(),
+      subcommand
+    );
+    container.addActionRowComponents(...viewActionRows);
+
+
+    await interaction.editReply({
+      components: [container],
+      files: [attachment],
+      flags: [MessageFlags.IsComponentsV2],
+    });
   },
 };
 

@@ -1,21 +1,8 @@
 import { ChampionWithAllRelations } from "../../services/championService";
-import { ContainerBuilder, TextDisplayBuilder } from "discord.js";
-import { CommandResult } from "../../types/command";
-import { CLASS_COLOR, formatAttacks } from "./view";
+import { formatAttacks } from "./view";
 
-export function handleAttacks(
+export function getAttacksContent(
   champion: ChampionWithAllRelations
-): CommandResult {
-  const container = new ContainerBuilder().setAccentColor(
-    CLASS_COLOR[champion.class]
-  );
-  const formattedAttacks = formatAttacks(champion.attacks, 'detailed');
-  container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(formattedAttacks)
-  );
-
-  return {
-    components: [container],
-    isComponentsV2: true,
-  };
+): string {
+  return formatAttacks(champion.attacks, 'detailed');
 }

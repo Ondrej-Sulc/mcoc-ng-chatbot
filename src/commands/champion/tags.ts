@@ -1,24 +1,11 @@
 import { ChampionWithAllRelations } from "../../services/championService";
-import { ContainerBuilder, TextDisplayBuilder } from "discord.js";
-import { CommandResult } from "../../types/command";
-import { CLASS_COLOR } from "./view";
 import { Tag } from "@prisma/client";
 
-export function handleTags(
+export function getTagsContent(
   champion: ChampionWithAllRelations
-): CommandResult {
-  const container = new ContainerBuilder().setAccentColor(
-    CLASS_COLOR[champion.class]
-  );
-
+): string {
   if (!champion.tags || champion.tags.length === 0) {
-    container.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent("No tags found for this champion.")
-    );
-    return {
-      components: [container],
-      isComponentsV2: true,
-    };
+    return "No tags found for this champion.";
   }
 
   const tagsByCategory = new Map<string, Tag[]>();
@@ -39,12 +26,5 @@ export function handleTags(
     formattedTags += "\n";
   }
 
-  container.addTextDisplayComponents(
-    new TextDisplayBuilder().setContent(formattedTags.trim())
-  );
-
-  return {
-    components: [container],
-    isComponentsV2: true,
-  };
+  return formattedTags.trim();
 }

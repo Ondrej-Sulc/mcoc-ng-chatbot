@@ -1,9 +1,19 @@
 import { ChampionWithAllRelations } from "../../services/championService";
-import { ContainerBuilder, MessageFlags, TextDisplayBuilder } from "discord.js";
-import { CommandResult } from "../../types/command";
-import { CLASS_COLOR, FullAbilities } from "./view";
+import { TextDisplayBuilder } from "discord.js";
+import { FullAbilities } from "./view";
 
-export function handleInfo(champion: ChampionWithAllRelations): CommandResult {
+const MAX_PAGE_LENGTH = 3900; // Leave some buffer for titles, etc.
+
+interface InfoContent {
+  content: string;
+  currentPage: number;
+  totalPages: number;
+}
+
+export function getInfoContent(
+  champion: ChampionWithAllRelations,
+  page: number = 1
+): InfoContent {
   const fullAbilities = champion.fullAbilities as FullAbilities;
 
   if (
@@ -12,40 +22,14 @@ export function handleInfo(champion: ChampionWithAllRelations): CommandResult {
   ) {
     return {
       content: `Detailed abilities are not available for ${champion.name}.`,
-      flags: MessageFlags.Ephemeral,
+      currentPage: 1,
+      totalPages: 1,
     };
   }
 
-  const containers: ContainerBuilder[] = [];
-  let currentContainer = new ContainerBuilder().setAccentColor(
-    CLASS_COLOR[champion.class]
-  );
-  let currentLength = 0;
-  const MAX_CONTAINER_LENGTH = 4000;
-  const MAX_TEXT_DISPLAY_LENGTH = 2000;
-
-  const addTextToContainer = (text: string) => {
-    if (currentLength + text.length > MAX_CONTAINER_LENGTH) {
-      containers.push(currentContainer);
-      currentContainer = new ContainerBuilder().setAccentColor(
-        CLASS_COLOR[champion.class]
-      );
-      currentLength = 0;
-    }
-    currentContainer.addTextDisplayComponents(
-      new TextDisplayBuilder().setContent(text)
-    );
-    currentLength += text.length;
-  };
-
+  let fullText = "";
   const addBlock = (title: string, description: string) => {
-    addTextToContainer(`**${title}**`);
-    const descParts =
-      description.match(new RegExp(`.{1,${MAX_TEXT_DISPLAY_LENGTH}}`, "gs")) ||
-      [];
-    for (const part of descParts) {
-      addTextToContainer(part);
-    }
+    fullText += `**${title}**\n${description}\n\n`;
   };
 
   if (fullAbilities.signature) {
@@ -65,12 +49,28 @@ export function handleInfo(champion: ChampionWithAllRelations): CommandResult {
     }
   }
 
-  if (currentContainer.components.length > 0) {
-    containers.push(currentContainer);
+  const pages: string[] = [];
+  let currentChunk = "";
+  const paragraphs = fullText.split("\n\n");
+
+  for (const paragraph of paragraphs) {
+    if (paragraph.trim() === "") continue;
+    if (currentChunk.length + paragraph.length > MAX_PAGE_LENGTH) {
+      pages.push(currentChunk);
+      currentChunk = "";
+    }
+    currentChunk += paragraph + "\n\n";
+  }
+  if (currentChunk.length > 0) {
+    pages.push(currentChunk);
   }
 
+  const totalPages = pages.length;
+  const pageIndex = Math.max(0, Math.min(page - 1, totalPages - 1));
+
   return {
-    components: containers,
-    isComponentsV2: true,
+    content: pages[pageIndex] || "No content for this page.",
+    currentPage: pageIndex + 1,
+    totalPages: totalPages,
   };
 }

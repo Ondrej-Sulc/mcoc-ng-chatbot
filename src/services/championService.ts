@@ -55,6 +55,29 @@ export type ChampionWithAllRelations = Champion & {
   duels: Duel[];
 };
 
+export async function getChampionDataById(
+  id: number
+): Promise<ChampionWithAllRelations | null> {
+  return prisma.champion.findUnique({
+    where: { id },
+    include: {
+      attacks: { include: { hits: true } },
+      abilities: {
+        include: {
+          ability: true,
+          synergyChampions: {
+            include: {
+              champion: true,
+            },
+          },
+        },
+      },
+      tags: true,
+      duels: true,
+    },
+  }) as Promise<ChampionWithAllRelations | null>;
+}
+
 export async function getChampionData(
   championName: string
 ): Promise<ChampionWithAllRelations | null> {

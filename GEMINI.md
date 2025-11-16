@@ -47,6 +47,16 @@ The bot includes a robust system for managing alliance structure, including offi
     *   Commands requiring elevated permissions are restricted to users with either Discord Administrator permissions or the `isOfficer` flag set to `true` in the database.
 *   **Overview:** The `/alliance view` command provides a public, read-only overview of the entire alliance, showing members organized by battlegroup and highlighting officers.
 
+### Interactive Champion Command
+
+The `/champion` command has been refactored into a fully interactive experience using V2 components. It follows a "re-render everything" model, where every interaction (initial command or button click) generates a complete, new message layout from scratch.
+
+*   **Controller/View Architecture:** The command's logic is split between "controllers" and "views":
+    *   **Controllers:** The main `index.ts` file (for the initial command execution) and the button handlers (`buttonHandler.ts` for view-switching, `pageHandler.ts` for pagination) act as controllers. They are responsible for fetching data, building the `ContainerBuilder`, generating the thumbnail, and assembling all components (content, buttons, separators) into a final message.
+    *   **Views:** Simple functions like `getAbilitiesContent` or `getInfoContent` act as views. Their only job is to format data into a display-ready string. They do not create any Discord components themselves.
+*   **Dynamic Thumbnail Generation:** The thumbnail banner is now regenerated on every interaction to reflect the currently active view (e.g., showing "Abilities" or "Attacks" in the title).
+*   **Pagination:** The `info` view, which can contain a large amount of text, is now fully paginated. The `getInfoContent` function splits the content into pages, and the controllers add "Previous" and "Next" buttons to navigate between them.
+
 The bot is built with a modern tech stack, including:
 
 *   **Language:** TypeScript
@@ -68,6 +78,10 @@ The production environment for both the bot and its PostgreSQL database is hoste
 *   **Type Safety:** The project uses TypeScript in strict mode. Avoid using `any` and ensure all new code is type-safe.
 *   **Refactoring:** Proactively refactor code to improve its structure and maintainability.
 *   **Discord UI Components:** Prioritize the use of Discord UI Components V2 (e.g., `ContainerBuilder`, `TextDisplayBuilder`, `ActionRowBuilder`) over traditional embeds for rich, interactive, and consistent user interfaces. Always ensure the `MessageFlags.IsComponentsV2` flag is set when using these components.
+*   **Controller/View Architecture for Interactive Commands:** For complex interactive commands like `/champion`, a controller/view pattern is preferred.
+    *   **Controllers** (`index.ts` for the initial command, and button handlers for subsequent interactions) are responsible for fetching data and building the complete message response, including all UI components (Containers, Action Rows, etc.).
+    *   **Views** (e.g., `getAbilitiesContent`) are simple, pure functions responsible only for formatting data into a string. They should not create Discord components.
+    *   This pattern centralizes response-building logic and makes the individual view formatters easier to test and maintain.
 
 ## Web Interface
 
