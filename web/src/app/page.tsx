@@ -1,15 +1,11 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { CommandList } from "@/components/CommandList";
+import CommandReference from "@/components/CommandReference";
 import { Faq } from "@/components/Faq";
-import commandData from "@/lib/data/commands.json";
 import PageBackground from "@/components/PageBackground";
 
 export default function Home() {
-  const commandGroups = Array.from(
-    new Set(commandData.map((c) => c.group))
-  ).sort();
   return (
     <div className="min-h-screen relative">
       <PageBackground />
@@ -329,40 +325,9 @@ export default function Home() {
                 is fully slash-based and permission-aware.
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                id="commandSearch"
-                type="text"
-                placeholder="Search commands…"
-                className="w-40 sm:w-56 text-xs rounded-full border border-slate-700/80 bg-slate-950/80 px-3 py-1.5 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-400/70 focus:border-cyan-400/70"
-              />
-              <select
-                id="commandCategory"
-                className="text-xs rounded-full border border-slate-700/80 bg-slate-950/80 px-3 py-1.5 text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-400/70 focus:border-cyan-400/70"
-              >
-                <option value="all">All Categories</option>
-                {commandGroups.map((group) => (
-                  <option key={group} value={group.toLowerCase()}>
-                    {group}
-                  </option>
-                ))}
-              </select>
-            </div>
           </div>
 
-          <div
-            id="commandList"
-            className="grid sm:grid-cols-2 gap-3 sm:gap-4 text-[11px]"
-          >
-            <CommandList />
-          </div>
-
-          <p
-            id="commandsEmpty"
-            className="mt-3 text-[11px] text-slate-500 hidden"
-          >
-            No commands match your search. Try a different keyword or category.
-          </p>
+          <CommandReference />
         </section>
 
         <section id="howitworks" className="section-offset py-10 lg:py-14">
