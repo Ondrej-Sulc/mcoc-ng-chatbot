@@ -4,10 +4,11 @@ import Link from "next/link";
 import CommandReference from "@/components/CommandReference";
 import { Faq } from "@/components/Faq";
 import PageBackground from "@/components/PageBackground";
+import Tilt from "react-parallax-tilt";
 
 export default function Home() {
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative page-container">
       <PageBackground />
       <main>
         <section className="pt-12 lg:pt-12 pb-12">
@@ -132,178 +133,250 @@ export default function Home() {
               </div>
             </div>
             <div className="grid gap-6 md:grid-cols-3">
-              <div className="glass rounded-xl p-5 border border-slate-800/40 hover:border-sky-500/40 transition card-tilt">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-300 shrink-0">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth="1.5"
-                      stroke="currentColor"
-                      className="w-5 h-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-                      />
-                    </svg>
+              <Tilt
+                tiltMaxAngleX={2}
+                tiltMaxAngleY={2}
+                perspective={1000}
+                glareEnable={true}
+                glareMaxOpacity={0.1}
+                glarePosition="all"
+                scale={1.02}
+                className="rounded-xl"
+                style={{ overflow: 'hidden' }}
+              >
+                <div className="glass rounded-xl p-5 border border-slate-800/40 hover:border-sky-500/40 transition h-full">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-300 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth="1.5"
+                        stroke="currentColor"
+                        className="w-5 h-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-base font-semibold text-white">
+                      Advanced Champion Search
+                    </h3>
                   </div>
-                  <h3 className="text-base font-semibold text-white">
-                    Advanced Champion Search
-                  </h3>
+                  <p className="text-sm text-slate-300">
+                    Find the perfect champion for any situation with powerful,
+                    multi-filter searches.
+                  </p>
                 </div>
-                <p className="text-sm text-slate-300">
-                  Find the perfect champion for any situation with powerful,
-                  multi-filter searches.
-                </p>
-              </div>
-              <div className="glass rounded-xl p-5 border border-slate-800/40 hover:border-indigo-500/40 transition card-tilt">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-300 shrink-0">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth="1.5"
-                      stroke="currentColor"
-                      className="w-5 h-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm-3.75 0h.008v.015h-.008V9.375z"
-                      />
-                    </svg>
+              </Tilt>
+              <Tilt
+                tiltMaxAngleX={2}
+                tiltMaxAngleY={2}
+                perspective={1000}
+                glareEnable={true}
+                glareMaxOpacity={0.1}
+                glarePosition="all"
+                scale={1.02}
+                className="rounded-xl"
+                style={{ overflow: 'hidden' }}
+              >
+                <div className="glass rounded-xl p-5 border border-slate-800/40 hover:border-indigo-500/40 transition h-full">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-300 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth="1.5"
+                        stroke="currentColor"
+                        className="w-5 h-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm-3.75 0h.008v.015h-.008V9.375z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-base font-semibold text-white">
+                      Personal Roster Management
+                    </h3>
                   </div>
-                  <h3 className="text-base font-semibold text-white">
-                    Personal Roster Management
-                  </h3>
+                  <p className="text-sm text-slate-300">
+                    Keep your champion roster perfectly up-to-date with easy
+                    updates via screenshot image processing.
+                  </p>
                 </div>
-                <p className="text-sm text-slate-300">
-                  Keep your champion roster perfectly up-to-date with easy
-                  updates via screenshot image processing.
-                </p>
-              </div>
-              <div className="glass rounded-xl p-5 border border-slate-800/40 hover:border-pink-500/40 transition card-tilt">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-300 shrink-0">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth="1.5"
-                      stroke="currentColor"
-                      className="w-5 h-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5z"
-                      />
-                    </svg>
+              </Tilt>
+              <Tilt
+                tiltMaxAngleX={2}
+                tiltMaxAngleY={2}
+                perspective={1000}
+                glareEnable={true}
+                glareMaxOpacity={0.1}
+                glarePosition="all"
+                scale={1.02}
+                className="rounded-xl"
+                style={{ overflow: 'hidden' }}
+              >
+                <div className="glass rounded-xl p-5 border border-slate-800/40 hover:border-pink-500/40 transition h-full">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-300 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth="1.5"
+                        stroke="currentColor"
+                        className="w-5 h-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-base font-semibold text-white">
+                      In-Depth Champion Database
+                    </h3>
                   </div>
-                  <h3 className="text-base font-semibold text-white">
-                    In-Depth Champion Database
-                  </h3>
+                  <p className="text-sm text-slate-300">
+                    Access detailed information on any champion's abilities,
+                    stats, and immunities.
+                  </p>
                 </div>
-                <p className="text-sm text-slate-300">
-                  Access detailed information on any champion's abilities,
-                  stats, and immunities.
-                </p>
-              </div>
-              <div className="glass rounded-xl p-5 border border-slate-800/40 hover:border-sky-500/40 transition card-tilt">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-300 shrink-0">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth="1.5"
-                      stroke="currentColor"
-                      className="w-5 h-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18M-4.5 12h13.5"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"
-                      />
-                    </svg>
+              </Tilt>
+              <Tilt
+                tiltMaxAngleX={2}
+                tiltMaxAngleY={2}
+                perspective={1000}
+                glareEnable={true}
+                glareMaxOpacity={0.1}
+                glarePosition="all"
+                scale={1.02}
+                className="rounded-xl"
+                style={{ overflow: 'hidden' }}
+              >
+                <div className="glass rounded-xl p-5 border border-slate-800/40 hover:border-sky-500/40 transition h-full">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-sky-500/10 flex items-center justify-center text-sky-300 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth="1.5"
+                        stroke="currentColor"
+                        className="w-5 h-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0h18M-4.5 12h13.5"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-base font-semibold text-white">
+                      Automated AQ Scheduling
+                    </h3>
                   </div>
-                  <h3 className="text-base font-semibold text-white">
-                    Automated AQ Scheduling
-                  </h3>
+                  <p className="text-sm text-slate-300">
+                    Take the headache out of Alliance Quests with a fully
+                    automated and interactive scheduling system.
+                  </p>
                 </div>
-                <p className="text-sm text-slate-300">
-                  Take the headache out of Alliance Quests with a fully
-                  automated and interactive scheduling system.
-                </p>
-              </div>
-              <div className="glass rounded-xl p-5 border border-slate-800/40 hover:border-indigo-500/40 transition card-tilt">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-300 shrink-0">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth="1.5"
-                      stroke="currentColor"
-                      className="w-5 h-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-3.75-.625m3.75.625l-6.25 3.75"
-                      />
-                    </svg>
+              </Tilt>
+              <Tilt
+                tiltMaxAngleX={2}
+                tiltMaxAngleY={2}
+                perspective={1000}
+                glareEnable={true}
+                glareMaxOpacity={0.1}
+                glarePosition="all"
+                scale={1.02}
+                className="rounded-xl"
+                style={{ overflow: 'hidden' }}
+              >
+                <div className="glass rounded-xl p-5 border border-slate-800/40 hover:border-indigo-500/40 transition h-full">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-300 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth="1.5"
+                        stroke="currentColor"
+                        className="w-5 h-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-3.75-.625m3.75.625l-6.25 3.75"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-base font-semibold text-white">
+                      Prestige & Profile Tracking
+                    </h3>
                   </div>
-                  <h3 className="text-base font-semibold text-white">
-                    Prestige & Profile Tracking
-                  </h3>
+                  <p className="text-sm text-slate-300">
+                    Easily track your prestige progression and manage multiple
+                    in-game accounts seamlessly.
+                  </p>
                 </div>
-                <p className="text-sm text-slate-300">
-                  Easily track your prestige progression and manage multiple
-                  in-game accounts seamlessly.
-                </p>
-              </div>
-              <div className="glass rounded-xl p-5 border border-slate-800/40 hover:border-pink-500/40 transition card-tilt">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-300 shrink-0">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth="1.5"
-                      stroke="currentColor"
-                      className="w-5 h-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M12 15v-3m0 3h.008v.008H12v-.008z"
-                      />
-                    </svg>
+              </Tilt>
+              <Tilt
+                tiltMaxAngleX={2}
+                tiltMaxAngleY={2}
+                perspective={1000}
+                glareEnable={true}
+                glareMaxOpacity={0.1}
+                glarePosition="all"
+                scale={1.02}
+                className="rounded-xl"
+                style={{ overflow: 'hidden' }}
+              >
+                <div className="glass rounded-xl p-5 border border-slate-800/40 hover:border-pink-500/40 transition h-full">
+                  <div className="flex items-center gap-4 mb-3">
+                    <div className="w-10 h-10 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-300 shrink-0">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth="1.5"
+                        stroke="currentColor"
+                        className="w-5 h-5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 15v-3m0 3h.008v.008H12v-.008z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-base font-semibold text-white">
+                      MCOC Glossary
+                    </h3>
                   </div>
-                  <h3 className="text-base font-semibold text-white">
-                    MCOC Glossary
-                  </h3>
+                  <p className="text-sm text-slate-300">
+                    Instantly look up any in-game buff, debuff, or keyword with a
+                    comprehensive glossary command.
+                  </p>
                 </div>
-                <p className="text-sm text-slate-300">
-                  Instantly look up any in-game buff, debuff, or keyword with a
-                  comprehensive glossary command.
-                </p>
-              </div>
+              </Tilt>
             </div>
           </div>
         </section>

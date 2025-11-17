@@ -3,7 +3,7 @@ import { Starfield } from './Starfield';
 
 const PageBackground = React.memo(function PageBackground() {
   return (
-    <div className="absolute top-0 left-0 w-full h-full hero-bg z-[-1]">
+    <div className="hero-bg-top">
       <Starfield />
     </div>
   );

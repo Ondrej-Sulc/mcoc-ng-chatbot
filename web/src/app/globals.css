@@ -98,9 +98,41 @@
   backdrop-filter: blur(14px);
   border: 1px solid rgba(148, 163, 184, 0.1);
 }
-.hero-bg {
-  background: radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.35) 0%, rgba(2, 6, 23, 0) 30%), radial-gradient(circle at 90% 0%, rgba(236, 72, 153, 0.35) 0%, rgba(2, 6, 23, 0) 35%), radial-gradient(circle at 50% 100%, rgba(16, 185, 129, 0.25) 0%, rgba(2, 6, 23, 0) 25%), #020617;
+.hero-bg-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh; /* Fixed height */
+  z-index: -1;
+  background: radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.35) 0%, rgba(2, 6, 23, 0) 30%), radial-gradient(circle at 90% 0%, rgba(236, 72, 153, 0.35) 0%, rgba(2, 6, 23, 0) 35%);
 }
+
+.page-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 50vh; /* Gradient height */
+  z-index: -1;
+  background: radial-gradient(circle at 50% 100%, rgba(16, 185, 129, 0.25) 0%, rgba(2, 6, 23, 0) 50%);
+  pointer-events: none;
+}
+
+.image-glow-overlay::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0.5rem; /* rounded-lg */
+  box-shadow: inset 0 0 20px 10px rgba(56, 189, 248, 0.15);
+  background: linear-gradient(to bottom, rgba(2, 6, 23, 0) 50%, rgba(2, 6, 23, 0.5) 100%);
+  pointer-events: none;
+}
+
 .form-page-bg {
   background: radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.1) 0%, rgba(2, 6, 23, 0) 25%), 
               radial-gradient(circle at 85% 15%, rgba(236, 72, 153, 0.1) 0%, rgba(2, 6, 23, 0) 25%), 

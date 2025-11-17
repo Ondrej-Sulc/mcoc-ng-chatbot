@@ -3,6 +3,7 @@ import commandData from "@/lib/data/commands.json";
 import { useState, useMemo } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import Tilt from "react-parallax-tilt";
 
 // (Omitting the type definitions for brevity as they are the same as in CommandList.tsx)
 interface CommandArgumentOption {
@@ -75,7 +76,7 @@ const CommandReference = () => {
       <div className="md:col-span-1">
         <div className="sticky top-24">
           <h3 className="text-sm font-semibold text-slate-300 mb-3">Categories</h3>
-          <ul className="space-y-2">
+          <ul className="space-y-2 max-h-[calc(100vh-10rem)] overflow-y-auto">
             {commandGroups.map((group) => (
               <li key={group}>
                 <button
@@ -103,7 +104,7 @@ const CommandReference = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full text-xs rounded-full border border-slate-700/80 bg-slate-950/80 px-3 py-1.5 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-400/70 focus:border-cyan-400/70 mb-4"
         />
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-[calc(100vh-25rem)] overflow-y-auto">
           {filteredCommands.map((command) => (
             <button
               key={command.name}
@@ -126,15 +127,14 @@ const CommandReference = () => {
         <div className="sticky top-24">
           <AnimatePresence>
             {selectedCommand && (
-              <motion.div
-                key={selectedCommand.name}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="glass rounded-xl border border-slate-800/80 p-5"
-              >
-                <div className="flex justify-between items-start">
+                              <motion.div
+                              key={selectedCommand.name}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: -20 }}
+                              transition={{ duration: 0.3 }}
+                              className="glass rounded-xl border border-slate-800/80 p-5 max-h-[calc(100vh-20rem)] overflow-y-auto"
+                            >                <div className="flex justify-between items-start">
                   <div>
                     <h3 className="text-lg font-bold text-white">/{selectedCommand.name}</h3>
                     <p className="text-slate-300 text-sm mt-1">{selectedCommand.description}</p>
@@ -156,9 +156,20 @@ const CommandReference = () => {
                           </p>
                           <p className="text-slate-400 text-xs mt-1.5 ml-1">{subCmd.description}</p>
                           {subcommandDetails?.image && (
-                            <div className="relative group mt-2 rounded-lg overflow-hidden shadow-lg shadow-cyan-500/10 transition-all hover:shadow-cyan-500/20">
-                              <Image src={subcommandDetails.image} alt={`${selectedCommand.name} ${subCmd.name} command preview`} width={500} height={200} className="w-full h-auto rounded-lg" />
-                            </div>
+                            <Tilt
+                              tiltMaxAngleX={2}
+                              tiltMaxAngleY={2}
+                              perspective={1000}
+                              glareEnable={true}
+                              glareMaxOpacity={0.1}
+                              glarePosition="all"
+                              className="rounded-xl"
+                              style={{ overflow: 'hidden' }}
+                            >
+                              <div className="relative group mt-2 rounded-lg overflow-hidden shadow-lg shadow-cyan-500/10 transition-all hover:shadow-cyan-500/20 image-glow-overlay">
+                                <Image src={subcommandDetails.image} alt={`${selectedCommand.name} ${subCmd.name} command preview`} width={500} height={200} className="w-full h-auto rounded-lg" />
+                              </div>
+                            </Tilt>
                           )}
                         </div>
                       );
@@ -176,9 +187,20 @@ const CommandReference = () => {
                                 </p>
                                 <p className="text-slate-400 text-xs mt-1.5 ml-1">{subOption.description}</p>
                                 {subcommandDetails?.image && (
-                                  <div className="relative group mt-2 rounded-lg overflow-hidden shadow-lg shadow-cyan-500/10 transition-all hover:shadow-cyan-500/20">
-                                    <Image src={subcommandDetails.image} alt={`${selectedCommand.name} ${subOption.name} command preview`} width={500} height={200} className="w-full h-auto rounded-lg" />
-                                  </div>
+                                  <Tilt
+                                    tiltMaxAngleX={2}
+                                    tiltMaxAngleY={2}
+                                    perspective={1000}
+                                    glareEnable={true}
+                                    glareMaxOpacity={0.1}
+                                    glarePosition="all"
+                                    className="rounded-xl"
+                                    style={{ overflow: 'hidden' }}
+                                  >
+                                    <div className="relative group mt-2 rounded-lg overflow-hidden shadow-lg shadow-cyan-500/10 transition-all hover:shadow-cyan-500/20 image-glow-overlay">
+                                      <Image src={subcommandDetails.image} alt={`${selectedCommand.name} ${subOption.name} command preview`} width={500} height={200} className="w-full h-auto rounded-lg" />
+                                    </div>
+                                  </Tilt>
                                 )}
                               </div>
                             );
