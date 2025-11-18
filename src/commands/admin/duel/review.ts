@@ -7,16 +7,28 @@ import {
   MessageFlags,
   SeparatorBuilder,
   TextDisplayBuilder,
-  ComponentBuilder,
 } from "discord.js";
 import { prisma } from "../../../services/prismaService";
 import type { DuelStatus } from "@prisma/client";
 import logger from "../../../services/loggerService";
+import { registerButtonHandler } from "../../../utils/buttonHandlerRegistry";
+import {
+  handleDuelReviewActivate,
+  handleDuelReviewApprove,
+  handleDuelReviewDelete,
+  handleDuelReviewReject,
+} from "./duelAdminHandlers";
 
 const DUEL_REVIEW_APPROVE_ID = "duel-review-approve_";
 const DUEL_REVIEW_REJECT_ID = "duel-review-reject_";
 const DUEL_REVIEW_DELETE_ID = "duel-review-delete_";
 const DUEL_REVIEW_ACTIVATE_ID = "duel-review-activate_";
+
+// Register button handlers
+registerButtonHandler(DUEL_REVIEW_APPROVE_ID, handleDuelReviewApprove);
+registerButtonHandler(DUEL_REVIEW_REJECT_ID, handleDuelReviewReject);
+registerButtonHandler(DUEL_REVIEW_DELETE_ID, handleDuelReviewDelete);
+registerButtonHandler(DUEL_REVIEW_ACTIVATE_ID, handleDuelReviewActivate);
 
 export async function handleDuelReview(interaction: CommandInteraction) {
   if (!interaction.isChatInputCommand()) return;

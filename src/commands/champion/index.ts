@@ -23,10 +23,25 @@ import { getAbilitiesContent } from "./abilities";
 import { getImmunitiesContent } from "./immunities";
 import { getTagsContent } from "./tags";
 import { getOverviewContent } from "./overview";
-import { getDuelContent } from "./duel";
+import { getDuelContent, addDuelComponents } from "./duel";
 import { createChampionActionRow, createPaginationActionRow } from "./actionRow";
 import { CLASS_COLOR } from "./view";
 import { DuelStatus } from "@prisma/client";
+import { registerButtonHandler } from "../../utils/buttonHandlerRegistry";
+import { registerModalHandler } from "../../utils/modalHandlerRegistry";
+import { registerSelectMenuHandler } from "../../utils/selectMenuHandlerRegistry";
+import {
+  handleDuelReportButton,
+  handleDuelReportSelect,
+  handleDuelSuggestButton,
+  handleDuelSuggestModalSubmit,
+} from "./duelUserHandlers";
+
+// Duel-related handlers
+registerButtonHandler("champion-duel-suggest_", handleDuelSuggestButton);
+registerButtonHandler("champion-duel-report_", handleDuelReportButton);
+registerModalHandler("champion-duel-suggest-modal_", handleDuelSuggestModalSubmit);
+registerSelectMenuHandler("champion-duel-report-select_", handleDuelReportSelect);
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -248,10 +263,10 @@ export const command: Command = {
         }
         break;
       case "duel":
-        const activeDuels = champion.duels.filter(
-          (d) => d.status === DuelStatus.ACTIVE
+        const duelsToShow = champion.duels.filter(
+          (d) => d.status === DuelStatus.ACTIVE || d.status === DuelStatus.OUTDATED
         );
-        content = getDuelContent(activeDuels);
+        content = getDuelContent(duelsToShow, resolveEmoji);
         break;
       default:
         content = getOverviewContent(champion, resolveEmoji);
@@ -267,20 +282,7 @@ export const command: Command = {
 
     // Add duel button here if applicable
     if (subcommand === "duel") {
-      const duelActionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setCustomId(`champion-duel-suggest_${champion.id}`)
-          .setLabel("Suggest New Target")
-          .setStyle(ButtonStyle.Success)
-          .setEmoji("➕"),
-        new ButtonBuilder()
-          .setCustomId(`champion-duel-report_${champion.id}`)
-          .setLabel("Report Outdated Target")
-          .setStyle(ButtonStyle.Danger)
-          .setEmoji("🚨")
-      );
-      container.addSeparatorComponents(new SeparatorBuilder());
-      container.addActionRowComponents(duelActionRow);
+      addDuelComponents(container, champion, resolveEmoji);
     }
 
     container.addSeparatorComponents(new SeparatorBuilder());

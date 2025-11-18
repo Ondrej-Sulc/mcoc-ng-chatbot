@@ -1,16 +1,10 @@
 import { ModalSubmitInteraction } from "discord.js";
-import { handleDuelSuggestModalSubmit } from "../commands/champion/duelHandlers";
 
 export type ModalHandler = (
   interaction: ModalSubmitInteraction
 ) => Promise<void>;
 
 const modalHandlers = new Map<string, ModalHandler>();
-
-registerModalHandler(
-  "champion-duel-suggest-modal_",
-  handleDuelSuggestModalSubmit
-);
 
 export function registerModalHandler(customId: string, handler: ModalHandler) {
   if (modalHandlers.has(customId)) {

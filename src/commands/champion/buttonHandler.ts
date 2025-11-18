@@ -16,7 +16,7 @@ import { createEmojiResolver } from "../../utils/emojiResolver";
 import { createChampionActionRow, createPaginationActionRow } from "./actionRow";
 import { getAbilitiesContent } from "./abilities";
 import { getAttacksContent } from "./attacks";
-import { getDuelContent } from "./duel";
+import { getDuelContent, addDuelComponents } from "./duel";
 import { getImmunitiesContent } from "./immunities";
 import { getInfoContent } from "./info";
 import { getOverviewContent } from "./overview";
@@ -97,10 +97,10 @@ export async function handleChampionViewSwitch(interaction: ButtonInteraction) {
       }
       break;
     case "duel":
-      const activeDuels = champion.duels.filter(
-        (d) => d.status === DuelStatus.ACTIVE
+      const duelsToShow = champion.duels.filter(
+        (d) => d.status === DuelStatus.ACTIVE || d.status === DuelStatus.OUTDATED
       );
-      content = getDuelContent(activeDuels);
+      content = getDuelContent(duelsToShow, resolveEmoji);
       break;
     default:
       content = getOverviewContent(champion, resolveEmoji);
@@ -115,20 +115,7 @@ export async function handleChampionViewSwitch(interaction: ButtonInteraction) {
   }
 
   if (view === "duel") {
-    const duelActionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId(`champion-duel-suggest_${champion.id}`)
-        .setLabel("Suggest New Target")
-        .setStyle(ButtonStyle.Success)
-        .setEmoji("➕"),
-      new ButtonBuilder()
-        .setCustomId(`champion-duel-report_${champion.id}`)
-        .setLabel("Report Outdated Target")
-        .setStyle(ButtonStyle.Danger)
-        .setEmoji("🚨")
-    );
-    container.addSeparatorComponents(new SeparatorBuilder());
-    container.addActionRowComponents(duelActionRow);
+    addDuelComponents(container, champion, resolveEmoji);
   }
 
   container.addSeparatorComponents(new SeparatorBuilder());
