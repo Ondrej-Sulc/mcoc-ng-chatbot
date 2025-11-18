@@ -3,7 +3,7 @@ import logger from "../../../services/loggerService";
 import { prisma } from "../../../services/prismaService";
 import { championList } from "../../../services/championService";
 import Fuse from "fuse.js";
-import { DuelStatus } from "@prisma/client";
+import { DuelStatus, DuelSource } from "@prisma/client";
 
 export async function handleDuelUpload(interaction: CommandInteraction) {
   if (!interaction.isChatInputCommand()) return;
@@ -11,6 +11,8 @@ export async function handleDuelUpload(interaction: CommandInteraction) {
 
   try {
     await interaction.deferReply({ ephemeral: true });
+
+    const source = interaction.options.getString("source", true) as DuelSource;
 
     const attachment = interaction.options.getAttachment("csv", true);
     if (!attachment.contentType?.startsWith("text/csv")) {
@@ -41,7 +43,7 @@ export async function handleDuelUpload(interaction: CommandInteraction) {
 
     // 2. Mark all existing CSV-sourced duels as outdated.
     const { count: outdatedCount } = await prisma.duel.updateMany({
-      where: { source: "community_csv", status: DuelStatus.ACTIVE },
+      where: { source, status: DuelStatus.ACTIVE },
       data: { status: DuelStatus.OUTDATED },
     });
     logger.info(`Marked ${outdatedCount} existing CSV duels as OUTDATED.`);
@@ -91,14 +93,14 @@ export async function handleDuelUpload(interaction: CommandInteraction) {
             update: {
               rank,
               status: DuelStatus.ACTIVE,
-              source: "community_csv",
+              source,
             },
             create: {
               championId: champion.id,
               playerName,
               rank,
               status: DuelStatus.ACTIVE,
-              source: "community_csv",
+              source,
             },
           });
           processedCount++;

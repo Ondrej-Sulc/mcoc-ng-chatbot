@@ -9,8 +9,7 @@ import { handleAdminAutocomplete } from "./autocomplete";
 import { handleChampionAdd, handleChampionUpdateImages, handleChampionUpdateTags, handleChampionSyncSheet } from "./champion/handlers";
 import { handleAbilityAdd, handleAbilityRemove, handleAbilityDraft } from "./ability/handlers";
 import { showAttackModal } from "./attack/add";
-import { championsByName } from "../../services/championService";
-import { AbilityLinkType } from "@prisma/client";
+import { AbilityLinkType, DuelSource } from "@prisma/client";
 import { handleGlossaryLink, handleGlossaryUnlink, handleGlossaryUpdateAbility, handleGlossaryUpdateCategory, handleSetEmoji, handleRemoveEmoji } from "./glossary/handlers";
 import { handleDuelUpload } from "./duel/upload";
 import { handleDuelReview } from "./duel/review";
@@ -363,6 +362,16 @@ export const command: Command = {
                 .setName("csv")
                 .setDescription("The CSV file to upload.")
                 .setRequired(true)
+            )
+            .addStringOption((option) =>
+              option
+                .setName("source")
+                .setDescription("The source of the duel data.")
+                .setRequired(true)
+                .addChoices(
+                  { name: "GuiaMTC", value: DuelSource.GUIA_MTC },
+                  { name: "CoCPit", value: DuelSource.COCPIT }
+                )
             )
         )
         .addSubcommand((subcommand) =>

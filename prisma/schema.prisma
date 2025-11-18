@@ -54,6 +54,12 @@ enum DuelStatus {
   ARCHIVED
 }
 
+enum DuelSource {
+  USER_SUGGESTION
+  GUIA_MTC
+  COCPIT
+}
+
 // --- Models ---
 
 // RENAMED from GlossaryCategory and re-linked
@@ -106,7 +112,7 @@ model Duel {
   id                   Int        @id @default(autoincrement())
   playerName           String
   rank                 String?
-  source               String     @default("community_csv") // Tracks origin (e.g., "user_suggestion")
+  source               DuelSource @default(GUIA_MTC)
   status               DuelStatus @default(ACTIVE) // Tracks the state of the duel target
   // To track who submitted the suggestion/report
   submittedByDiscordId String?

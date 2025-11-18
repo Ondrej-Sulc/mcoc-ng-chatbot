@@ -10,7 +10,7 @@ import {
   EmbedBuilder,
 } from "discord.js";
 import { prisma } from "../../services/prismaService";
-import { DuelStatus } from "@prisma/client";
+import { DuelStatus, DuelSource } from "@prisma/client";
 import logger from "../../services/loggerService";
 import { getChampionDataById } from "../../services/championService";
 import { sendDuelNotification } from "../../services/notificationService";
@@ -99,7 +99,7 @@ export async function handleDuelSuggestModalSubmit(
       data: {
         championId,
         playerName,
-        source: "user_suggestion",
+        source: DuelSource.USER_SUGGESTION,
         status: DuelStatus.SUGGESTED,
         submittedByDiscordId: interaction.user.id,
       },

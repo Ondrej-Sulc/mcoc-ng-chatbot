@@ -1,4 +1,4 @@
-import { Duel, DuelStatus } from "@prisma/client";
+import { Duel, DuelStatus, DuelSource } from "@prisma/client";
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -32,10 +32,12 @@ export function getDuelContent(
         }
 
         // Add source indicator
-        if (duel.source === "user_suggestion") {
+        if (duel.source === DuelSource.USER_SUGGESTION) {
           duelString += " 👤";
-        } else if (duel.source === "community_csv") {
-          duelString += " <:GuiaMTC:0>"; // Placeholder for resolver
+        } else if (duel.source === DuelSource.GUIA_MTC) {
+          duelString += " <:GuiaMTC:0>";
+        } else if (duel.source === DuelSource.COCPIT) {
+          duelString += " <:CoCPit:0>";
         }
 
         // Add status indicator for outdated duels
@@ -61,13 +63,26 @@ export function addDuelComponents(
     (d) => d.status === DuelStatus.ACTIVE || d.status === DuelStatus.OUTDATED
   );
   const hasGuiaMTCSourcedDuels = duelsToShow.some(
-    (duel) => duel.source === "community_csv"
+    (duel) => duel.source === DuelSource.GUIA_MTC
   );
-  if (hasGuiaMTCSourcedDuels) {
+  const hasCoCPitSourcedDuels = duelsToShow.some(
+    (duel) => duel.source === DuelSource.COCPIT
+  );
+
+  if (hasGuiaMTCSourcedDuels || hasCoCPitSourcedDuels) {
+    let sourceCredits = "\nSources: ";
+    if (hasGuiaMTCSourcedDuels) {
+      sourceCredits += "<:GuiaMTC:0> *GuiaMTC.com*";
+    }
+    if (hasCoCPitSourcedDuels) {
+      if (hasGuiaMTCSourcedDuels) sourceCredits += ", ";
+      sourceCredits += "<:CoCPit:0> *CoCPit.com*";
+    }
+    
     container.addSeparatorComponents(new SeparatorBuilder());
     container.addTextDisplayComponents(
       new TextDisplayBuilder().setContent(
-        resolveEmoji("\nSources: <:GuiaMTC:0> *GuiaMTC.com*")
+        resolveEmoji(sourceCredits)
       )
     );
   }
