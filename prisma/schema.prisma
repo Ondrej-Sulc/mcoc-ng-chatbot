@@ -47,6 +47,13 @@ enum WarVideoStatus {
   REJECTED
 }
 
+enum DuelStatus {
+  ACTIVE
+  SUGGESTED
+  OUTDATED
+  ARCHIVED
+}
+
 // --- Models ---
 
 // RENAMED from GlossaryCategory and re-linked
@@ -96,9 +103,13 @@ model Champion {
 }
 
 model Duel {
-  id         Int      @id @default(autoincrement())
-  playerName String
-  rank       String?
+  id                   Int        @id @default(autoincrement())
+  playerName           String
+  rank                 String?
+  source               String     @default("community_csv") // Tracks origin (e.g., "user_suggestion")
+  status               DuelStatus @default(ACTIVE) // Tracks the state of the duel target
+  // To track who submitted the suggestion/report
+  submittedByDiscordId String?
 
   championId Int
   champion   Champion @relation(fields: [championId], references: [id], onDelete: Cascade)
@@ -106,6 +117,8 @@ model Duel {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Prevent duplicate suggestions for the same champion and player
+  @@unique([championId, playerName])
   @@index([championId])
 }
 

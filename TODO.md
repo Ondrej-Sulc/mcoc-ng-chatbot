@@ -2,19 +2,19 @@
 
 - [DONE] Way to manage discord emojis for glossary stuff, upload and add to a specific effect in glossary (via /admin glossary emoji-set/emoji-remove)
     - Note: Adding new glossary effects is handled by /admin glossary update-ability (upsert functionality).
-- add interactive buttons to champions commands to be able to switch between abilities/immunities/attacks and others
+- [DONE] add interactive buttons to champions commands to be able to switch between abilities/immunities/attacks and others
 - improve /champion duel command, add two interactive buttons for suggesting a new duel target as well as reporting a duel as outdated. both actions should be logged somewhere possibly notify me.
 - [DONE] on glossary detail page add button to trigger search for that category
 - [DONE] on glossary effect and category pages if user has roster also add buttons to search through players roster
 - [DONE] Fix glossary search bugs and improve UI (search emoji, separators, empty results handling).
 - possibly add buttons in the /help command to go try some of the commands
-- war videos database (attacker, defender, node number, season, war tier?, player?, death?, prefight?, anything else?)
+- [Almost done] war videos database (attacker, defender, node number, season, war tier?, player?, death?, prefight?, anything else?)
     - commands to look up videos
     - process existing videos from google drive / discord links other sources possibly and add to database (upload to YT from drive)
     - command for video upload, general one, second as part of /aw plan feature in each plan we already know about player/matchups and everything (should also include war, season), redirect to a page with UI (part of bot page) to upload videos for each matchup. then gets automatically uploaded to YT through their API and added to war db
 - Alliance management, players etc
-    - remove old players
-    - list alliance players
+    - [DONE] remove old players
+    - [DONE] list alliance players
     - search for a champion across alliance roster
 - propper dev enviroment with dev DB
 - possibly using admin / debug commands only in dev version of bot
@@ -23,3 +23,5 @@
 - improve ux with the roster update command (maybe a clickable link to prefill the command to add more champions)
   - alternative way to upload roster through web UI. 
 - In the AQ tracker, disable buttons after they are clicked.
+- possibly another source for duels - cockpit.org
+- do you want to join alliance dialog after using /register

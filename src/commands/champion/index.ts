@@ -26,6 +26,7 @@ import { getOverviewContent } from "./overview";
 import { getDuelContent } from "./duel";
 import { createChampionActionRow, createPaginationActionRow } from "./actionRow";
 import { CLASS_COLOR } from "./view";
+import { DuelStatus } from "@prisma/client";
 
 export const command: Command = {
   data: new SlashCommandBuilder()
@@ -247,7 +248,10 @@ export const command: Command = {
         }
         break;
       case "duel":
-        content = getDuelContent(champion);
+        const activeDuels = champion.duels.filter(
+          (d) => d.status === DuelStatus.ACTIVE
+        );
+        content = getDuelContent(activeDuels);
         break;
       default:
         content = getOverviewContent(champion, resolveEmoji);
@@ -262,15 +266,21 @@ export const command: Command = {
     }
 
     // Add duel button here if applicable
-    if (subcommand === 'duel' && content.includes("No duel targets found")) {
-        const duelButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder()
-                .setLabel("Find Duels on GuiaMTC")
-                .setStyle(ButtonStyle.Link)
-                .setURL("https://www.guiamtc.com/duels")
-        );
-        container.addSeparatorComponents(new SeparatorBuilder()); // Separator before duel button
-        container.addActionRowComponents(duelButton);
+    if (subcommand === "duel") {
+      const duelActionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`champion-duel-suggest_${champion.id}`)
+          .setLabel("Suggest New Target")
+          .setStyle(ButtonStyle.Success)
+          .setEmoji("➕"),
+        new ButtonBuilder()
+          .setCustomId(`champion-duel-report_${champion.id}`)
+          .setLabel("Report Outdated Target")
+          .setStyle(ButtonStyle.Danger)
+          .setEmoji("🚨")
+      );
+      container.addSeparatorComponents(new SeparatorBuilder());
+      container.addActionRowComponents(duelActionRow);
     }
 
     container.addSeparatorComponents(new SeparatorBuilder());

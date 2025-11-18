@@ -400,6 +400,29 @@
                 "type": 11
               }
             ]
+          },
+          {
+            "type": 1,
+            "name": "review",
+            "description": "Reviews duel suggestions and reports.",
+            "options": [
+              {
+                "type": 3,
+                "choices": [
+                  {
+                    "name": "Suggested",
+                    "value": "SUGGESTED"
+                  },
+                  {
+                    "name": "Outdated",
+                    "value": "OUTDATED"
+                  }
+                ],
+                "name": "status",
+                "description": "The status of the duels to review.",
+                "required": true
+              }
+            ]
           }
         ]
       }

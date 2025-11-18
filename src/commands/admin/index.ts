@@ -13,6 +13,7 @@ import { championsByName } from "../../services/championService";
 import { AbilityLinkType } from "@prisma/client";
 import { handleGlossaryLink, handleGlossaryUnlink, handleGlossaryUpdateAbility, handleGlossaryUpdateCategory, handleSetEmoji, handleRemoveEmoji } from "./glossary/handlers";
 import { handleDuelUpload } from "./duel/upload";
+import { handleDuelReview } from "./duel/review";
 import { handleBotAdminAdd, handleBotAdminRemove } from "./bot-admin/handlers";
 
 export const command: Command = {
@@ -364,6 +365,21 @@ export const command: Command = {
                 .setRequired(true)
             )
         )
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("review")
+            .setDescription("Reviews duel suggestions and reports.")
+            .addStringOption((option) =>
+              option
+                .setName("status")
+                .setDescription("The status of the duels to review.")
+                .setRequired(true)
+                .addChoices(
+                  { name: "Suggested", value: "SUGGESTED" },
+                  { name: "Outdated", value: "OUTDATED" }
+                )
+            )
+        )
     ),
   access: CommandAccess.BOT_ADMIN,
   help: {
@@ -414,22 +430,24 @@ export const command: Command = {
         await showAttackModal(interaction, championName);
       }
     } else if (group === "glossary") {
-        if (subcommand === "link") {
-            await handleGlossaryLink(interaction);
-        } else if (subcommand === "unlink") {
-            await handleGlossaryUnlink(interaction);
-        } else if (subcommand === "update-ability") {
-            await handleGlossaryUpdateAbility(interaction);
-        } else if (subcommand === "update-category") {
-            await handleGlossaryUpdateCategory(interaction);
-        } else if (subcommand === "emoji-set") {
-            await handleSetEmoji(interaction);
-        } else if (subcommand === "emoji-remove") {
-            await handleRemoveEmoji(interaction);
-        }
+      if (subcommand === "link") {
+        await handleGlossaryLink(interaction);
+      } else if (subcommand === "unlink") {
+        await handleGlossaryUnlink(interaction);
+      } else if (subcommand === "update-ability") {
+        await handleGlossaryUpdateAbility(interaction);
+      } else if (subcommand === "update-category") {
+        await handleGlossaryUpdateCategory(interaction);
+      } else if (subcommand === "emoji-set") {
+        await handleSetEmoji(interaction);
+      } else if (subcommand === "emoji-remove") {
+        await handleRemoveEmoji(interaction);
+      }
     } else if (group === "duel") {
       if (subcommand === "upload") {
         await handleDuelUpload(interaction);
+      } else if (subcommand === "review") {
+        await handleDuelReview(interaction);
       }
     } else if (group === "bot-admin") {
       if (subcommand === "add") {

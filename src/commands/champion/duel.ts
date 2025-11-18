@@ -1,13 +1,11 @@
-import { ChampionWithAllRelations } from "../../services/championService";
+import { Duel } from "@prisma/client";
 
-export function getDuelContent(
-  champion: ChampionWithAllRelations
-): string {
+export function getDuelContent(duels: Duel[]): string {
   let content = "";
-  if (!champion.duels || champion.duels.length === 0) {
-    content = "No duel targets found for this champion.";
+  if (!duels || duels.length === 0) {
+    content = "No active duel targets found for this champion.";
   } else {
-    content = champion.duels
+    content = duels
       .map((duel) => {
         let duelString = `### \`${duel.playerName}\``;
         if (duel.rank) {
@@ -18,6 +16,6 @@ export function getDuelContent(
       .join("\n");
   }
 
-  content += "\n\n*Data provided by GuiaMTC.com*";
+  content += "\n\n*Have a suggestion or see an outdated target? Use the buttons below!*";
   return content;
 }

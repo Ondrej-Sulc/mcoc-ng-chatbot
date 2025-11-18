@@ -18,6 +18,7 @@ import { loadApplicationEmojis } from "./services/applicationEmojiService";
 import { loadChampions } from "./services/championService";
 import { initializeAqReminders } from "./services/aqReminderService.js";
 import { getModalHandler } from "./utils/modalHandlerRegistry";
+import { getSelectMenuHandler } from "./utils/selectMenuHandlerRegistry";
 import { registerGlossaryButtons } from "./commands/glossary/buttons";
 import { registerAbilityDraftHandlers } from "./commands/admin/ability/draftHandler";
 import { registerChampionAdminHandlers } from "./commands/admin/champion/init";
@@ -182,6 +183,49 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     } else {
       await safeReply(interaction, "Unknown modal.");
+    }
+    return;
+  }
+
+  if (interaction.isStringSelectMenu()) {
+    if (interaction.customId.startsWith("interactive:")) {
+      return;
+    }
+    try {
+      const posthogClient = await getPosthogClient();
+      if (posthogClient) {
+        posthogClient.capture({
+          distinctId: interaction.user.id,
+          event: "select_menu_used",
+          properties: {
+            custom_id: interaction.customId,
+            user_tag: interaction.user.tag,
+            guild_id: interaction.guild?.id,
+            channel_id: interaction.channel?.id,
+            values: interaction.values,
+          },
+        });
+      }
+    } catch (e: unknown) {
+      logger.error(
+        { error: String(e) },
+        "Error capturing PostHog event for select menu:"
+      );
+    }
+
+    const handler = getSelectMenuHandler(interaction.customId);
+    if (handler) {
+      try {
+        await handler(interaction);
+      } catch (error) {
+        const { userMessage, errorId } = handleError(error, {
+          location: `select_menu:${interaction.customId}`,
+          userId: interaction.user?.id,
+        });
+        await safeReply(interaction, userMessage, errorId);
+      }
+    } else {
+      await safeReply(interaction, "Unknown select menu.");
     }
     return;
   }

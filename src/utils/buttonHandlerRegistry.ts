@@ -2,6 +2,14 @@ import { ButtonInteraction } from "discord.js";
 import { handleGenerateUploadLink } from "../commands/aw/buttonHandlers";
 import { handleChampionViewSwitch } from "../commands/champion/buttonHandler";
 import { handleChampionPageSwitch } from "../commands/champion/pageHandler";
+import {
+  handleDuelSuggestButton,
+  handleDuelReportButton,
+  handleDuelReviewApprove,
+  handleDuelReviewReject,
+  handleDuelReviewDelete,
+  handleDuelReviewActivate,
+} from "../commands/champion/duelHandlers";
 
 export type ButtonHandler = (interaction: ButtonInteraction) => Promise<void>;
 
@@ -13,6 +21,12 @@ const buttonHandlers = new Map<string, ButtonHandler>();
 registerButtonHandler("generate_upload_link:", handleGenerateUploadLink);
 registerButtonHandler("champion:", handleChampionViewSwitch);
 registerButtonHandler("champion_page:", handleChampionPageSwitch);
+registerButtonHandler("champion-duel-suggest_", handleDuelSuggestButton);
+registerButtonHandler("champion-duel-report_", handleDuelReportButton);
+registerButtonHandler("duel-review-approve_", handleDuelReviewApprove);
+registerButtonHandler("duel-review-reject_", handleDuelReviewReject);
+registerButtonHandler("duel-review-delete_", handleDuelReviewDelete);
+registerButtonHandler("duel-review-activate_", handleDuelReviewActivate);
 
 export function registerButtonHandler(prefix: string, handler: ButtonHandler) {
   /**

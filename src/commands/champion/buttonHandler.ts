@@ -24,6 +24,7 @@ import { getTagsContent } from "./tags";
 import { CLASS_COLOR } from "./view";
 import { generateChampionThumbnail } from "./thumbnail";
 import { getChampionImageUrl } from "../../utils/championHelper";
+import { DuelStatus } from "@prisma/client";
 
 export async function handleChampionViewSwitch(interaction: ButtonInteraction) {
   await interaction.deferUpdate();
@@ -96,7 +97,10 @@ export async function handleChampionViewSwitch(interaction: ButtonInteraction) {
       }
       break;
     case "duel":
-      content = getDuelContent(champion);
+      const activeDuels = champion.duels.filter(
+        (d) => d.status === DuelStatus.ACTIVE
+      );
+      content = getDuelContent(activeDuels);
       break;
     default:
       content = getOverviewContent(champion, resolveEmoji);
@@ -110,16 +114,21 @@ export async function handleChampionViewSwitch(interaction: ButtonInteraction) {
     container.addActionRowComponents(paginationRow);
   }
 
-  // Add duel button here if applicable
-  if (view === 'duel' && content.includes("No duel targets found")) {
-      const duelButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder()
-              .setLabel("Find Duels on GuiaMTC")
-              .setStyle(ButtonStyle.Link)
-              .setURL("https://www.guiamtc.com/duels")
-      );
-      container.addSeparatorComponents(new SeparatorBuilder()); // Separator before duel button
-      container.addActionRowComponents(duelButton);
+  if (view === "duel") {
+    const duelActionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`champion-duel-suggest_${champion.id}`)
+        .setLabel("Suggest New Target")
+        .setStyle(ButtonStyle.Success)
+        .setEmoji("➕"),
+      new ButtonBuilder()
+        .setCustomId(`champion-duel-report_${champion.id}`)
+        .setLabel("Report Outdated Target")
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji("🚨")
+    );
+    container.addSeparatorComponents(new SeparatorBuilder());
+    container.addActionRowComponents(duelActionRow);
   }
 
   container.addSeparatorComponents(new SeparatorBuilder());

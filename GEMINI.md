@@ -57,6 +57,23 @@ The `/champion` command has been refactored into a fully interactive experience 
 *   **Dynamic Thumbnail Generation:** The thumbnail banner is now regenerated on every interaction to reflect the currently active view (e.g., showing "Abilities" or "Attacks" in the title).
 *   **Pagination:** The `info` view, which can contain a large amount of text, is now fully paginated. The `getInfoContent` function splits the content into pages, and the controllers add "Previous" and "Next" buttons to navigate between them.
 
+### Community-Sourced Duel Target Management
+
+The `/champion duel` command has been enhanced to allow for community contributions and a robust administrative review process, ensuring the duel target list remains accurate and up-to-date.
+
+*   **User-Facing Features:**
+    *   **Suggest a Target:** From the `/champion duel` view, users can click a "Suggest New Target" button, which opens a modal for them to submit the in-game name of a new duel target for that champion.
+    *   **Report Outdated Target:** Users can also click "Report Outdated Target" to select from a list of current duel targets and flag one as outdated.
+*   **Admin Review Workflow:**
+    *   All user suggestions and reports are submitted to a queue with a `SUGGESTED` or `OUTDATED` status.
+    *   Bot administrators are notified of new submissions in a designated admin channel.
+    *   The `/admin duel review` command provides an interactive interface for admins to approve, reject, or archive submissions one by one.
+    *   Rejected or deleted duel targets are not deleted from the database but are moved to an `ARCHIVED` status to prevent them from being re-added by automated CSV imports.
+*   **Database Model:**
+    *   The `Duel` model in `prisma/schema.prisma` has been updated to support this workflow.
+    *   A `DuelStatus` enum (`ACTIVE`, `SUGGESTED`, `OUTDATED`, `ARCHIVED`) tracks the state of each duel target.
+    *   `source` and `submittedByDiscordId` fields have been added to track where a suggestion came from and who submitted it.
+
 The bot is built with a modern tech stack, including:
 
 *   **Language:** TypeScript
