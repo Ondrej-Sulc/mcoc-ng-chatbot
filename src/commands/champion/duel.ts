@@ -72,11 +72,11 @@ export function addDuelComponents(
   if (hasGuiaMTCSourcedDuels || hasCoCPitSourcedDuels) {
     let sourceCredits = "\nSources: ";
     if (hasGuiaMTCSourcedDuels) {
-      sourceCredits += "<:GuiaMTC:0> *GuiaMTC.com*";
+      sourceCredits += "<:GuiaMTC:0> *[GuiaMTC](https://www.guiamtc.com/)*";
     }
     if (hasCoCPitSourcedDuels) {
       if (hasGuiaMTCSourcedDuels) sourceCredits += ", ";
-      sourceCredits += "<:CoCPit:0> *CoCPit.com*";
+      sourceCredits += "<:CoCPit:0> *[CoCPit](https://cocpit.org)*";
     }
     
     container.addSeparatorComponents(new SeparatorBuilder());
