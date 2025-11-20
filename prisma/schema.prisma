@@ -386,6 +386,7 @@ model War {
 model WarFight {
   id          String   @id @default(cuid())
   death       Boolean
+  battlegroup Int?
   createdAt   DateTime @default(now())
 
   // --- Core Fight Details ---

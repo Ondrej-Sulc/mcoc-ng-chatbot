@@ -241,6 +241,7 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
             attackerId: attacker.id,
             defenderId: defender.id,
             death: assignment.raw.deaths === "1",
+            battlegroup,
           },
           create: {
             warId: war.id,
@@ -249,6 +250,7 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
             attackerId: attacker.id,
             defenderId: defender.id,
             death: assignment.raw.deaths === "1",
+            battlegroup,
           }
         });
       }

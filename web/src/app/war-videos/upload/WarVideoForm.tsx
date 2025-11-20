@@ -64,6 +64,7 @@ export function WarVideoForm({
         prefightChampionIds: pf.prefightChampions.map(c => String(c.id)),
         death: pf.death,
         videoFile: null, // No video file initially
+        battlegroup: pf.battlegroup,
       }));
     }
     return [
@@ -82,6 +83,16 @@ export function WarVideoForm({
   const [season, setSeason] = useState<string>(() => preFilledFights?.[0]?.war?.season?.toString() || "");
   const [warNumber, setWarNumber] = useState<string>(() => preFilledFights?.[0]?.war?.warNumber?.toString() || "");
   const [warTier, setWarTier] = useState<string>(() => preFilledFights?.[0]?.war?.warTier?.toString() || "");
+  const [battlegroup, setBattlegroup] = useState<string>(() => {
+    if (preFilledFights?.[0]?.battlegroup) {
+        return preFilledFights[0].battlegroup.toString();
+    }
+    const defaultPlayer = initialPlayers.find(p => p.id === initialUserId);
+    if (defaultPlayer?.battlegroup) {
+        return defaultPlayer.battlegroup.toString();
+    }
+    return "";
+  });
   const [playerInVideoId, setPlayerInVideoId] = useState<string>(() => preFilledFights?.[0]?.player?.id || initialUserId);
   const [visibility, setVisibility] = useState<"public" | "alliance">("public");
   const [description, setDescription] = useState<string>("");
@@ -95,6 +106,18 @@ export function WarVideoForm({
   useEffect(() => {
     setIsOffseason(warNumber === "0" || warNumber === "");
   }, [warNumber]);
+
+  // Effect to update battlegroup if playerInVideoId changes and not pre-filled
+  useEffect(() => {
+    if (!preFilledFights) { // Only update if not pre-filled
+        const selectedPlayer = initialPlayers.find(p => p.id === playerInVideoId);
+        if (selectedPlayer?.battlegroup) {
+            setBattlegroup(selectedPlayer.battlegroup.toString());
+        } else {
+            setBattlegroup("");
+        }
+    }
+  }, [playerInVideoId, initialPlayers, preFilledFights]);
 
   // Memoized derived data
   const prefightChampions = useMemo(() => {
@@ -121,6 +144,15 @@ export function WarVideoForm({
     []
   );
 
+  const battlegroupOptions = useMemo(
+    () => [
+        { value: '1', label: 'Battlegroup 1' },
+        { value: '2', label: 'Battlegroup 2' },
+        { value: '3', label: 'Battlegroup 3' },
+    ],
+    []
+  );
+
   const playerOptions = useMemo(
     () =>
       initialPlayers.map((player) => ({
@@ -129,6 +161,18 @@ export function WarVideoForm({
       })),
     [initialPlayers]
   );
+
+  const handleSourceModeChange = useCallback((value: "upload" | "link") => {
+    setSourceMode(value);
+  }, []);
+
+  const handleUploadModeChange = useCallback((value: "single" | "multiple") => {
+    setUploadMode(value);
+  }, []);
+
+  const handleVisibilityChange = useCallback((value: "public" | "alliance") => {
+    setVisibility(value);
+  }, []);
 
   const handleFightChange = useCallback((updatedFight: FightData) => {
     setFights((prevFights) =>
@@ -172,6 +216,7 @@ export function WarVideoForm({
     if (!isOffseason && !warNumber)
       newErrors.warNumber = "War number is required.";
     if (!warTier) newErrors.warTier = "War tier is required.";
+    if (!battlegroup) newErrors.battlegroup = "Battlegroup is required.";
 
     fights.forEach((fight) => {
       if (uploadMode === "multiple") {
@@ -310,29 +355,71 @@ export function WarVideoForm({
           };
 
           if (uploadMode === 'single') {
-            const result = await linkVideo({
-              ...commonPayload,
-              videoUrl,
-              fightIds: fights.map(f => f.id),
-            });
-            toast({ title: "Success!", description: "Video has been linked to all fights." });
-            if (result.videoIds && result.videoIds.length > 0) {
-              router.push(`/war-videos/${result.videoIds[0]}`);
-            } else {
-              router.push("/war-videos");
+            if (preFilledFights) {
+              const result = await linkVideo({
+                ...commonPayload,
+                videoUrl,
+                fightIds: fights.map(f => f.id),
+              });
+              toast({ title: "Success!", description: "Video has been linked to all fights." });
+              if (result.videoIds && result.videoIds.length > 0) {
+                router.push(`/war-videos/${result.videoIds[0]}`);
+              } else {
+                router.push("/war-videos");
+              }
+            } else { // New: send full fight data for creation
+              const result = await linkVideo({
+                  ...commonPayload,
+                  videoUrl,
+                  fights: fights, // send full objects
+                  season: season,
+                  warNumber: isOffseason ? null : warNumber,
+                  warTier: warTier,
+                  battlegroup: battlegroup,
+              });
+              toast({ title: "Success!", description: "Video has been linked to all fights." });
+              if (result.videoIds && result.videoIds.length > 0) {
+                router.push(`/war-videos/${result.videoIds[0]}`);
+              } else {
+                router.push("/war-videos");
+              }
             }
           } else { // 'multiple' mode
             const allLinkedVideoIds = [];
+            const commonPayload = { // Moved commonPayload outside the loop
+              token,
+              visibility,
+              description,
+              playerId: playerInVideoId,
+            };
+
             for (let i = 0; i < fights.length; i++) {
               const fight = fights[i];
               setCurrentUpload(`Linking fight ${i + 1} of ${fights.length}...`);
-              const result = await linkVideo({
-                ...commonPayload,
-                videoUrl: fight.videoUrl,
-                fightIds: [fight.id],
-              });
-              if (result.videoIds && result.videoIds.length > 0) {
-                allLinkedVideoIds.push(result.videoIds[0]);
+
+              if (preFilledFights) {
+                const result = await linkVideo({
+                  ...commonPayload,
+                  videoUrl: fight.videoUrl,
+                  fightIds: [fight.id],
+                });
+                if (result.videoIds && result.videoIds.length > 0) {
+                  allLinkedVideoIds.push(result.videoIds[0]);
+                }
+              } else {
+                // New: send full fight data for creation
+                const result = await linkVideo({
+                    ...commonPayload,
+                    videoUrl: fight.videoUrl,
+                    fights: [fight], // send single fight
+                    season: season,
+                    warNumber: isOffseason ? null : warNumber,
+                    warTier: warTier,
+                    battlegroup: battlegroup,
+                });
+                if (result.videoIds && result.videoIds.length > 0) {
+                  allLinkedVideoIds.push(result.videoIds[0]);
+                }
               }
             }
             toast({ title: "Success!", description: "All videos have been linked." });
@@ -366,15 +453,21 @@ export function WarVideoForm({
             const formData = new FormData();
             formData.append("token", token);
             formData.append("videoFile", videoFile!);
-            formData.append("season", season);
-            if (!isOffseason) formData.append("warNumber", warNumber);
-            formData.append("warTier", warTier);
             formData.append("visibility", visibility);
             formData.append("description", description);
             if (playerInVideoId) formData.append("playerId", playerInVideoId);
-            formData.append("fightIds", JSON.stringify(fights.map(f => f.id)));
             formData.append("title", getTitle(fights[0]));
             formData.append("mode", "single");
+
+            if (preFilledFights) {
+              formData.append("fightIds", JSON.stringify(fights.map(f => f.id)));
+            } else {
+              formData.append("fights", JSON.stringify(fights));
+              formData.append("season", season);
+              if (!isOffseason) formData.append("warNumber", warNumber);
+              formData.append("warTier", warTier);
+              formData.append("battlegroup", battlegroup);
+            }
 
             const result = await uploadVideo(formData, fights.map(f => f.id), getTitle(fights[0]));
             if (!useBackgroundFetch) {
@@ -394,15 +487,21 @@ export function WarVideoForm({
               const formData = new FormData();
               formData.append("token", token);
               formData.append("videoFile", fight.videoFile!);
-              formData.append("season", season);
-              if (!isOffseason) formData.append("warNumber", warNumber);
-              formData.append("warTier", warTier);
               formData.append("visibility", visibility);
               formData.append("description", description);
               if (playerInVideoId) formData.append("playerId", playerInVideoId);
-              formData.append("fightIds", JSON.stringify([fight.id]));
               formData.append("title", getTitle(fight));
               formData.append("mode", "multiple");
+
+              if (preFilledFights) {
+                formData.append("fightIds", JSON.stringify([fight.id]));
+              } else {
+                formData.append("fights", JSON.stringify([fight])); // send single fight
+                formData.append("season", season);
+                if (!isOffseason) formData.append("warNumber", warNumber);
+                formData.append("warTier", warTier);
+                formData.append("battlegroup", battlegroup);
+              }
 
               const result = await uploadVideo(formData, [fight.id], getTitle(fight));
               if (result.videoIds && result.videoIds.length > 0) {
@@ -456,6 +555,7 @@ export function WarVideoForm({
       sourceMode,
       uploadVideo,
       linkVideo,
+      battlegroup,
     ]
   );
 
@@ -479,7 +579,7 @@ export function WarVideoForm({
           <Label>Video Source</Label>
           <RadioGroup
             value={sourceMode}
-            onValueChange={(value: "upload" | "link") => setSourceMode(value)}
+            onValueChange={handleSourceModeChange}
             className="flex space-x-4 mt-2"
           >
             <div className="flex items-center space-x-2">
@@ -496,7 +596,7 @@ export function WarVideoForm({
           <Label>Upload Mode</Label>
           <RadioGroup
             value={uploadMode}
-            onValueChange={(value: "single" | "multiple") => setUploadMode(value)}
+            onValueChange={handleUploadModeChange}
             className="flex space-x-4 mt-2"
           >
             <div className="flex items-center space-x-2">
@@ -613,7 +713,7 @@ export function WarVideoForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="season">Season</Label>
 
@@ -666,6 +766,20 @@ export function WarVideoForm({
               <p className="text-sm text-red-500 mt-1">{errors.warTier}</p>
             )}
           </div>
+          <div>
+            <Label htmlFor="battlegroup">Battlegroup</Label>
+            <MemoizedSelect
+                value={battlegroup}
+                onValueChange={setBattlegroup}
+                placeholder="Select battlegroup..."
+                options={battlegroupOptions}
+                required
+                disabled={!!preFilledFights}
+            />
+            {errors.battlegroup && (
+                <p className="text-sm text-red-500 mt-1">{errors.battlegroup}</p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -683,7 +797,7 @@ export function WarVideoForm({
         <Label>Visibility</Label>
         <RadioGroup
           value={visibility}
-          onValueChange={(value: "public" | "alliance") => setVisibility(value)}
+          onValueChange={handleVisibilityChange}
           className="flex space-x-4 mt-2"
         >
           <div className="flex items-center space-x-2">

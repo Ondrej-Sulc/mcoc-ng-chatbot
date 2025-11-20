@@ -24,6 +24,7 @@ export interface FightData {
   death: boolean;
   videoFile?: File | null;
   videoUrl?: string;
+  battlegroup?: number;
 }
 
 interface FightBlockProps {
@@ -60,6 +61,7 @@ export function FightBlock({
   useEffect(() => {
     onFightChange({
       id: fight.id,
+      battlegroup: fight.battlegroup,
       nodeId,
       attackerId,
       defenderId,
@@ -68,7 +70,7 @@ export function FightBlock({
       videoFile,
       videoUrl,
     });
-  }, [nodeId, attackerId, defenderId, prefightChampionIds, death, videoFile, videoUrl, fight.id, onFightChange]);
+  }, [nodeId, attackerId, defenderId, prefightChampionIds, death, videoFile, videoUrl, fight.id, fight.battlegroup, onFightChange]);
 
   const selectedAttacker = useMemo(() => initialChampions.find(c => String(c.id) === attackerId), [initialChampions, attackerId]);
   const selectedDefender = useMemo(() => initialChampions.find(c => String(c.id) === defenderId), [initialChampions, defenderId]);
@@ -99,6 +101,11 @@ export function FightBlock({
             onSelect={setNodeId}
             placeholder="Select..."
           />
+          {fight.battlegroup && (
+            <span className="bg-primary/10 text-primary text-xs font-semibold px-2.5 py-1 rounded-full">
+              BG {fight.battlegroup}
+            </span>
+          )}
         </div>
         {uploadMode === 'multiple' && (
           <div className="flex items-center gap-2">

@@ -9,7 +9,12 @@ export async function POST(req: NextRequest) {
   const { fields, tempFilePath } = await parseFormData(req);
 
   try {
-    const { token, playerId, visibility, title, description, fightIds: fightIdsJson, mode } = fields;
+    const {
+      token, playerId, visibility, title, description, mode,
+      fightIds: existingFightIdsJson, // For linking to existing fights
+      fights: newFightsJson,         // For creating new fights
+      season, warNumber, warTier, battlegroup
+    } = fields;
 
     // --- 1. Authentication & Authorization ---
     if (!token) {
@@ -31,71 +36,109 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No video file uploaded or file not found' }, { status: 400 });
     }
 
-    // --- 3. Input Validation ---
-    let fightIds: string[];
-    try {
-      fightIds = JSON.parse(fightIdsJson);
-    } catch (e) {
-      return NextResponse.json({ error: 'Invalid fightIds data format.' }, { status: 400 });
+    // --- 3. Determine fight processing strategy ---
+    let fightIdsToLink: string[];
+
+    if (newFightsJson) {
+      // Logic for new fight creation (manual upload without pre-filled fights)
+      // 3.1. Parse new fights data
+      const newFights = JSON.parse(newFightsJson);
+      if (!Array.isArray(newFights) || newFights.length === 0) {
+        return NextResponse.json({ error: 'Invalid or empty fights data for new creation.' }, { status: 400 });
+      }
+
+      // 3.2. Validate war details
+      if (!season || !warTier || !battlegroup) {
+          return NextResponse.json({ error: 'Missing war details for new fight creation.' }, { status: 400 });
+      }
+
+      // 3.3. Find/Create Alliance War
+      const allianceId = uploadToken.player.allianceId;
+      if (!allianceId) {
+          return NextResponse.json({ error: 'Player submitting new fights is not in an alliance.' }, { status: 400 });
+      }
+
+      const parsedWarNumber = warNumber ? parseInt(warNumber) : null;
+      const parsedSeason = parseInt(season);
+      const parsedWarTier = parseInt(warTier);
+      const parsedBattlegroup = parseInt(battlegroup); // this battlegroup is for all fights in this submission
+
+      const war = await prisma.war.upsert({
+          where: {
+              allianceId_season_warNumber: {
+                  allianceId: allianceId,
+                  season: parsedSeason,
+                  warNumber: parsedWarNumber,
+              },
+          },
+          update: { warTier: parsedWarTier },
+          create: {
+              season: parsedSeason,
+              warTier: parsedWarTier,
+              warNumber: parsedWarNumber,
+              allianceId: allianceId,
+          },
+      });
+
+      // 3.4. Create WarFights
+      const createdFights = await Promise.all(newFights.map(async (fight: any) => {
+          return prisma.warFight.create({
+              data: {
+                  warId: war.id,
+                  playerId: uploadToken.playerId, // Submitting player
+                  nodeId: parseInt(fight.nodeId),
+                  attackerId: parseInt(fight.attackerId),
+                  defenderId: parseInt(fight.defenderId),
+                  death: fight.death,
+                  battlegroup: parsedBattlegroup,
+              }
+          });
+      }));
+      fightIdsToLink = createdFights.map(f => f.id);
+
+    } else if (existingFightIdsJson) {
+      // Logic for linking to existing fights (from pre-filled plans)
+      try {
+        fightIdsToLink = JSON.parse(existingFightIdsJson);
+      } catch (e) {
+        return NextResponse.json({ error: 'Invalid existingFightIds data format.' }, { status: 400 });
+      }
+      if (!Array.isArray(fightIdsToLink) || fightIdsToLink.length === 0) {
+        return NextResponse.json({ error: 'existingFightIds must be a non-empty array.' }, { status: 400 });
+      }
+    } else {
+        return NextResponse.json({ error: 'No fight data provided.' }, { status: 400 });
     }
 
-    if (!Array.isArray(fightIds) || fightIds.length === 0) {
-      return NextResponse.json({ error: 'fightIds must be a non-empty array.' }, { status: 400 });
-    }
-
-    // --- 4. Upload & DB Creation Logic ---
+    // --- 4. Upload to YouTube ---
     const youtubeVideoId = await youTubeService.uploadVideo(tempFilePath, title, description, 'unlisted');
     if (!youtubeVideoId) throw new Error('YouTube upload failed to return an ID.');
     const youtubeUrl = youTubeService.getVideoUrl(youtubeVideoId);
 
     const createdVideoIds: string[] = [];
 
-    if (mode === 'single') {
-      // Create one video and link all fights to it
-      const newWarVideo = await prisma.warVideo.create({
+    // --- 5. Create WarVideo and link to WarFights ---
+    const newWarVideo = await prisma.warVideo.create({
         data: {
-          youtubeUrl,
-          description,
-          status: isTrusted ? 'PUBLISHED' : 'UPLOADED',
-          visibility: visibility || 'public',
-          submittedBy: { connect: { id: uploadToken.playerId } },
+            url: youtubeUrl,
+            description,
+            status: isTrusted ? 'PUBLISHED' : 'UPLOADED',
+            visibility: visibility || 'public',
+            submittedBy: { connect: { id: uploadToken.playerId } },
         },
-      });
+    });
 
-      await prisma.warFight.updateMany({
+    await prisma.warFight.updateMany({
         where: {
-          id: { in: fightIds },
+            id: { in: fightIdsToLink },
         },
         data: {
-          videoId: newWarVideo.id,
+            videoId: newWarVideo.id,
         },
-      });
-      createdVideoIds.push(newWarVideo.id);
+    });
+    createdVideoIds.push(newWarVideo.id);
 
-    } else { // 'multiple' mode, though logic is similar for a single fight
-      // Create one video and link the one fight to it
-      const newWarVideo = await prisma.warVideo.create({
-        data: {
-          youtubeUrl,
-          description,
-          status: isTrusted ? 'PUBLISHED' : 'UPLOADED',
-          visibility: visibility || 'public',
-          submittedBy: { connect: { id: uploadToken.playerId } },
-        },
-      });
-
-      await prisma.warFight.update({
-        where: {
-          id: fightIds[0], // In multiple mode, we process one fight at a time
-        },
-        data: {
-          videoId: newWarVideo.id,
-        },
-      });
-      createdVideoIds.push(newWarVideo.id);
-    }
-
-    // --- 5. Cleanup ---
+    // --- 6. Cleanup ---
     await fs.unlink(tempFilePath);
 
     return NextResponse.json({ message: 'Videos uploaded successfully', videoIds: createdVideoIds }, { status: 200 });
