@@ -1,5 +1,7 @@
 "use client";
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 
 const faqs = [
   {
@@ -33,21 +35,41 @@ export function Faq() {
 
   return (
     <div className="space-y-3">
-      {faqs.map((faq, index) => (
-        <div key={index} className={`glass rounded-xl border border-slate-800/50 overflow-hidden faq-item ${activeIndex === index ? 'active' : ''}`}>
-          <button className="w-full flex items-center justify-between px-5 py-4 text-left" onClick={() => toggleFaq(index)}>
-            <span className="text-sm font-medium text-slate-100">{faq.question}</span>
-            <svg xmlns="http://www.w3.org/2000/svg" className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${activeIndex === index ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-          <div className="faq-content">
-            <p className="text-xs text-slate-300/90 px-5 pt-0 pb-5">
-              {faq.answer}
-            </p>
+      {faqs.map((faq, index) => {
+        const isOpen = activeIndex === index;
+
+        return (
+          <div key={index} className="glass rounded-xl border border-slate-800/50 overflow-hidden">
+            <button
+              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-800/30 transition-colors"
+              onClick={() => toggleFaq(index)}
+            >
+              <span className="text-sm font-medium text-slate-100">{faq.question}</span>
+              <motion.div
+                animate={{ rotate: isOpen ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown className="w-5 h-5 text-slate-400" />
+              </motion.div>
+            </button>
+            <AnimatePresence initial={false}>
+              {isOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  style={{ overflow: "hidden" }}
+                >
+                  <p className="text-xs text-slate-300/90 px-5 pt-0 pb-5">
+                    {faq.answer}
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
