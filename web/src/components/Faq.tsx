@@ -61,7 +61,7 @@ export function Faq() {
                   transition={{ duration: 0.2, ease: "easeInOut" }}
                   style={{ overflow: "hidden" }}
                 >
-                  <p className="text-xs text-slate-300/90 px-5 pt-0 pb-5">
+                  <p className="text-sm text-slate-300/90 p-5 pt-1">
                     {faq.answer}
                   </p>
                 </motion.div>
