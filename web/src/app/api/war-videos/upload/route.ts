@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { youTubeService } from '@cerebro/core/services/youtubeService';
+import { getYouTubeService } from '@cerebro/core/services/youtubeService';
 import { parseFormData } from '@/lib/parseFormData';
 import { existsSync } from 'fs';
 import fs from 'fs/promises';
@@ -49,13 +49,13 @@ export async function POST(req: NextRequest) {
 
       // 3.2. Validate war details
       if (!season || !warTier || !battlegroup) {
-          return NextResponse.json({ error: 'Missing war details for new fight creation.' }, { status: 400 });
+        return NextResponse.json({ error: 'Missing war details for new fight creation.' }, { status: 400 });
       }
 
       // 3.3. Find/Create Alliance War
       const allianceId = uploadToken.player.allianceId;
       if (!allianceId) {
-          return NextResponse.json({ error: 'Player submitting new fights is not in an alliance.' }, { status: 400 });
+        return NextResponse.json({ error: 'Player submitting new fights is not in an alliance.' }, { status: 400 });
       }
 
       const parsedWarNumber = warNumber ? parseInt(warNumber) : null;
@@ -63,36 +63,70 @@ export async function POST(req: NextRequest) {
       const parsedWarTier = parseInt(warTier);
       const parsedBattlegroup = parseInt(battlegroup); // this battlegroup is for all fights in this submission
 
-      const war = await prisma.war.upsert({
+      // For offseason wars (warNumber is null), we need to find or create differently
+      let war;
+      if (parsedWarNumber === null) {
+        // For offseason, find the most recent offseason war or create a new one
+        war = await prisma.war.findFirst({
           where: {
-              allianceId_season_warNumber: {
-                  allianceId: allianceId,
-                  season: parsedSeason,
-                  warNumber: parsedWarNumber,
-              },
+            allianceId: allianceId,
+            season: parsedSeason,
+            warNumber: null,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        });
+
+        if (!war) {
+          war = await prisma.war.create({
+            data: {
+              season: parsedSeason,
+              warTier: parsedWarTier,
+              warNumber: null,
+              allianceId: allianceId,
+            },
+          });
+        } else {
+          // Update the tier if needed
+          war = await prisma.war.update({
+            where: { id: war.id },
+            data: { warTier: parsedWarTier },
+          });
+        }
+      } else {
+        // For regular wars, use upsert with the unique constraint
+        war = await prisma.war.upsert({
+          where: {
+            allianceId_season_warNumber: {
+              allianceId: allianceId,
+              season: parsedSeason,
+              warNumber: parsedWarNumber,
+            },
           },
           update: { warTier: parsedWarTier },
           create: {
-              season: parsedSeason,
-              warTier: parsedWarTier,
-              warNumber: parsedWarNumber,
-              allianceId: allianceId,
+            season: parsedSeason,
+            warTier: parsedWarTier,
+            warNumber: parsedWarNumber,
+            allianceId: allianceId,
           },
-      });
+        });
+      }
 
       // 3.4. Create WarFights
       const createdFights = await Promise.all(newFights.map(async (fight: any) => {
-          return prisma.warFight.create({
-              data: {
-                  warId: war.id,
-                  playerId: uploadToken.playerId, // Submitting player
-                  nodeId: parseInt(fight.nodeId),
-                  attackerId: parseInt(fight.attackerId),
-                  defenderId: parseInt(fight.defenderId),
-                  death: fight.death,
-                  battlegroup: parsedBattlegroup,
-              }
-          });
+        return prisma.warFight.create({
+          data: {
+            warId: war.id,
+            playerId: uploadToken.playerId, // Submitting player
+            nodeId: parseInt(fight.nodeId),
+            attackerId: parseInt(fight.attackerId),
+            defenderId: parseInt(fight.defenderId),
+            death: fight.death,
+            battlegroup: parsedBattlegroup,
+          }
+        });
       }));
       fightIdsToLink = createdFights.map(f => f.id);
 
@@ -107,10 +141,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'existingFightIds must be a non-empty array.' }, { status: 400 });
       }
     } else {
-        return NextResponse.json({ error: 'No fight data provided.' }, { status: 400 });
+      return NextResponse.json({ error: 'No fight data provided.' }, { status: 400 });
     }
 
     // --- 4. Upload to YouTube ---
+    const youTubeService = getYouTubeService();
     const youtubeVideoId = await youTubeService.uploadVideo(tempFilePath, title, description, 'unlisted');
     if (!youtubeVideoId) throw new Error('YouTube upload failed to return an ID.');
     const youtubeUrl = youTubeService.getVideoUrl(youtubeVideoId);
@@ -119,22 +154,22 @@ export async function POST(req: NextRequest) {
 
     // --- 5. Create WarVideo and link to WarFights ---
     const newWarVideo = await prisma.warVideo.create({
-        data: {
-            url: youtubeUrl,
-            description,
-            status: isTrusted ? 'PUBLISHED' : 'UPLOADED',
-            visibility: visibility || 'public',
-            submittedBy: { connect: { id: uploadToken.playerId } },
-        },
+      data: {
+        url: youtubeUrl,
+        description,
+        status: isTrusted ? 'PUBLISHED' : 'UPLOADED',
+        visibility: visibility || 'public',
+        submittedBy: { connect: { id: uploadToken.playerId } },
+      },
     });
 
     await prisma.warFight.updateMany({
-        where: {
-            id: { in: fightIdsToLink },
-        },
-        data: {
-            videoId: newWarVideo.id,
-        },
+      where: {
+        id: { in: fightIdsToLink },
+      },
+      data: {
+        videoId: newWarVideo.id,
+      },
     });
     createdVideoIds.push(newWarVideo.id);
 

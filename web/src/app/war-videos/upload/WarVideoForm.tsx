@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
 import { MemoizedSelect } from "@/components/MemoizedSelect";
 import { FightBlock, FightData } from "@/components/FightBlock";
-import { UploadCloud, Plus } from "lucide-react";
+import { UploadCloud, Plus, Swords } from "lucide-react";
 import { Champion } from "@/types/champion";
 import { cn } from "@/lib/utils";
 import { War, WarFight, Player as PrismaPlayer, WarNode as PrismaWarNode } from '@prisma/client';
@@ -64,7 +64,7 @@ export function WarVideoForm({
         prefightChampionIds: pf.prefightChampions.map(c => String(c.id)),
         death: pf.death,
         videoFile: null, // No video file initially
-        battlegroup: pf.battlegroup,
+        battlegroup: pf.battlegroup ?? undefined,
       }));
     }
     return [
@@ -85,11 +85,11 @@ export function WarVideoForm({
   const [warTier, setWarTier] = useState<string>(() => preFilledFights?.[0]?.war?.warTier?.toString() || "");
   const [battlegroup, setBattlegroup] = useState<string>(() => {
     if (preFilledFights?.[0]?.battlegroup) {
-        return preFilledFights[0].battlegroup.toString();
+      return preFilledFights[0].battlegroup.toString();
     }
     const defaultPlayer = initialPlayers.find(p => p.id === initialUserId);
     if (defaultPlayer?.battlegroup) {
-        return defaultPlayer.battlegroup.toString();
+      return defaultPlayer.battlegroup.toString();
     }
     return "";
   });
@@ -110,12 +110,12 @@ export function WarVideoForm({
   // Effect to update battlegroup if playerInVideoId changes and not pre-filled
   useEffect(() => {
     if (!preFilledFights) { // Only update if not pre-filled
-        const selectedPlayer = initialPlayers.find(p => p.id === playerInVideoId);
-        if (selectedPlayer?.battlegroup) {
-            setBattlegroup(selectedPlayer.battlegroup.toString());
-        } else {
-            setBattlegroup("");
-        }
+      const selectedPlayer = initialPlayers.find(p => p.id === playerInVideoId);
+      if (selectedPlayer?.battlegroup) {
+        setBattlegroup(selectedPlayer.battlegroup.toString());
+      } else {
+        setBattlegroup("");
+      }
     }
   }, [playerInVideoId, initialPlayers, preFilledFights]);
 
@@ -146,9 +146,9 @@ export function WarVideoForm({
 
   const battlegroupOptions = useMemo(
     () => [
-        { value: '1', label: 'Battlegroup 1' },
-        { value: '2', label: 'Battlegroup 2' },
-        { value: '3', label: 'Battlegroup 3' },
+      { value: '1', label: 'Battlegroup 1' },
+      { value: '2', label: 'Battlegroup 2' },
+      { value: '3', label: 'Battlegroup 3' },
     ],
     []
   );
@@ -275,7 +275,7 @@ export function WarVideoForm({
           const errorData = await response.json();
           throw new Error(errorData.error || `Upload failed for fights ${fightIds.join(', ')}`);
         }
-        
+
         return response.json();
 
       } else {
@@ -294,13 +294,27 @@ export function WarVideoForm({
 
           xhr.onload = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
-              const result = JSON.parse(xhr.responseText);
-              resolve(result);
+              try {
+                const result = JSON.parse(xhr.responseText);
+                resolve(result);
+              } catch (e) {
+                reject(new Error('Invalid response from server'));
+              }
             } else {
-              const errorData = JSON.parse(xhr.responseText);
-              reject(
-                new Error(errorData.error || `Upload failed for fights ${fightIds.join(', ')}`)
-              );
+              let errorMessage = `Upload failed for fights ${fightIds.join(', ')}`;
+              try {
+                const errorData = JSON.parse(xhr.responseText);
+                errorMessage = errorData.error || errorMessage;
+                if (errorData.details) {
+                  errorMessage += `: ${errorData.details}`;
+                }
+              } catch (e) {
+                // If JSON parsing fails, use the raw response text if available
+                if (xhr.responseText) {
+                  errorMessage = xhr.responseText;
+                }
+              }
+              reject(new Error(errorMessage));
             }
           };
 
@@ -369,13 +383,13 @@ export function WarVideoForm({
               }
             } else { // New: send full fight data for creation
               const result = await linkVideo({
-                  ...commonPayload,
-                  videoUrl,
-                  fights: fights, // send full objects
-                  season: season,
-                  warNumber: isOffseason ? null : warNumber,
-                  warTier: warTier,
-                  battlegroup: battlegroup,
+                ...commonPayload,
+                videoUrl,
+                fights: fights, // send full objects
+                season: season,
+                warNumber: isOffseason ? null : warNumber,
+                warTier: warTier,
+                battlegroup: battlegroup,
               });
               toast({ title: "Success!", description: "Video has been linked to all fights." });
               if (result.videoIds && result.videoIds.length > 0) {
@@ -409,13 +423,13 @@ export function WarVideoForm({
               } else {
                 // New: send full fight data for creation
                 const result = await linkVideo({
-                    ...commonPayload,
-                    videoUrl: fight.videoUrl,
-                    fights: [fight], // send single fight
-                    season: season,
-                    warNumber: isOffseason ? null : warNumber,
-                    warTier: warTier,
-                    battlegroup: battlegroup,
+                  ...commonPayload,
+                  videoUrl: fight.videoUrl,
+                  fights: [fight], // send single fight
+                  season: season,
+                  warNumber: isOffseason ? null : warNumber,
+                  warTier: warTier,
+                  battlegroup: battlegroup,
                 });
                 if (result.videoIds && result.videoIds.length > 0) {
                   allLinkedVideoIds.push(result.videoIds[0]);
@@ -523,6 +537,11 @@ export function WarVideoForm({
         }
       } catch (error: any) {
         console.error("Submission error:", error);
+        console.error("Error details:", {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
         toast({
           title: "Upload Failed",
           description: error.message || "An unknown error occurred.",
@@ -574,54 +593,61 @@ export function WarVideoForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 relative">
-      <div className="grid grid-cols-2 gap-6">
-        <div>
-          <Label>Video Source</Label>
-          <RadioGroup
-            value={sourceMode}
-            onValueChange={handleSourceModeChange}
-            className="flex space-x-4 mt-2"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="upload" id="upload" />
-              <Label htmlFor="upload">Upload File</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="link" id="link" />
-              <Label htmlFor="link">Use Link</Label>
-            </div>
-          </RadioGroup>
-        </div>
-        <div>
-          <Label>Upload Mode</Label>
-          <RadioGroup
-            value={uploadMode}
-            onValueChange={handleUploadModeChange}
-            className="flex space-x-4 mt-2"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="single" id="single" />
-              <Label htmlFor="single">Single Video (for all fights)</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="multiple" id="multiple" />
-              <Label htmlFor="multiple">Separate Video (for each fight)</Label>
-            </div>
-          </RadioGroup>
+      {/* Video Configuration Section */}
+      <div className="glass rounded-xl border border-slate-800/50 p-4 sm:p-6">
+        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <UploadCloud className="h-5 w-5 text-sky-400" />
+          Video Configuration
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <Label className="text-sm font-medium text-slate-300 mb-2 block">Video Source</Label>
+            <RadioGroup
+              value={sourceMode}
+              onValueChange={handleSourceModeChange}
+              className="flex space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="upload" id="upload" />
+                <Label htmlFor="upload" className="text-sm text-slate-300">Upload File</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="link" id="link" />
+                <Label htmlFor="link" className="text-sm text-slate-300">Use Link</Label>
+              </div>
+            </RadioGroup>
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-slate-300 mb-2 block">Upload Mode</Label>
+            <RadioGroup
+              value={uploadMode}
+              onValueChange={handleUploadModeChange}
+              className="flex space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="single" id="single" />
+                <Label htmlFor="single" className="text-sm text-slate-300">Single Video (for all fights)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="multiple" id="multiple" />
+                <Label htmlFor="multiple" className="text-sm text-slate-300">Separate Video (for each fight)</Label>
+              </div>
+            </RadioGroup>
+          </div>
         </div>
       </div>
 
       {uploadMode === "single" && (
-        <div>
+        <div className="glass rounded-xl border border-slate-800/50 p-4 sm:p-6">
           {sourceMode === 'upload' ? (
             <>
-              <Label>Video File</Label>
-              <div className="flex items-center gap-4 mt-2">
+              <Label className="text-sm font-medium text-slate-300 mb-3 block">Video File</Label>
+              <div className="flex items-center gap-4">
                 <Label htmlFor="videoFile" className="cursor-pointer">
                   <div
                     className={cn(
                       buttonVariants({ variant: "outline" }),
-                      "flex items-center gap-2"
+                      "flex items-center gap-2 bg-slate-900/50 border-slate-700/50 hover:bg-slate-800/50 hover:border-sky-500/50 transition-colors"
                     )}
                   >
                     <UploadCloud className="h-5 w-5" />
@@ -639,16 +665,16 @@ export function WarVideoForm({
                   className="hidden"
                 />
                 {videoFile && (
-                  <p className="text-sm text-muted-foreground">{videoFile.name}</p>
+                  <p className="text-sm text-slate-300">{videoFile.name}</p>
                 )}
               </div>
               {errors.videoFile && (
-                <p className="text-sm text-red-500 mt-1">{errors.videoFile}</p>
+                <p className="text-sm text-red-400 mt-2">{errors.videoFile}</p>
               )}
             </>
           ) : (
             <>
-              <Label htmlFor="videoUrl">Video URL</Label>
+              <Label htmlFor="videoUrl" className="text-sm font-medium text-slate-300 mb-3 block">Video URL</Label>
               <Input
                 id="videoUrl"
                 type="url"
@@ -656,67 +682,59 @@ export function WarVideoForm({
                 onChange={(e) => setVideoUrl(e.target.value)}
                 placeholder="https://www.youtube.com/watch?v=..."
                 required
+                className="bg-slate-900/50 border-slate-700/50"
               />
               {errors.videoUrl && (
-                <p className="text-sm text-red-500 mt-1">{errors.videoUrl}</p>
+                <p className="text-sm text-red-400 mt-2">{errors.videoUrl}</p>
               )}
             </>
           )}
         </div>
       )}
 
-            {fights.map((fight) => (
+      {/* Fights Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+          <Swords className="h-5 w-5 text-sky-400" />
+          Fight Details
+        </h3>
+        {fights.map((fight) => (
+          <FightBlock
+            key={fight.id}
+            fight={fight}
+            onFightChange={handleFightChange}
+            onRemove={handleRemoveFight}
+            canRemove={fights.length > 1}
+            initialChampions={initialChampions}
+            initialNodes={initialNodes}
+            prefightChampions={prefightChampions}
+            uploadMode={uploadMode}
+            sourceMode={sourceMode}
+          />
+        ))}
+        <Button type="button" variant="outline" onClick={handleAddFight} className="w-full bg-slate-900/50 border-slate-700/50 hover:bg-slate-800/50 hover:border-sky-500/50 transition-colors">
+          <Plus className="mr-2 h-4 w-4" />
+          Add Another Fight
+        </Button>
+      </div>
 
-              <FightBlock
-
-                key={fight.id}
-
-                fight={fight}
-
-                onFightChange={handleFightChange}
-
-                onRemove={handleRemoveFight}
-
-                canRemove={fights.length > 1}
-
-                initialChampions={initialChampions}
-
-                initialNodes={initialNodes}
-
-                prefightChampions={prefightChampions}
-
-                uploadMode={uploadMode}
-
-                sourceMode={sourceMode}
-
-              />
-
-            ))}
-
-      <Button type="button" variant="outline" onClick={handleAddFight}>
-        <Plus className="mr-2 h-4 w-4" />
-        Add Another Fight
-      </Button>
-
-      <div className="space-y-4 border rounded-lg p-4">
+      {/* War Details Section */}
+      <div className="glass rounded-xl border border-slate-800/50 p-4 sm:p-6 space-y-6">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium">War Details</h3>
-
+          <h3 className="text-lg font-semibold text-white">War Details</h3>
           <div className="flex items-center space-x-2">
             <Checkbox
               id="isOffseason"
               checked={isOffseason}
               onCheckedChange={(checked) => setIsOffseason(Boolean(checked))}
             />
-
-            <Label htmlFor="isOffseason">Offseason</Label>
+            <Label htmlFor="isOffseason" className="text-sm text-slate-300">Offseason</Label>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="season">Season</Label>
-
+            <Label htmlFor="season" className="text-sm font-medium text-slate-300 mb-2 block">Season</Label>
             <Input
               id="season"
               type="text"
@@ -725,16 +743,15 @@ export function WarVideoForm({
               value={season}
               onChange={(e) => setSeason(e.target.value)}
               required
+              className="bg-slate-900/50 border-slate-700/50"
             />
-
             {errors.season && (
-              <p className="text-sm text-red-500 mt-1">{errors.season}</p>
+              <p className="text-sm text-red-400 mt-2">{errors.season}</p>
             )}
           </div>
 
           <div>
-            <Label htmlFor="warNumber">War Number</Label>
-
+            <Label htmlFor="warNumber" className="text-sm font-medium text-slate-300 mb-2 block">War Number</Label>
             <MemoizedSelect
               value={warNumber}
               onValueChange={setWarNumber}
@@ -744,15 +761,13 @@ export function WarVideoForm({
               disabled={isOffseason}
               contentClassName="max-h-60 overflow-y-auto"
             />
-
             {errors.warNumber && (
-              <p className="text-sm text-red-500 mt-1">{errors.warNumber}</p>
+              <p className="text-sm text-red-400 mt-2">{errors.warNumber}</p>
             )}
           </div>
 
           <div>
-            <Label htmlFor="warTier">War Tier</Label>
-
+            <Label htmlFor="warTier" className="text-sm font-medium text-slate-300 mb-2 block">War Tier</Label>
             <MemoizedSelect
               value={warTier}
               onValueChange={setWarTier}
@@ -761,77 +776,81 @@ export function WarVideoForm({
               required
               contentClassName="max-h-60 overflow-y-auto"
             />
-
             {errors.warTier && (
-              <p className="text-sm text-red-500 mt-1">{errors.warTier}</p>
+              <p className="text-sm text-red-400 mt-2">{errors.warTier}</p>
             )}
           </div>
           <div>
-            <Label htmlFor="battlegroup">Battlegroup</Label>
+            <Label htmlFor="battlegroup" className="text-sm font-medium text-slate-300 mb-2 block">Battlegroup</Label>
             <MemoizedSelect
-                value={battlegroup}
-                onValueChange={setBattlegroup}
-                placeholder="Select battlegroup..."
-                options={battlegroupOptions}
-                required
-                disabled={!!preFilledFights}
+              value={battlegroup}
+              onValueChange={setBattlegroup}
+              placeholder="Select battlegroup..."
+              options={battlegroupOptions}
+              required
+              disabled={!!preFilledFights}
             />
             {errors.battlegroup && (
-                <p className="text-sm text-red-500 mt-1">{errors.battlegroup}</p>
+              <p className="text-sm text-red-400 mt-2">{errors.battlegroup}</p>
             )}
           </div>
         </div>
       </div>
 
-      <div>
-        <Label htmlFor="playerInVideo">Player in Video</Label>
-        <MemoizedSelect
-          value={playerInVideoId}
-          onValueChange={setPlayerInVideoId}
-          placeholder="Select player..."
-          options={playerOptions}
-        />
-      </div>
+      {/* Additional Details Section */}
+      <div className="glass rounded-xl border border-slate-800/50 p-4 sm:p-6 space-y-6">
+        <div>
+          <Label htmlFor="playerInVideo" className="text-sm font-medium text-slate-300 mb-2 block">Player in Video</Label>
+          <MemoizedSelect
+            value={playerInVideoId}
+            onValueChange={setPlayerInVideoId}
+            placeholder="Select player..."
+            options={playerOptions}
+          />
+        </div>
 
-      <div>
-        <Label>Visibility</Label>
-        <RadioGroup
-          value={visibility}
-          onValueChange={handleVisibilityChange}
-          className="flex space-x-4 mt-2"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="public" id="public" />
-            <Label htmlFor="public">Public</Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="alliance" id="alliance" />
-            <Label htmlFor="alliance">Alliance Only</Label>
-          </div>
-        </RadioGroup>
-      </div>
+        <div>
+          <Label className="text-sm font-medium text-slate-300 mb-2 block">Visibility</Label>
+          <RadioGroup
+            value={visibility}
+            onValueChange={handleVisibilityChange}
+            className="flex space-x-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="public" id="public" />
+              <Label htmlFor="public" className="text-sm text-slate-300">Public</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="alliance" id="alliance" />
+              <Label htmlFor="alliance" className="text-sm text-slate-300">Alliance Only</Label>
+            </div>
+          </RadioGroup>
+        </div>
 
-      <div>
-        <Label htmlFor="description">Video Description (Optional)</Label>
-        <Textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Add any relevant details about the fight, prefights used, etc."
-        />
+        <div>
+          <Label htmlFor="description" className="text-sm font-medium text-slate-300 mb-2 block">Video Description (Optional)</Label>
+          <Textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Add any relevant details about the fight, prefights used, etc."
+            className="bg-slate-900/50 border-slate-700/50 min-h-[100px]"
+          />
+        </div>
       </div>
 
       {isSubmitting && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
-          <Label className="text-lg font-medium mb-4">{currentUpload}</Label>
-          <Progress value={uploadProgress} className="w-1/2" />
+        <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center z-20 rounded-2xl">
+          <Label className="text-xl font-semibold text-white mb-4">{currentUpload}</Label>
+          <Progress value={uploadProgress} className="w-1/2 h-2" />
+          <p className="text-sm text-slate-400 mt-4">{uploadProgress}% complete</p>
         </div>
       )}
 
       <Button
         type="submit"
         disabled={isSubmitDisabled()}
-        className="bg-gradient-to-r from-sky-500 to-indigo-500 text-white hover:from-sky-600 hover:to-indigo-600"
+        className="w-full bg-gradient-to-r from-sky-500 to-indigo-500 text-white hover:from-sky-600 hover:to-indigo-600 shadow-lg shadow-sky-500/25 hover:shadow-sky-500/40 transition-all text-base py-6"
       >
         {isSubmitting ? "Uploading..." : "Upload Video(s)"}
       </Button>

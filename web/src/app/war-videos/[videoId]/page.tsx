@@ -24,6 +24,7 @@ export default async function WarVideoPage(props: any) {
       submittedBy: true,
       fights: {
         include: {
+          war: true,
           attacker: {
             include: {
               abilities: {

@@ -7,28 +7,31 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { getChampionImageUrl } from '@/lib/championHelper';
-import { WarNode, Player, ChampionClass } from '@prisma/client';
+import { WarNode, Player, ChampionClass, War } from '@prisma/client';
 import { Check, Trash, Swords, Shield, Diamond } from 'lucide-react';
 import { getChampionClassColors } from '@/lib/championClassHelper';
 import { cn } from '@/lib/utils';
-import { Champion, ChampionImages } from '@/types/champion';
+import { Champion } from '@/types/champion';
 
-interface WarVideo {
+interface WarFight {
   id: string;
-  youtubeUrl: string;
-  status: string;
-  visibility: string;
-  season: number;
-  warNumber: number | null;
-  warTier: number;
   death: boolean;
   attacker: Champion;
   defender: Champion;
   prefightChampions: Champion[];
   node: WarNode;
   player: Player | null;
+  war: War;
+}
+
+interface WarVideo {
+  id: string;
+  url: string | null;
+  status: string;
+  visibility: string;
   submittedBy: Player;
   createdAt: Date;
+  fights: WarFight[];
 }
 
 interface WarVideoDisplayProps {
@@ -36,7 +39,7 @@ interface WarVideoDisplayProps {
   isAdmin: boolean;
 }
 
-function getYouTubeVideoId(url: string): string | null {
+function getYouTubeVideoId(url: string | null): string | null {
   if (!url) return null;
 
   let videoId: string | null = null;
@@ -75,7 +78,23 @@ function getYouTubeVideoId(url: string): string | null {
 export default function WarVideoDisplay({ warVideo, isAdmin }: WarVideoDisplayProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const videoId = getYouTubeVideoId(warVideo.youtubeUrl);
+  const videoId = getYouTubeVideoId(warVideo.url);
+
+  // Get the first fight for display (assuming single fight per video for now)
+  const fight = warVideo.fights[0];
+
+  if (!fight) {
+    return (
+      <div className="container mx-auto p-4 max-w-4xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>No Fight Data</CardTitle>
+            <CardDescription>This video has no associated fight data.</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   const handleApprove = async () => {
     const response = await fetch('/api/admin/war-videos/approve', {
@@ -113,13 +132,13 @@ export default function WarVideoDisplay({ warVideo, isAdmin }: WarVideoDisplayPr
     <div className="container mx-auto p-4 max-w-4xl">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">{`MCOC AW: S${warVideo.season} W${warVideo.warNumber || '?'} T${warVideo.warTier} - ${warVideo.attacker.name} vs ${warVideo.defender.name}`}</CardTitle>
+          <CardTitle className="text-2xl">{`MCOC AW: S${fight.war.season} W${fight.war.warNumber || 'Offseason'} T${fight.war.warTier} - ${fight.attacker.name} vs ${fight.defender.name}`}</CardTitle>
           <CardDescription>
             Submitted by {warVideo.submittedBy.ingameName} on {new Date(warVideo.createdAt).toISOString().split('T')[0]}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {isAdmin && warVideo.status === 'PENDING' && (
+          {isAdmin && warVideo.status === 'UPLOADED' && (
             <div className="flex gap-4 p-4 bg-yellow-900/20 border border-yellow-700 rounded-lg">
               <Button onClick={handleApprove} className="bg-green-600 hover:bg-green-700 text-white">
                 <Check className="mr-2 h-4 w-4" /> Approve
@@ -147,26 +166,26 @@ export default function WarVideoDisplay({ warVideo, isAdmin }: WarVideoDisplayPr
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="flex flex-col items-center justify-center gap-4 p-4 border rounded-lg bg-muted/20 h-full">
-                <div className="flex flex-col items-center gap-3">
-                  <h3 className="flex items-center gap-2 text-lg font-semibold">
-                    <Swords className="h-6 w-6" /> Attacker
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <Image src={getChampionImageUrl(warVideo.attacker.images as any, '128', 'primary')} alt={warVideo.attacker.name} width={50} height={50} className={cn("rounded-full", getChampionClassColors(warVideo.attacker.class as ChampionClass).border)} />
-                    <span className={cn("font-semibold", getChampionClassColors(warVideo.attacker.class as ChampionClass).text)}>{warVideo.attacker.name}</span>
-                  </div>
-                </div>
-                <div className="font-bold text-2xl text-muted-foreground">VS</div>
-                <div className="flex flex-col items-center gap-3">
-                  <h3 className="flex items-center gap-2 text-lg font-semibold text-blue-500">
-                    <Shield className="h-6 w-6" /> Defender
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <Image src={getChampionImageUrl(warVideo.defender.images as any, '128', 'primary')} alt={warVideo.defender.name} width={50} height={50} className={cn("rounded-full", getChampionClassColors(warVideo.defender.class as ChampionClass).border)} />
-                    <span className={cn("font-semibold", getChampionClassColors(warVideo.defender.class as ChampionClass).text)}>{warVideo.defender.name}</span>
-                  </div>
+              <div className="flex flex-col items-center gap-3">
+                <h3 className="flex items-center gap-2 text-lg font-semibold">
+                  <Swords className="h-6 w-6" /> Attacker
+                </h3>
+                <div className="flex items-center gap-2">
+                  <Image src={getChampionImageUrl(fight.attacker.images as any, '128', 'primary')} alt={fight.attacker.name} width={50} height={50} className={cn("rounded-full", getChampionClassColors(fight.attacker.class as ChampionClass).border)} />
+                  <span className={cn("font-semibold", getChampionClassColors(fight.attacker.class as ChampionClass).text)}>{fight.attacker.name}</span>
                 </div>
               </div>
+              <div className="font-bold text-2xl text-muted-foreground">VS</div>
+              <div className="flex flex-col items-center gap-3">
+                <h3 className="flex items-center gap-2 text-lg font-semibold text-blue-500">
+                  <Shield className="h-6 w-6" /> Defender
+                </h3>
+                <div className="flex items-center gap-2">
+                  <Image src={getChampionImageUrl(fight.defender.images as any, '128', 'primary')} alt={fight.defender.name} width={50} height={50} className={cn("rounded-full", getChampionClassColors(fight.defender.class as ChampionClass).border)} />
+                  <span className={cn("font-semibold", getChampionClassColors(fight.defender.class as ChampionClass).text)}>{fight.defender.name}</span>
+                </div>
+              </div>
+            </div>
 
             <div className="space-y-4">
               <div className="p-4 border rounded-lg bg-muted/20">
@@ -174,31 +193,31 @@ export default function WarVideoDisplay({ warVideo, isAdmin }: WarVideoDisplayPr
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-center mb-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Season</p>
-                    <p className="font-semibold">{warVideo.season}</p>
+                    <p className="font-semibold">{fight.war.season}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">War</p>
-                    <p className="font-semibold">{warVideo.warNumber || 'N/A'}</p>
+                    <p className="font-semibold">{fight.war.warNumber || 'Offseason'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Tier</p>
-                    <p className="font-semibold">{warVideo.warTier}</p>
+                    <p className="font-semibold">{fight.war.warTier}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Node</p>
-                    <p className="font-semibold">{warVideo.node.nodeNumber}</p>
+                    <p className="font-semibold">{fight.node.nodeNumber}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Player</p>
-                    <p className="font-semibold truncate">{warVideo.player?.ingameName || 'N/A'}</p>
+                    <p className="font-semibold truncate">{fight.player?.ingameName || 'N/A'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Died?</p>
-                    <p className="font-semibold">{warVideo.death ? 'Yes' : 'No'}</p>
+                    <p className="font-semibold">{fight.death ? 'Yes' : 'No'}</p>
                   </div>
                 </div>
-                 <div className="flex justify-center gap-2">
-                  <Badge variant={warVideo.status === 'APPROVED' ? 'default' : 'secondary'}>{warVideo.status}</Badge>
+                <div className="flex justify-center gap-2">
+                  <Badge variant={warVideo.status === 'PUBLISHED' ? 'default' : 'secondary'}>{warVideo.status}</Badge>
                   <Badge variant="outline">{warVideo.visibility}</Badge>
                 </div>
               </div>
@@ -207,8 +226,8 @@ export default function WarVideoDisplay({ warVideo, isAdmin }: WarVideoDisplayPr
                   <Diamond className="h-5 w-5 text-muted-foreground" /> Prefight Champions
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {warVideo.prefightChampions.length > 0 ? (
-                    warVideo.prefightChampions.map(champ => (
+                  {fight.prefightChampions.length > 0 ? (
+                    fight.prefightChampions.map(champ => (
                       <Badge key={champ.id} variant="outline" className="flex items-center gap-2">
                         <Image src={getChampionImageUrl(champ.images as any, '64', 'primary')} alt={champ.name} width={20} height={20} className="rounded-full" />
                         {champ.name}
