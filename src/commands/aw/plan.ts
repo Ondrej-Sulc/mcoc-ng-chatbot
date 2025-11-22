@@ -223,7 +223,7 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    const assignmentsByNode = new Map<string, typeof data.assignments>();
+    const assignmentsByNode = new Map<string, { node: string; formatted: string, raw: any }[]>();
     if (data?.assignments) {
       for (const a of data.assignments) {
         if (!assignmentsByNode.has(a.node)) {
