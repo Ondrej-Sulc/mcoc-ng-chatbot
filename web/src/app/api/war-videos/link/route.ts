@@ -74,7 +74,6 @@ export async function POST(req: NextRequest) {
               allianceId: allianceId,
           },
       });
-      warId = war.id;
 
       // 3.4. Create WarFights
       const createdFights = await Promise.all(newFights.map(async (fight: any) => {
@@ -87,6 +86,9 @@ export async function POST(req: NextRequest) {
                   defenderId: parseInt(fight.defenderId),
                   death: fight.death,
                   battlegroup: parsedBattlegroup,
+                  prefightChampions: fight.prefightChampionIds && fight.prefightChampionIds.length > 0 ? {
+                    connect: fight.prefightChampionIds.map((id: string) => ({ id: parseInt(id) }))
+                  } : undefined,
               }
           });
       }));
@@ -94,10 +96,14 @@ export async function POST(req: NextRequest) {
 
     } else if (existingFightIdsJson) {
       // Logic for linking to existing fights (from pre-filled plans)
-      try {
-        fightIdsToLink = JSON.parse(existingFightIdsJson);
-      } catch (e) {
-        return NextResponse.json({ error: 'Invalid existingFightIds data format.' }, { status: 400 });
+      if (Array.isArray(existingFightIdsJson)) {
+        fightIdsToLink = existingFightIdsJson;
+      } else {
+        try {
+          fightIdsToLink = JSON.parse(existingFightIdsJson);
+        } catch (e) {
+          return NextResponse.json({ error: 'Invalid existingFightIds data format.' }, { status: 400 });
+        }
       }
       if (!Array.isArray(fightIdsToLink) || fightIdsToLink.length === 0) {
         return NextResponse.json({ error: 'existingFightIds must be a non-empty array.' }, { status: 400 });

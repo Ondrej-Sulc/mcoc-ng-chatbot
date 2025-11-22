@@ -223,25 +223,53 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
       return;
     }
 
-    for (const assignment of data?.assignments || []) {
-      const attacker = championMap.get(assignment.raw.attackerName.toLowerCase());
-      const defender = championMap.get(assignment.raw.defenderName.toLowerCase());
-      const node = nodeMap.get(assignment.raw.node);
+    const assignmentsByNode = new Map<string, typeof data.assignments>();
+    if (data?.assignments) {
+      for (const a of data.assignments) {
+        if (!assignmentsByNode.has(a.node)) {
+          assignmentsByNode.set(a.node, []);
+        }
+        assignmentsByNode.get(a.node)!.push(a);
+      }
+    }
+
+    for (const [_, assignments] of assignmentsByNode) {
+      // We assume the main fight details (Attacker, Defender) are consistent across rows for the same node
+      const primaryAssignment = assignments[0];
+      const attacker = championMap.get(
+        primaryAssignment.raw.attackerName.toLowerCase()
+      );
+      const defender = championMap.get(
+        primaryAssignment.raw.defenderName.toLowerCase()
+      );
+      const node = nodeMap.get(primaryAssignment.raw.node);
 
       if (attacker && defender && node) {
+        // Aggregate prefight champions from all assignments for this node
+        const prefightIds = assignments
+          .map((a) => a.raw.prefightChampion)
+          .filter((name) => name) // filter out empty strings
+          .map((name) => championMap.get(name.toLowerCase())?.id)
+          .filter((id): id is number => id !== undefined);
+        
+        const uniquePrefightIds = [...new Set(prefightIds)];
+
         await prisma.warFight.upsert({
           where: {
             warId_playerId_nodeId: {
               warId: war.id,
               playerId: dbPlayer.id,
               nodeId: node.id,
-            }
+            },
           },
           update: {
             attackerId: attacker.id,
             defenderId: defender.id,
-            death: assignment.raw.deaths === "1",
+            death: assignments.some((a) => a.raw.deaths === "1"),
             battlegroup,
+            prefightChampions: {
+              set: uniquePrefightIds.map((id) => ({ id })),
+            },
           },
           create: {
             warId: war.id,
@@ -249,9 +277,12 @@ export async function handlePlan(interaction: ChatInputCommandInteraction) {
             nodeId: node.id,
             attackerId: attacker.id,
             defenderId: defender.id,
-            death: assignment.raw.deaths === "1",
+            death: assignments.some((a) => a.raw.deaths === "1"),
             battlegroup,
-          }
+            prefightChampions: {
+              connect: uniquePrefightIds.map((id) => ({ id })),
+            },
+          },
         });
       }
     }

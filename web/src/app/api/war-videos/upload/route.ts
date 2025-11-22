@@ -125,6 +125,9 @@ export async function POST(req: NextRequest) {
             defenderId: parseInt(fight.defenderId),
             death: fight.death,
             battlegroup: parsedBattlegroup,
+            prefightChampions: fight.prefightChampionIds && fight.prefightChampionIds.length > 0 ? {
+              connect: fight.prefightChampionIds.map((id: string) => ({ id: parseInt(id) }))
+            } : undefined,
           }
         });
       }));
